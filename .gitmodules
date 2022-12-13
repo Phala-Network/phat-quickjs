@@ -1,0 +1,3 @@
+[submodule "qjs-sys"]
+	path = qjs-sys
+	url = https://github.com/Phala-Network/qjs-sys.git
