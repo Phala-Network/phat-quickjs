@@ -10,7 +10,7 @@ ink_metadata = { version = "3.4.0", default-features = false, features = ["deriv
 ink_env = { version = "3.4.0", default-features = false }
 ink_storage = { version = "3.4.0", default-features = false }
 ink_lang = { version = "3.4.0", default-features = false }
-ink_allocator = { version = "3.4.0", default-features = false, features = ["wee-alloc"]}
+# ink_allocator = { version = "3.4.0", default-features = false, features = ["wee-alloc"]}
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
@@ -40,3 +40,7 @@ std = [
     "pink-extension/std",
 ]
 ink-as-dependency = []
+
+[patch.crates-io]
+ink_allocator = { git = "https://github.com/kvinwang/ink.git", branch = "pink" }
+

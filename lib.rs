@@ -24,8 +24,8 @@ mod polyfill {
 
 #[ink::contract]
 mod qjs {
-    use pink_extension as pink;
     use pink::info;
+    use pink_extension as pink;
 
     use alloc::string::String;
 
