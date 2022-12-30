@@ -43,20 +43,27 @@ mod qjs {
     use pink_extension as pink;
 
     use alloc::string::String;
+    use alloc::vec::Vec;
 
     #[ink(storage)]
-    pub struct JsTest {}
+    pub struct QuickJS {}
 
-    impl JsTest {
+    impl QuickJS {
         #[ink(constructor)]
         pub fn default() -> Self {
-            JsTest {}
+            QuickJS {}
         }
 
         #[ink(message)]
         pub fn eval(&self, js: String) -> Result<String, String> {
             info!("evaluating js [{js}]");
             qjs_sys::eval(&js)
+        }
+
+        #[ink(message)]
+        pub fn eval_bin(&self, js: Vec<u8>) -> Result<String, String> {
+            info!("evaluating compiled js, code len: {}", js.len());
+            qjs_sys::eval_bin(&js)
         }
     }
 }
