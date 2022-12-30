@@ -26,6 +26,15 @@ mod polyfill {
         }
         len
     }
+
+    #[no_mangle]
+    extern "C" fn __pink_clock_time_get(_id: u32, _precision: u64, retptr0: *mut u64) -> u16 {
+        let t = pink_extension::ext().untrusted_millis_since_unix_epoch() * 1_000_000;
+        unsafe {
+            *retptr0 = t;
+        }
+        0
+    }
 }
 
 #[ink::contract]
