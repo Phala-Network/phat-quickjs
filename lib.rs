@@ -44,6 +44,26 @@ mod qjs {
 
     use alloc::string::String;
     use alloc::vec::Vec;
+    pub use qjs_sys::JsCode;
+    use scale::{Decode, Encode};
+
+    #[derive(Debug, Encode, Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub enum Output {
+        String(String),
+        Bytes(Vec<u8>),
+        Undefined,
+    }
+
+    impl From<qjs_sys::Output> for Output {
+        fn from(output: qjs_sys::Output) -> Self {
+            match output {
+                qjs_sys::Output::String(s) => Output::String(s),
+                qjs_sys::Output::Bytes(b) => Output::Bytes(b),
+                qjs_sys::Output::Undefined => Output::Undefined,
+            }
+        }
+    }
 
     #[ink(storage)]
     pub struct QuickJS {}
@@ -55,15 +75,15 @@ mod qjs {
         }
 
         #[ink(message)]
-        pub fn eval(&self, js: String) -> Result<String, String> {
-            info!("evaluating js [{js}]");
-            qjs_sys::eval(&js)
+        pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
+            info!("evaluating js, code len: {}", js.len());
+            qjs_sys::eval(JsCode::Source(&js), &args).map(Into::into)
         }
 
         #[ink(message)]
-        pub fn eval_bin(&self, js: Vec<u8>) -> Result<String, String> {
-            info!("evaluating compiled js, code len: {}", js.len());
-            qjs_sys::eval_bin(&js)
+        pub fn eval_bytecode(&self, js: Vec<u8>, args: Vec<String>) -> Result<Output, String> {
+            info!("evaluating js bytecode, code len: {}", js.len());
+            qjs_sys::eval(JsCode::Bytecode(&js), &args).map(Into::into)
         }
     }
 }
