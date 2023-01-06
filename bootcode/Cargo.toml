@@ -1,0 +1,10 @@
+[package]
+name = "bootcode"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[build-dependencies]
+qjs-sys = { path = "../qjs-sys" }
+

@@ -17,6 +17,9 @@ serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 qjs-sys = { path = "qjs-sys" }
 pink-extension = { version = "0.2", default-features = false }
+bootcode = { path = "bootcode" }
+cstr = "0.2.11"
+indoc = "1.0.8"
 
 [lib]
 name = "qjs"
