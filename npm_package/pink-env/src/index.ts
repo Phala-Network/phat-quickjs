@@ -30,5 +30,7 @@ declare global {
     /** Delegate call into a piece of code */
     invokeContractDelegate(args: DelegateCallArgs): Uint8Array;
   };
+  /** The input arguments passed to the contract eval */
+  const scriptArgs: Array<String>;
 }
 export {};
