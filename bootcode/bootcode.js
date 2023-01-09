@@ -1,22 +1,26 @@
 (function (g) {
     function toB(v) {
-        if (!typeof v === 'string') {
+        if (typeof v != 'string') {
             v = new Uint8Array(v);
         }
         return v;
     }
     g.pink = {
         invokeContract: (c) => {
-            c.callee = toB(c.callee);
-            c.input = toB(c.input);
-            c.gasLimit = c.gasLimit || 0;
-            c.value = c.value || 0;
-            return __hostCall(0, c);
+            return __hostCall(0, {
+                callee: toB(c.callee),
+                selector: c.selector,
+                input: toB(c.input),
+                gasLimit: c.gasLimit || 0,
+                value: c.value || 0,
+            });
         },
         invokeContractDelegate: (c) => {
-            c.codeHash = toB(c.codeHash);
-            c.input = toB(c.input);
-            return __hostCall(1, c);
+            return __hostCall(1, {
+                codeHash: toB(c.codeHash),
+                selector: c.selector,
+                input: toB(c.input),
+            });
         },
     };
 }(globalThis))
