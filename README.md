@@ -98,15 +98,17 @@ Then it can make delegate calls to the uploaded qjs code:
 ```
 
 ## Call other contracts in JavaScript
+
 There are [two extra APIs](./npm_package/pink-env/src/index.ts) in this port of QuickJS that support calling other contracts in JavaScript.
 For example:
 
 ```js
 // Delegate calling
 const delegateOutput = pink.invokeContractDelegate({
-  codeHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  codeHash:
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
   selector: 0xdeadbeef,
-  input: "0x00"
+  input: "0x00",
 });
 
 // Instance calling
@@ -115,6 +117,40 @@ const contractOutput = pink.invokeContract({
   input: "0x00",
   selector: 0xdeadbeef,
   gasLimit: 0n,
-  value: 0n
+  value: 0n,
 });
+```
+
+## Send HTTP request in JavaScript
+
+It can also send HTTP request in the JS environment. However, the API is sync rather than async. This is different from other JavaScript engines.
+For example:
+
+```js
+const response = pink.httpReqeust({
+  url: "https://httpbin.org/ip",
+  method: "GET",
+  returnTextBody: true,
+});
+console.log(response.body);
+```
+
+## Error handling
+Host calls would raise an exception if any error is encountered.
+For example, if we pass an invalid method to the API:
+```js
+try {
+  const response = pink.httpReqeust({
+    url: "https://httpbin.org/ip",
+    method: "GET",
+    returnTextBody: true,
+  });
+  console.log(response.body);
+} catch (err) {
+  console.log("Some error ocurred:", err);
+}
+```
+It would send an error to the logserver:
+```
+JS: Some error ocurred: TypeError: invalid value for field 'method'
 ```
