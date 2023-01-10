@@ -114,7 +114,7 @@ const contractOutput = pink.invokeContract({
   callee: "0x0000000000000000000000000000000000000000000000000000000000000000",
   input: "0x00",
   selector: 0xdeadbeef,
-  gasLimit: 0,
+  gasLimit: 0n,
   value: 0n
 });
 ```
