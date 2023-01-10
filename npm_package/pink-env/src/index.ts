@@ -5,7 +5,7 @@ type Headers = { [key: string]: string };
 
 declare global {
   /** The input arguments passed to the contract eval */
-  const scriptArgs: Array<string>;
+  const scriptArgs: string[];
   /** The extension object for pink contract */
   const pink: {
     /**
@@ -19,8 +19,8 @@ declare global {
      */
     invokeContract(args: {
       callee: Bytes;
-      gasLimit: number | bigint;
-      value: number | bigint;
+      gasLimit?: number | bigint;
+      value?: number | bigint;
       selector: number;
       input: Bytes;
     }): Uint8Array;
@@ -51,10 +51,10 @@ declare global {
      */
     httpRequest(args: {
       url: string;
-      method: string;
-      headers: Headers;
-      body: Uint8Array | string;
-      returnTextBody: boolean;
+      method?: string;
+      headers?: Headers;
+      body?: Uint8Array | string;
+      returnTextBody?: boolean;
     }): {
       statusCode: number;
       reasonPhrase: string;
