@@ -5,9 +5,9 @@ type Headers = { [key: string]: string };
 
 declare global {
   /** The input arguments passed to the contract eval */
-  const scriptArgs: string[];
+  var scriptArgs: string[];
   /** The extension object for pink contract */
-  const pink: {
+  var pink: {
     /**
      * Call into a contract.
      * @param {Bytes} args.callee - The address of the contract to be called.
