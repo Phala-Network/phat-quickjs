@@ -136,13 +136,13 @@ console.log(response.body);
 ```
 
 ## Error handling
-Host calls would raise an exception if any error is encountered.
+Host calls would throw an exception if any error is encountered.
 For example, if we pass an invalid method to the API:
 ```js
 try {
   const response = pink.httpReqeust({
     url: "https://httpbin.org/ip",
-    method: "GET",
+    method: 42,
     returnTextBody: true,
   });
   console.log(response.body);
