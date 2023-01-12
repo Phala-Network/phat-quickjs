@@ -1,8 +1,17 @@
+use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec::Vec;
+use pink::chain_extension::HttpResponse;
+
 use core::ffi::{c_int, c_uchar};
 use pink_extension::{error, info};
 use qjs_sys::c;
-use qjs_sys::convert::{js_val_from_bytes, js_val_into_bytes, js_val_into_u128};
+use qjs_sys::convert::{
+    js_object_get_field as get_field, js_object_get_field_or_default as get_field_or_default,
+    js_val_from_bytes, serialize_value, JsValue,
+};
+
+use pink_extension as pink;
 
 use crate::contract_call;
 
@@ -49,17 +58,12 @@ extern "C" fn __pink_clock_time_get(_id: u32, _precision: u64, retptr0: *mut u64
     0
 }
 
-macro_rules! cs {
-    ($s: literal) => {
-        cstr::cstr!($s).as_ptr()
-    };
-}
-
 #[no_mangle]
 fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> c::JSValue {
     match id {
         0 => host_invoke_contract(ctx, args).into_js_value(ctx),
         1 => host_invoke_contract_delegate(ctx, args).into_js_value(ctx),
+        2 => host_http_request(ctx, args).into_js_value(ctx),
         _ => {
             error!("JS: host call with unknown id: {id}");
             qjs_sys::throw_type_error(ctx, &alloc::format!("Invalid host call id: {id}"));
@@ -76,18 +80,11 @@ fn host_invoke_contract(
         return Err("Invoking contract without arguments".into());
     };
 
-    let callee = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("callee")) };
-    let callee: [u8; 32] = js_val_into_bytes(ctx, callee)?
-        .try_into()
-        .or(Err("invalid callee"))?;
-    let gas_limit = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("gasLimit")) };
-    let gas_limit = js_val_into_u128(ctx, gas_limit)? as u64;
-    let transferred_value = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("value")) };
-    let transferred_value = js_val_into_u128(ctx, transferred_value)?;
-    let selector = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("selector")) };
-    let selector = js_val_into_u128(ctx, selector)? as u32;
-    let input = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("input")) };
-    let input = js_val_into_bytes(ctx, input)?;
+    let callee: [u8; 32] = get_field(ctx, *config, "callee")?;
+    let gas_limit: u64 = get_field_or_default(ctx, *config, "gasLimit")?;
+    let transferred_value: u128 = get_field_or_default(ctx, *config, "value")?;
+    let selector: u32 = get_field(ctx, *config, "selector")?;
+    let input: Vec<u8> = get_field(ctx, *config, "input")?;
 
     let output = contract_call::invoke_contract(
         callee.into(),
@@ -108,17 +105,53 @@ fn host_invoke_contract_delegate(
         return Err("Invoking contract delegate without arguments".into());
     };
 
-    let delegate = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("codeHash")) };
-    let delegate: [u8; 32] = js_val_into_bytes(ctx, delegate)?
-        .try_into()
-        .or(Err("invalid delegate"))?;
-    let selector = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("selector")) };
-    let selector = js_val_into_u128(ctx, selector)? as u32;
-    let input = unsafe { c::JS_GetPropertyStr(ctx, *config, cs!("input")) };
-    let input = js_val_into_bytes(ctx, input)?;
+    let delegate: [u8; 32] = get_field(ctx, *config, "codeHash")?;
+    let selector: u32 = get_field(ctx, *config, "selector")?;
+    let input: Vec<u8> = get_field(ctx, *config, "input")?;
 
     let output = contract_call::invoke_contract_delegate(delegate.into(), selector, &input)
         .map_err(|err| alloc::format!("{:?}", err))?;
 
     Ok(js_val_from_bytes(ctx, &output))
+}
+
+fn host_http_request(
+    ctx: *mut c::JSContext,
+    args: &[c::JSValueConst],
+) -> Result<c::JSValue, String> {
+    let Some(config) = args.get(0) else {
+        return Err("Invoking contract without arguments".into());
+    };
+
+    let url: String = get_field(ctx, *config, "url")?;
+    let method: String = get_field(ctx, *config, "method")?;
+    let headers: BTreeMap<String, String> = get_field_or_default(ctx, *config, "headers")?;
+    let body: Vec<u8> = get_field_or_default(ctx, *config, "body")?;
+    let return_text_body: bool = get_field_or_default(ctx, *config, "returnTextBody")?;
+
+    let HttpResponse {
+        status_code,
+        reason_phrase,
+        headers,
+        body,
+    } = pink::http_req!(&method, &url, body, headers.into_iter().collect());
+    let status_code = JsValue::Int(status_code as _);
+    let reason_phrase = JsValue::String(reason_phrase);
+    let headers: BTreeMap<String, JsValue> = headers
+        .into_iter()
+        .map(|(k, v)| (k, JsValue::String(v)))
+        .collect();
+    let headers = JsValue::Object(headers);
+    let body = if return_text_body {
+        JsValue::String(String::from_utf8_lossy(&body).into())
+    } else {
+        JsValue::Bytes(body)
+    };
+    let mut response_object: BTreeMap<String, JsValue> = Default::default();
+    response_object.insert("statusCode".into(), status_code);
+    response_object.insert("reasonPhrase".into(), reason_phrase);
+    response_object.insert("headers".into(), headers);
+    response_object.insert("body".into(), body);
+
+    Ok(serialize_value(ctx, JsValue::Object(response_object))?)
 }
