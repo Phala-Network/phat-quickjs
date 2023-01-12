@@ -1,0 +1,30 @@
+{
+  "name": "@kvinwang/pink-env",
+  "version": "1.0.2",
+  "description": "The js environment accessing of Phala's Phat contract.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "test",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phala-Network/phat-quickjs.git"
+  },
+  "keywords": [
+    "pink",
+    "phat",
+    "contract",
+    "ink"
+  ],
+  "author": "Phala Network",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Phala-Network/phat-quickjs/issues"
+  },
+  "homepage": "https://github.com/Phala-Network/phat-quickjs",
+  "devDependencies": {
+    "typescript": "^4.9.4"
+  }
+}
