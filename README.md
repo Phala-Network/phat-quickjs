@@ -16,7 +16,7 @@ A phat contract that ports the QuickJS engine to pink environment.
 ### Build commands
 
 ```bash
-git clone https://github.com/Phala-Network/phat-quickjs.git
+git clone https://github.com/Phala-Network/phat-quickjs.git --recursive
 cd phat-quickjs
 make
 ```
