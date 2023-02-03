@@ -29,4 +29,5 @@
             });
         },
     };
+    g.process = { argv: ["/node", ...scriptArgs] }
 }(globalThis))
