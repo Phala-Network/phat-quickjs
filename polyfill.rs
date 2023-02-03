@@ -72,6 +72,16 @@ fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -
     }
 }
 
+#[no_mangle]
+extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
+    let bytes = pink::ext().getrandom(nbytes);
+    if bytes.len() != nbytes as usize {
+        panic!("Failed to get random bytes");
+    }
+    let buf = unsafe { core::slice::from_raw_parts_mut(pbuf, bytes.len() ) };
+    buf.copy_from_slice(&bytes);
+}
+
 fn host_invoke_contract(
     ctx: *mut c::JSContext,
     args: &[c::JSValueConst],
