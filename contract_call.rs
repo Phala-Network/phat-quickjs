@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use ink_env::{call, Result};
+use ink::env::{call, Result};
 use pink_extension::PinkEnvironment;
 use scale::{Decode, Encode};
 
@@ -31,30 +31,29 @@ impl<T: AsRef<[u8]>> Encode for RawBytes<T> {
 }
 
 pub(crate) fn invoke_contract_delegate(
-    delegate: ink_env::Hash,
+    delegate: ink::primitives::Hash,
     selector: u32,
     input: &[u8],
 ) -> Result<Vec<u8>> {
     call::build_call::<PinkEnvironment>()
-        .call_type(call::DelegateCall::new().code_hash(delegate))
+        .call_type(call::DelegateCall::new(delegate))
         .exec_input(
             call::ExecutionInput::new(call::Selector::new(selector.to_be_bytes()))
                 .push_arg(RawBytes(input)),
         )
         .returns::<RawBytes<Vec<u8>>>()
-        .fire()
+        .try_invoke()
         .map(|x| x.0)
 }
 
 pub(crate) fn invoke_contract(
-    callee: ink_env::AccountId,
+    callee: ink::primitives::AccountId,
     gas_limit: u64,
     transferred_value: u128,
     selector: u32,
     input: &[u8],
-) -> Result<Vec<u8>> {
-    let call_type = call::Call::new()
-        .callee(callee)
+) -> Result<ink::MessageResult<Vec<u8>>> {
+    let call_type = call::Call::new(callee)
         .gas_limit(gas_limit)
         .transferred_value(transferred_value);
     call::build_call::<PinkEnvironment>()
@@ -64,6 +63,6 @@ pub(crate) fn invoke_contract(
                 .push_arg(RawBytes(input)),
         )
         .returns::<RawBytes<Vec<u8>>>()
-        .fire()
-        .map(|x| x.0)
+        .try_invoke()
+        .map(|x| x.map(|x| x.0))
 }
