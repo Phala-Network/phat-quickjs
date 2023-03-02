@@ -1,7 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![feature(default_alloc_error_handler)]
+
 extern crate alloc;
 
-use ink_lang as ink;
+#[cfg(not(feature = "std"))]
+#[global_allocator]
+static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 pub use qjs::*;
 
@@ -15,9 +19,9 @@ mod qjs {
 
     use alloc::string::String;
     use alloc::vec::Vec;
+    use bootcode::BOOT_CODE;
     pub use qjs_sys::JsCode;
     use scale::{Decode, Encode};
-    use bootcode::BOOT_CODE;
 
     #[derive(Debug, Encode, Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]

@@ -35,8 +35,7 @@ impl<T: AsRef<str>> IntoJsValue for Result<c::JSValue, T> {
 extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usize {
     // TODO: a more robust implementation.
     let bin = unsafe { core::slice::from_raw_parts(buf, len) };
-    let mut message = core::str::from_utf8(bin)
-        .unwrap_or("<Invalid UTF-8 string>");
+    let mut message = core::str::from_utf8(bin).unwrap_or("<Invalid UTF-8 string>");
     if message.ends_with('\n') {
         let new_len = message.len() - 1;
         message = unsafe { message.get_unchecked(0..new_len) };
@@ -78,7 +77,7 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
     if bytes.len() != nbytes as usize {
         panic!("Failed to get random bytes");
     }
-    let buf = unsafe { core::slice::from_raw_parts_mut(pbuf, bytes.len() ) };
+    let buf = unsafe { core::slice::from_raw_parts_mut(pbuf, bytes.len()) };
     buf.copy_from_slice(&bytes);
 }
 
@@ -103,6 +102,7 @@ fn host_invoke_contract(
         selector,
         &input,
     )
+    .map_err(|err| alloc::format!("{:?}", err))?
     .map_err(|err| alloc::format!("{:?}", err))?;
     Ok(js_val_from_bytes(ctx, &output))
 }

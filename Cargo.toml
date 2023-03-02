@@ -4,19 +4,19 @@ version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
+[profile.release]
+debug-assertions = false
+overflow-checks = false
+
 [dependencies]
-ink_primitives = { version = "3.4.0", default-features = false }
-ink_metadata = { version = "3.4.0", default-features = false, features = ["derive"], optional = true }
-ink_env = { version = "3.4.0", default-features = false }
-ink_storage = { version = "3.4.0", default-features = false }
-ink_lang = { version = "3.4.0", default-features = false }
-# ink_allocator = { version = "3.4.0", default-features = false, features = ["wee-alloc"]}
+ink = { version = "4", default-features = false, features = ["no-allocator"]}
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
+dlmalloc = { version = "0.2.4", default-features = false, features = ["global"] }
 qjs-sys = { path = "qjs-sys" }
-pink-extension = { version = "0.2", default-features = false }
+pink-extension = { version = "0.4", default-features = false }
 bootcode = { path = "bootcode" }
 
 [lib]
@@ -30,10 +30,7 @@ crate-type = [
 [features]
 default = ["std"]
 std = [
-    "ink_metadata/std",
-    "ink_env/std",
-    "ink_storage/std",
-    "ink_primitives/std",
+    "ink/std",
     "scale/std",
     "scale-info/std",
     "serde/std",
@@ -41,7 +38,3 @@ std = [
     "pink-extension/std",
 ]
 ink-as-dependency = []
-
-[patch.crates-io]
-ink_allocator = { git = "https://github.com/kvinwang/ink.git", branch = "pink" }
-
