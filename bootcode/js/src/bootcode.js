@@ -31,3 +31,4 @@
     };
     g.process = { argv: ["/node", ...scriptArgs] }
 }(globalThis))
+export default {};
