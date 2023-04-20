@@ -10,6 +10,7 @@ import {
   decode,
 } from "./scale";
 
+// TODO: lazy load the SCALE module
 (function (g) {
   g.pink.SCALE = {
     parseTypes,
