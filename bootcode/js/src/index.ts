@@ -1,4 +1,4 @@
-import "./bootcode";
+import "./pink";
 import "./polyfills";
 import {
   parseTypes,
