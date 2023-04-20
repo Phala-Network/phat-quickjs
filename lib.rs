@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(default_alloc_error_handler)]
 
 extern crate alloc;
 
