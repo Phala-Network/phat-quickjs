@@ -3,10 +3,127 @@ type Bytes = Uint8Array | string;
 
 type Headers = { [key: string]: string };
 
+declare const _opaqueBrand: unique symbol;
+
+/**
+ * Represents a registry of types.
+ * @typedef TypeRegistry
+ */
+export type TypeRegistry = {
+  [_opaqueBrand]: "TypeRegistry";
+};
+
+/**
+ * Represents a SCALE encoder.
+ * @typedef ScaleEncoder
+ */
+export type ScaleEncoder = {
+  [_opaqueBrand]: "ScaleEncoder";
+};
+
+/**
+ * Represents a SCALE decoder.
+ * @typedef ScaleDecoder
+ */
+export type ScaleDecoder = {
+  [_opaqueBrand]: "ScaleDecoder";
+};
+
+/**
+ * Represents a SCALE codec for encoding and decoding data.
+ * @interface ScaleCodec
+ */
+export interface ScaleCodec {
+  /**
+   * Parses a multi-line string representing types and returns a TypeRegistry.
+   * @function parseTypes
+   * @param {string} types - A string representing types.
+   * @returns {TypeRegistry} - A TypeRegistry containing the parsed types.
+   * @example
+   * const typesString = `
+   * #bool
+   * <Ok:2,Err:3>
+   * ()
+   * <CouldNotReadInput::1>
+   * `;
+   * const typeRegistry = parseTypes(typesString);
+   */
+  parseTypes(types: string): TypeRegistry;
+
+  /**
+   * Creates a SCALE encoder for encoding tuple values.
+   * @function createTupleEncoder
+   * @param {number[]} typeIds - An array of type IDs.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
+   * @returns {ScaleEncoder} - A ScaleEncoder for encoding tuple values.
+   */
+  createTupleEncoder(
+    typeIds: number[],
+    typeRegistry: TypeRegistry
+  ): ScaleEncoder;
+
+  /**
+   * Creates a SCALE encoder for a specific type ID.
+   * @function createEncoderForTypeId
+   * @param {number} typeId - The type ID for which to create the encoder.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
+   * @returns {ScaleEncoder} - A ScaleEncoder for encoding values of the specified type ID.
+   */
+  createEncoderForTypeId(
+    typeId: number,
+    typeRegistry: TypeRegistry
+  ): ScaleEncoder;
+
+  /**
+   * Creates a SCALE decoder for decoding tuple values.
+   * @function createTupleDecoder
+   * @param {number[]} typeIds - An array of type IDs.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be decoded.
+   * @returns {ScaleDecoder} - A ScaleDecoder for decoding tuple values.
+   */
+  createTupleDecoder(
+    typeIds: number[],
+    typeRegistry: TypeRegistry
+  ): ScaleDecoder;
+
+  /**
+   * Creates a SCALE decoder for a specific type ID.
+   * @function createDecoderForTypeId
+   * @param {number} typeId - The type ID for which to create the decoder.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be decoded.
+   * @returns {ScaleDecoder} - A ScaleDecoder for decoding values of the specified type ID.
+   */
+  createDecoderForTypeId(
+    typeId: number,
+    typeRegistry: TypeRegistry
+  ): ScaleDecoder;
+
+  /**
+   * Encodes a value using the provided SCALE encoder.
+   * @function encode
+   * @param {*} value - The value to be encoded.
+   * @param {ScaleEncoder} encoder - The ScaleEncoder to use for encoding the value.
+   * @returns {Uint8Array} - The encoded value as a Uint8Array.
+   */
+  encode(value: any, encoder: ScaleEncoder): Uint8Array;
+
+  /**
+   * Decodes a value from a Uint8Array using the provided SCALE decoder.
+   * @function decode
+   * @param {Uint8Array} bytes - The bytes to be decoded.
+   * @param {ScaleDecoder} decoder - The ScaleDecoder to use for decoding the bytes.
+   * @returns {*} - The decoded value
+   */
+  decode(bytes: Uint8Array, decoder: ScaleDecoder): any;
+}
+
 declare global {
   /** The input arguments passed to the contract eval */
   var scriptArgs: string[];
-  /** The extension object for pink contract */
+  /**
+   * The extension object for pink contract.
+   * @typedef pink
+   */
   var pink: {
     /**
      * Call into a contract.
@@ -61,6 +178,13 @@ declare global {
       headers: Headers;
       body: Uint8Array | string;
     };
+
+    /**
+     * The SCALE codec object for encoding and decoding data.
+     * @typedef SCALE
+     * @type {ScaleCodec}
+     */
+    SCALE: ScaleCodec;
   };
 }
 export {};
