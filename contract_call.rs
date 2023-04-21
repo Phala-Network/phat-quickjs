@@ -52,7 +52,7 @@ pub(crate) fn invoke_contract(
     transferred_value: u128,
     selector: u32,
     input: &[u8],
-) -> Result<ink::MessageResult<Vec<u8>>> {
+) -> Result<Vec<u8>> {
     let call_type = call::Call::new(callee)
         .gas_limit(gas_limit)
         .transferred_value(transferred_value);
@@ -64,5 +64,5 @@ pub(crate) fn invoke_contract(
         )
         .returns::<RawBytes<Vec<u8>>>()
         .try_invoke()
-        .map(|x| x.map(|x| x.0))
+        .map(|x| x.encode())
 }

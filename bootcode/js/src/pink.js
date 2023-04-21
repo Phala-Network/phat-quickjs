@@ -15,13 +15,6 @@
                 value: c.value || 0,
             });
         },
-        invokeContractDelegate(c) {
-            return __hostCall(1, {
-                codeHash: toB(c.codeHash),
-                selector: c.selector,
-                input: toB(c.input),
-            });
-        },
         httpRequest(c) {
             return __hostCall(2, {
                 ...c,

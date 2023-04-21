@@ -102,7 +102,6 @@ fn host_invoke_contract(
         selector,
         &input,
     )
-    .map_err(|err| alloc::format!("{:?}", err))?
     .map_err(|err| alloc::format!("{:?}", err))?;
     Ok(js_val_from_bytes(ctx, &output))
 }
