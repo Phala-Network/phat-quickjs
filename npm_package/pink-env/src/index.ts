@@ -132,6 +132,7 @@ declare global {
      * @param {(number|bigint)} args.value - The amount of balance to transfer to the contract. Defaults to 0;
      * @param {number} args.selector - The selector of the ink message to be called.
      * @param {Bytes} args.input - The input arguments for the contract call, encoded in scale.
+     * @param {boolean} args.allowReentry - A flag indicating whether reentry to this contract is allowed. Defaults to false.
      * @return {Uint8Array} - The result of the contract call.
      */
     invokeContract(args: {
@@ -140,18 +141,7 @@ declare global {
       value?: number | bigint;
       selector: number;
       input: Bytes;
-    }): Uint8Array;
-    /**
-     * Invokes a delegate call on a contract code by a code hash.
-     * @param {Bytes} args.codeHash - The code hash of the contract to delegate to.
-     * @param {number} args.selector - The selector of the ink message to be called.
-     * @param {Bytes} args.input - The input arguments for the delegate call, encoded in scale.
-     * @return {Uint8Array} - The result of the delegate call.
-     */
-    invokeContractDelegate(args: {
-      codeHash: Bytes;
-      selector: number;
-      input: Bytes;
+      allowReentry?: boolean;
     }): Uint8Array;
     /**
      * This function sends an HTTP request and returns the response as either a Uint8Array or a string.

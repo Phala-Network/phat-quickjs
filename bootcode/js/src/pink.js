@@ -13,6 +13,7 @@
                 input: toB(c.input),
                 gasLimit: c.gasLimit || 0,
                 value: c.value || 0,
+                allowReentry: c.allowReentry || false,
             });
         },
         httpRequest(c) {
