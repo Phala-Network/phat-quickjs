@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import sys
 import json
 import argparse
 
 from itertools import chain
-from collections import OrderedDict
 from typing import List
 
 
@@ -71,7 +69,7 @@ class TypeInfo:
 class SymbolTable:
     def __init__(self, strip) -> None:
         self.next_index = 0
-        self.symbols = OrderedDict()
+        self.symbols = {}
         self.strip = strip
 
     def get(self, name):
@@ -111,6 +109,8 @@ class Type:
     @id.setter
     def id(self, value):
         self._id = value
+        if self.alias is not None:
+            self.alias.id = value
 
     def real_type(self):
         if self.alias is not None:
@@ -332,7 +332,7 @@ class Struct(Type):
         else:
             fields = ','.join(
                 f'{sym.get(name)}:{t.id}' for (name, t) in self.fields)
-            return f'{{{fields}}}'
+            return ''.join(['{', fields, '}'])
 
     def eq(self, value: object) -> bool:
         return isinstance(value, Struct) and value.fields == self.fields
@@ -354,7 +354,7 @@ class Message:
     def from_metadata(cls, contract: 'Contract', msg: dict):
         inputs = [arg['type']['type'] for arg in msg['args']]
         output = msg['returnType']['type']
-        return Message(contract, msg['label'], msg['selector'], inputs,
+        return Message(contract, msg['label'], int(msg['selector'], 16), inputs,
                        output)
 
     def __init__(self, contract, name, selector, inputs, output) -> None:
@@ -374,9 +374,18 @@ class Message:
         yield from self.output.pick_types()
 
     def display(self) -> str:
-        inputs = ', '.join([self.selector] + [str(t.id)
+        inputs = ', '.join([hex(self.selector)] + [str(t.id)
                                               for t in self.inputs])
         return f'{self.contract}.{self.name}({inputs}) -> {self.output.id}'
+
+    def to_json(self):
+        return {
+            'contract': self.contract.name,
+            'name': self.name,
+            'selector': self.selector,
+            'inputs': [t.id for t in self.inputs],
+            'output': self.output.id
+        }
 
 
 class Contract:
@@ -449,13 +458,11 @@ class Registry:
                     continue
                 for ref in types:
                     if t.eq(ref):
-                        print(f'Aliased {t.id} to {ref.id}')
                         t.alias = ref
                         alised += 1
                         break
                 else:
                     types.append(t)
-            print(f'Iteration {i}: {alised} aliased types')
             if alised == 0:
                 break
 
@@ -468,7 +475,7 @@ class Registry:
         for message in paths:
             for c in self.contracts:
                 for m in c.messages:
-                    if m.selector == message if message.startswith('0x') else m.name == message:
+                    if m.selector == int(message, 16) if message.startswith('0x') else m.name == message:
                         yield m
                         break
 
@@ -479,22 +486,25 @@ def reassign_ids(types):
 
 
 def compat(types, strip=False):
-    types = list(types)
     reassign_ids(types)
     symbols = SymbolTable(strip)
     types = [t.output(symbols) for t in types]
-    symbols = list(symbols.symbols.keys())
+    symbols = [k for k, v in sorted(
+        symbols.symbols.items(), key=lambda x: x[1])]
     return types, symbols
 
 
-def compat_and_print(types):
+def compat_and_print(types, strip=False):
     types = list(types)
-    types, _symbols = compat(types)
+    types, symbols = compat(types, strip=strip)
     print("Types:")
     print("\n".join([f'{i}: {t}' for i, t in enumerate(types)]))
     print("----")
     print("\n".join(types))
     print("----")
+    if strip:
+        print("Symbols:")
+        print("\n".join(symbols))
 
 
 def print_messages(messages):
@@ -518,6 +528,18 @@ def parse_args():
         help='Specify a comma-separated list of messages to keep (e.g., message1,message2,...)'
     )
     parser.add_argument(
+        '-s', '--strip',
+        dest='strip',
+        action='store_true',
+        help='Strip out all symbols from the output'
+    )
+    parser.add_argument(
+        '-j', '--json',
+        dest='json',
+        action='store_true',
+        help='Output the result as JSON'
+    )
+    parser.add_argument(
         'contract_files',
         metavar='CONTRACT_FILES',
         nargs='+',
@@ -532,21 +554,31 @@ def main():
     contracts = [Contract(json.load(open(f))) for f in args.contract_files]
     registry = Registry(contracts)
     registry.link()
-
-    compat_and_print(registry.export_types())
-    print_messages(registry.all_messages())
-    print("Reduced:")
+    # reassign_ids(registry.export_types())
     registry.merge_types()
-    compat_and_print(registry.export_types())
-    print_messages(registry.all_messages())
-
     if args.keep_messages:
-        print("Eliminated:")
         messages = list(registry.find_messages(args.keep_messages))
-        all_types = set()
+    else:
+        messages = list(registry.all_messages())
+    all_types = set()
+    for m in messages:
+        all_types.update(m.pick_types())
+    if args.json:
+        types, symbols = compat(all_types, strip=args.strip)
+        contracts = {}
         for m in messages:
-            all_types.update(m.pick_types())
-        compat_and_print(all_types)
+            if m.contract.name not in contracts:
+                contracts[m.contract.name] = {}
+            contracts[m.contract.name][m.name] = m.to_json()
+        print(json.dumps({
+            'types': types,
+            'typeRegistry': '\n'.join(types),
+            'symbols': symbols,
+            'messages': [m.to_json() for m in messages],
+            'contracts': contracts,
+        }))
+    else:
+        compat_and_print(all_types, args.strip)
         print_messages(messages)
 
 

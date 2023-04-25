@@ -23,6 +23,8 @@
             });
         },
     };
-    g.process = { argv: ["/node", ...scriptArgs] }
+    if (g.scriptArgs) {
+        g.process = { argv: ["/node", ...g.scriptArgs] }
+    }
 }(globalThis))
 export default {};

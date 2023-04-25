@@ -82,29 +82,16 @@ function toU8(value: Uint8Array | string): Uint8Array {
   return value;
 }
 
-interface TaggedValue {
-  tag: string;
-  value: any;
-  isEmpty: boolean;
-}
+type TaggedValue = $.VariantAny;
 
 function inlineToTagged(obj: any): TaggedValue {
-  let tag, value, isEmpty;
-  if (obj.tag) {
-    tag = obj.tag;
-    value = obj.value;
-    isEmpty = obj.isEmpty === undefined ? !value : obj.isEmpty;
-  } else {
-    tag = Object.keys(obj)[0];
-    value = obj[tag];
-    isEmpty = !value;
-  }
-  return { tag, value, isEmpty };
+  const tag = Object.keys(obj)[0];
+  const value = obj[tag];
+  return $.variant(tag, value);
 }
 
-function taggedToInline(taggedObj: TaggedValue): any {
-  const { tag, value } = taggedObj;
-  return { [tag]: value };
+function taggedToInline(obj: TaggedValue): any {
+  return { [obj.tag]: obj.content };
 }
 
 export function parseType(typeDef: string): ScaleType {
@@ -173,7 +160,7 @@ export function parseTypes(typeDefs: string): ScaleType[] {
   return typeDefLines.map(parseType);
 }
 
-interface ScaleTypeRegistry {
+export interface ScaleTypeRegistry {
   [index: number]: ScaleType;
 }
 
@@ -411,7 +398,10 @@ function createEnumDecoder(
         : undefined,
     ];
   }
-  return $.createEnumDecoder(meta);
+  const decoder = $.createEnumDecoder(meta);
+  return (reader: $.Walker) => {
+    return taggedToInline(decoder(reader));
+  };
 }
 
 function createStructEncoder(
@@ -436,11 +426,42 @@ function createStructDecoder(
   return $.createStructDecoder(decoders as any);
 }
 
-export function encode(value: any, encode: any): Uint8Array {
+interface Codec {
+  encode(value: any): Uint8Array;
+  decode(source: Uint8Array): any;
+}
+
+export function codec(
+  typeId: number | number[],
+  registry: ScaleTypeRegistry
+): Codec {
+  return {
+    encode: (value: any) => {
+      let encoder;
+      if (Array.isArray(typeId)) {
+        encoder = createTupleEncoder(typeId, registry);
+      } else {
+        encoder = createEncoderForTypeId(typeId, registry);
+      }
+      return encode(value, encoder);
+    },
+    decode: (source: Uint8Array) => {
+      let decoder;
+      if (Array.isArray(typeId)) {
+        decoder = createTupleDecoder(typeId, registry);
+      } else {
+        decoder = createDecoderForTypeId(typeId, registry);
+      }
+      return decode(source, decoder);
+    },
+  };
+}
+
+function encode(value: any, encode: any): Uint8Array {
   return $.WalkerImpl.encode(value, encode);
 }
 
-export function decode(source: any, decode: any): any {
+function decode(source: any, decode: any): any {
   const walker = new $.WalkerImpl(source);
   return decode(walker);
 }

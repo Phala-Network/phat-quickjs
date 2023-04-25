@@ -1,24 +1,8 @@
 import "./pink";
 import "./polyfills";
-import {
-  parseTypes,
-  createTupleEncoder,
-  createEncoderForTypeId,
-  createTupleDecoder,
-  createDecoderForTypeId,
-  encode,
-  decode,
-} from "./scale";
+import { parseTypes, codec } from "./scale";
 
 // TODO: lazy load the SCALE module
 (function (g) {
-  g.pink.SCALE = {
-    parseTypes,
-    createTupleEncoder,
-    createEncoderForTypeId,
-    createTupleDecoder,
-    createDecoderForTypeId,
-    encode,
-    decode,
-  };
+  g.pink.SCALE = { parseTypes, codec };
 })(globalThis as any);

@@ -14,19 +14,12 @@ export type TypeRegistry = {
 };
 
 /**
- * Represents a SCALE encoder.
- * @typedef ScaleEncoder
+ * Represents a SCALE coder.
+ * @typedef Codec
  */
-export type ScaleEncoder = {
-  [_opaqueBrand]: "ScaleEncoder";
-};
-
-/**
- * Represents a SCALE decoder.
- * @typedef ScaleDecoder
- */
-export type ScaleDecoder = {
-  [_opaqueBrand]: "ScaleDecoder";
+export type Codec = {
+  encode: (value: any) => Uint8Array;
+  decode: (value: Uint8Array) => any;
 };
 
 /**
@@ -51,70 +44,16 @@ export interface ScaleCodec {
   parseTypes(types: string): TypeRegistry;
 
   /**
-   * Creates a SCALE encoder for encoding tuple values.
-   * @function createTupleEncoder
-   * @param {number[]} typeIds - An array of type IDs.
-   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
-   * @returns {ScaleEncoder} - A ScaleEncoder for encoding tuple values.
-   */
-  createTupleEncoder(
-    typeIds: number[],
-    typeRegistry: TypeRegistry
-  ): ScaleEncoder;
-
-  /**
-   * Creates a SCALE encoder for a specific type ID.
+   * Creates a SCALE codec object for a specific type ID.
    * @function createEncoderForTypeId
-   * @param {number} typeId - The type ID for which to create the encoder.
+   * @param {number|number[]} typeId - The type ID for which to create the encoder.
    * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
-   * @returns {ScaleEncoder} - A ScaleEncoder for encoding values of the specified type ID.
+   * @returns {Codec} - A ScaleEncoder for encoding values of the specified type ID.
    */
-  createEncoderForTypeId(
-    typeId: number,
+  codec(
+    typeId: number|number[],
     typeRegistry: TypeRegistry
-  ): ScaleEncoder;
-
-  /**
-   * Creates a SCALE decoder for decoding tuple values.
-   * @function createTupleDecoder
-   * @param {number[]} typeIds - An array of type IDs.
-   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be decoded.
-   * @returns {ScaleDecoder} - A ScaleDecoder for decoding tuple values.
-   */
-  createTupleDecoder(
-    typeIds: number[],
-    typeRegistry: TypeRegistry
-  ): ScaleDecoder;
-
-  /**
-   * Creates a SCALE decoder for a specific type ID.
-   * @function createDecoderForTypeId
-   * @param {number} typeId - The type ID for which to create the decoder.
-   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be decoded.
-   * @returns {ScaleDecoder} - A ScaleDecoder for decoding values of the specified type ID.
-   */
-  createDecoderForTypeId(
-    typeId: number,
-    typeRegistry: TypeRegistry
-  ): ScaleDecoder;
-
-  /**
-   * Encodes a value using the provided SCALE encoder.
-   * @function encode
-   * @param {*} value - The value to be encoded.
-   * @param {ScaleEncoder} encoder - The ScaleEncoder to use for encoding the value.
-   * @returns {Uint8Array} - The encoded value as a Uint8Array.
-   */
-  encode(value: any, encoder: ScaleEncoder): Uint8Array;
-
-  /**
-   * Decodes a value from a Uint8Array using the provided SCALE decoder.
-   * @function decode
-   * @param {Uint8Array} bytes - The bytes to be decoded.
-   * @param {ScaleDecoder} decoder - The ScaleDecoder to use for decoding the bytes.
-   * @returns {*} - The decoded value
-   */
-  decode(bytes: Uint8Array, decoder: ScaleDecoder): any;
+  ): Codec;
 }
 
 declare global {
