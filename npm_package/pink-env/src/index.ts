@@ -50,10 +50,7 @@ export interface ScaleCodec {
    * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
    * @returns {Codec} - A ScaleEncoder for encoding values of the specified type ID.
    */
-  codec(
-    typeId: number|number[],
-    typeRegistry: TypeRegistry
-  ): Codec;
+  codec(typeId: number | number[], typeRegistry: TypeRegistry): Codec;
 }
 
 declare global {
