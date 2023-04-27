@@ -16,8 +16,8 @@ mod qjs {
     use pink::info;
     use pink_extension as pink;
 
-    use alloc::string::String;
     use alloc::vec::Vec;
+    use alloc::{ffi::CString, string::String};
     use bootcode::BOOT_CODE;
     pub use qjs_sys::JsCode;
     use scale::{Decode, Encode};
@@ -53,8 +53,7 @@ mod qjs {
         pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
             info!("evaluating js, code len: {}", js.len());
             let code = alloc::ffi::CString::new(js).or(Err("Invalid encoding"))?;
-            qjs_sys::eval(&[JsCode::Bytecode(BOOT_CODE), JsCode::Source(&code)], &args)
-                .map(Into::into)
+            eval(JsCode::Source(&code), args)
         }
 
         #[ink(message)]
@@ -64,11 +63,30 @@ mod qjs {
             args: Vec<String>,
         ) -> Result<Output, String> {
             info!("evaluating js bytecode, code len: {}", bytecode.len());
-            qjs_sys::eval(
-                &[JsCode::Bytecode(BOOT_CODE), JsCode::Bytecode(&bytecode)],
-                &args,
-            )
-            .map(Into::into)
+            eval(JsCode::Bytecode(&bytecode), args)
         }
+    }
+
+    fn eval(code: JsCode, args: Vec<String>) -> Result<Output, String> {
+        qjs_sys::eval(
+            &[
+                JsCode::Bytecode(BOOT_CODE),
+                JsCode::Source(&set_version()),
+                code,
+            ],
+            &args,
+        )
+        .map(Into::into)
+    }
+
+    fn set_version() -> CString {
+        let version = env!("CARGO_PKG_VERSION");
+        CString::new(alloc::format!(
+            r#"
+            globalThis.pink.version = "{}";
+            "#,
+            version
+        ))
+        .unwrap()
     }
 }

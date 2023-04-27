@@ -126,6 +126,11 @@ declare global {
      * @type {ScaleCodec}
      */
     SCALE: ScaleCodec;
+
+    /**
+     * The version of the pink qjs engine.
+     */
+    version: string;
   };
 }
 export {};
