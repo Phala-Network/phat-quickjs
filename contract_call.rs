@@ -34,9 +34,12 @@ pub(crate) fn invoke_contract_delegate(
     delegate: ink::primitives::Hash,
     selector: u32,
     input: &[u8],
+    allow_reentry: bool,
 ) -> Result<Vec<u8>> {
+    let flags = ink::env::CallFlags::default().set_allow_reentry(allow_reentry);
     call::build_call::<PinkEnvironment>()
         .call_type(call::DelegateCall::new(delegate))
+        .call_flags(flags)
         .exec_input(
             call::ExecutionInput::new(call::Selector::new(selector.to_be_bytes()))
                 .push_arg(RawBytes(input)),

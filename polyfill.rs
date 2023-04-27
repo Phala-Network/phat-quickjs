@@ -119,9 +119,11 @@ fn host_invoke_contract_delegate(
     let delegate: [u8; 32] = get_field(ctx, *config, "codeHash")?;
     let selector: u32 = get_field(ctx, *config, "selector")?;
     let input: Vec<u8> = get_field(ctx, *config, "input")?;
+    let allow_reentry: bool = get_field(ctx, *config, "allowReentry").unwrap_or_default();
 
-    let output = contract_call::invoke_contract_delegate(delegate.into(), selector, &input)
-        .map_err(|err| alloc::format!("{:?}", err))?;
+    let output =
+        contract_call::invoke_contract_delegate(delegate.into(), selector, &input, allow_reentry)
+            .map_err(|err| alloc::format!("{:?}", err))?;
 
     Ok(js_val_from_bytes(ctx, &output))
 }

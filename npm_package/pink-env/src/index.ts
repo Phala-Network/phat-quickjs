@@ -83,6 +83,18 @@ declare global {
       allowReentry?: boolean;
     }): Uint8Array;
     /**
+     * Invokes a delegate call on a contract code by a code hash.
+     * @param {Bytes} args.codeHash - The code hash of the contract to delegate to.
+     * @param {number} args.selector - The selector of the ink message to be called.
+     * @param {Bytes} args.input - The input arguments for the delegate call, encoded in scale.
+     * @return {Uint8Array} - The result of the delegate call.
+     */
+    invokeContractDelegate(args: {
+      codeHash: Bytes;
+      selector: number;
+      input: Bytes;
+    }): Uint8Array;
+    /**
      * This function sends an HTTP request and returns the response as either a Uint8Array or a string.
      * @param {string} args.url - The URL to send the request to.
      * @param {string} args.method - The HTTP method to use for the request (e.g. GET, POST, PUT). Defaults to GET.
