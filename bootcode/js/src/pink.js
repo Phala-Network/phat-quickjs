@@ -13,6 +13,7 @@
                 input: toB(c.input),
                 gasLimit: c.gasLimit || 0,
                 value: c.value || 0,
+                allowReentry: c.allowReentry || false,
             });
         },
         invokeContractDelegate(c) {
@@ -20,6 +21,7 @@
                 codeHash: toB(c.codeHash),
                 selector: c.selector,
                 input: toB(c.input),
+                allowReentry: c.allowReentry || false,
             });
         },
         httpRequest(c) {
@@ -29,5 +31,8 @@
             });
         },
     };
-    g.process = { argv: ["/node", ...scriptArgs] }
+    if (g.scriptArgs) {
+        g.process = { argv: ["/node", ...g.scriptArgs] }
+    }
 }(globalThis))
+export default {};

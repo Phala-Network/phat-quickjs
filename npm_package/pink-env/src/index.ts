@@ -3,10 +3,63 @@ type Bytes = Uint8Array | string;
 
 type Headers = { [key: string]: string };
 
+declare const _opaqueBrand: unique symbol;
+
+/**
+ * Represents a registry of types.
+ * @typedef TypeRegistry
+ */
+export type TypeRegistry = {
+  [_opaqueBrand]: "TypeRegistry";
+};
+
+/**
+ * Represents a SCALE coder.
+ * @typedef Codec
+ */
+export type Codec = {
+  encode: (value: any) => Uint8Array;
+  decode: (value: Uint8Array) => any;
+};
+
+/**
+ * Represents a SCALE codec for encoding and decoding data.
+ * @interface ScaleCodec
+ */
+export interface ScaleCodec {
+  /**
+   * Parses a multi-line string representing types and returns a TypeRegistry.
+   * @function parseTypes
+   * @param {string} types - A string representing types.
+   * @returns {TypeRegistry} - A TypeRegistry containing the parsed types.
+   * @example
+   * const typesString = `
+   * #bool
+   * <Ok:2,Err:3>
+   * ()
+   * <CouldNotReadInput::1>
+   * `;
+   * const typeRegistry = parseTypes(typesString);
+   */
+  parseTypes(types: string): TypeRegistry;
+
+  /**
+   * Creates a SCALE codec object for a specific type ID.
+   * @function createEncoderForTypeId
+   * @param {number|number[]} typeId - The type ID for which to create the encoder.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
+   * @returns {Codec} - A ScaleEncoder for encoding values of the specified type ID.
+   */
+  codec(typeId: number | number[], typeRegistry: TypeRegistry): Codec;
+}
+
 declare global {
   /** The input arguments passed to the contract eval */
   var scriptArgs: string[];
-  /** The extension object for pink contract */
+  /**
+   * The extension object for pink contract.
+   * @typedef pink
+   */
   var pink: {
     /**
      * Call into a contract.
@@ -15,6 +68,7 @@ declare global {
      * @param {(number|bigint)} args.value - The amount of balance to transfer to the contract. Defaults to 0;
      * @param {number} args.selector - The selector of the ink message to be called.
      * @param {Bytes} args.input - The input arguments for the contract call, encoded in scale.
+     * @param {boolean} args.allowReentry - A flag indicating whether reentry to this contract is allowed. Defaults to false.
      * @return {Uint8Array} - The result of the contract call.
      */
     invokeContract(args: {
@@ -23,6 +77,7 @@ declare global {
       value?: number | bigint;
       selector: number;
       input: Bytes;
+      allowReentry?: boolean;
     }): Uint8Array;
     /**
      * Invokes a delegate call on a contract code by a code hash.
@@ -61,6 +116,18 @@ declare global {
       headers: Headers;
       body: Uint8Array | string;
     };
+
+    /**
+     * The SCALE codec object for encoding and decoding data.
+     * @typedef SCALE
+     * @type {ScaleCodec}
+     */
+    SCALE: ScaleCodec;
+
+    /**
+     * The version of the pink qjs engine.
+     */
+    version: string;
   };
 }
 export {};
