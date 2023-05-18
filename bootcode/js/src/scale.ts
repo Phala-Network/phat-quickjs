@@ -84,10 +84,22 @@ function toU8(value: Uint8Array | string): Uint8Array {
 
 type TaggedValue = $.VariantAny;
 
-function inlineToTagged(obj: any): TaggedValue {
-  const tag = Object.keys(obj)[0];
-  const value = obj[tag];
-  return $.variant(tag, value);
+function inlineToTagged(obj: any, meta: any): TaggedValue {
+  let tag;
+  let value;
+  if (typeof obj === "string") {
+    tag = obj; $.variant(obj);
+    value = undefined;
+  } else {
+    tag = Object.keys(obj)[0];
+    value = obj[tag];
+  }
+  const [_ind, type] = meta[tag];
+  if (type == undefined) {
+    return $.variant(tag);
+  } else {
+    return $.variant(tag, value);
+  }
 }
 
 function taggedToInline(obj: TaggedValue): any {
@@ -229,19 +241,48 @@ function createDecoder(typeDef: ScaleType, registry: ScaleTypeRegistry): any {
   }
 }
 
+const INT_BYTES_COUNT_MAP = {
+  i8: 1,
+  u8: 1,
+  i16: 2,
+  u16: 2,
+  i32: 4,
+  u32: 4,
+  i64: 8,
+  u64: 8,
+  i128: 16,
+  u128: 16,
+  i256: 32,
+  u256: 32,
+  i512: 64,
+  u512: 64,
+};
+
+const tySizeHint = (ty: $.BigIntTypes) => () => INT_BYTES_COUNT_MAP[ty];
+
+function bienc(ty: $.BigIntTypes): $.Encode<bigint> {
+  return $.encodeFactory(
+    (value: number | bigint, writer) =>
+      $.encodeBigInt(BigInt(value), ty, writer),
+    tySizeHint(ty)
+  );
+}
+
 function createPrimitiveEncoder(def: string): any {
   return {
     bool: $.encodeBool,
     u8: $.encodeU8,
     u16: $.encodeU16,
     u32: $.encodeU32,
-    u64: $.encodeU64,
-    u128: $.encodeU128,
+    u64: bienc("u64"),
+    u128: bienc("u128"),
+    u256: bienc("u256"),
     i8: $.encodeI8,
     i16: $.encodeI16,
     i32: $.encodeI32,
-    i64: $.encodeI64,
-    i128: $.encodeI128,
+    i64: bienc("i64"),
+    i128: bienc("i128"),
+    i256: bienc("i256"),
     str: $.encodeStr,
   }[def];
 }
@@ -380,8 +421,9 @@ function createEnumEncoder(
   }
   const encoder = $.createEnumEncoder(meta);
   return $.encodeFactory(
-    (value: any, walker: any) => encoder(inlineToTagged(value) as any, walker),
-    (value: any) => encoder.sizeHint(inlineToTagged(value) as any)
+    (value: any, walker: any) =>
+      encoder(inlineToTagged(value, meta) as any, walker),
+    (value: any) => encoder.sizeHint(inlineToTagged(value, meta) as any)
   );
 }
 
