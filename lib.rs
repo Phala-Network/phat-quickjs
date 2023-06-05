@@ -9,7 +9,7 @@ static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 pub use qjs::*;
 
 mod contract_call;
-mod polyfill;
+mod host_functions;
 
 #[ink::contract]
 mod qjs {

@@ -1,14 +1,16 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use pink::chain_extension::HttpResponse;
+use pink::chain_extension::{HttpRequest, HttpResponse};
 
 use core::ffi::{c_int, c_uchar};
 use pink_extension::{error, info};
 use qjs_sys::c;
 use qjs_sys::convert::{
-    js_object_get_field as get_field, js_object_get_field_or_default as get_field_or_default,
-    js_val_from_bytes, serialize_value, JsValue,
+    js_array_for_each as for_each, js_object_get_field as get_field,
+    js_object_get_field_or_default as get_field_or_default,
+    js_object_get_option_field as get_option_field, js_val_from_bytes, serialize_value,
+    DecodeFromJSValue, JsValue,
 };
 
 use pink_extension as pink;
@@ -63,6 +65,7 @@ fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -
         0 => host_invoke_contract(ctx, args).into_js_value(ctx),
         1 => host_invoke_contract_delegate(ctx, args).into_js_value(ctx),
         2 => host_http_request(ctx, args).into_js_value(ctx),
+        3 => host_batch_http_request(ctx, args).into_js_value(ctx),
         _ => {
             error!("JS: host call with unknown id: {id}");
             qjs_sys::throw_type_error(ctx, &alloc::format!("Invalid host call id: {id}"));
@@ -133,11 +136,11 @@ fn host_http_request(
     args: &[c::JSValueConst],
 ) -> Result<c::JSValue, String> {
     let Some(config) = args.get(0) else {
-        return Err("Invoking contract without arguments".into());
+        return Err("Invoking http_request without arguments".into());
     };
 
     let url: String = get_field(ctx, *config, "url")?;
-    let method: String = get_field(ctx, *config, "method")?;
+    let method: String = get_option_field(ctx, *config, "method")?.unwrap_or_else(|| "GET".into());
     let headers: BTreeMap<String, String> = get_field_or_default(ctx, *config, "headers")?;
     let body: Vec<u8> = get_field_or_default(ctx, *config, "body")?;
     let return_text_body: bool = get_field_or_default(ctx, *config, "returnTextBody")?;
@@ -167,4 +170,81 @@ fn host_http_request(
     response_object.insert("body".into(), body);
 
     Ok(serialize_value(ctx, JsValue::Object(response_object))?)
+}
+
+fn host_batch_http_request(
+    ctx: *mut c::JSContext,
+    args: &[c::JSValueConst],
+) -> Result<c::JSValue, String> {
+    let Some(config) = args.get(0) else {
+        return Err("Invoking batch_http_request without arguments".into());
+    };
+    let timeout_ms: u64 = match args.get(1) {
+        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout)?,
+        None => 10,
+    };
+    let mut requests = Vec::new();
+    let mut return_text_bodies = Vec::new();
+
+    for_each(ctx, *config, |element| {
+        let url: String = get_field(ctx, element, "url")?;
+        let method: String =
+            get_option_field(ctx, element, "method")?.unwrap_or_else(|| "GET".into());
+        let headers: BTreeMap<String, String> = get_field_or_default(ctx, element, "headers")?;
+        let body: Vec<u8> = get_field_or_default(ctx, element, "body")?;
+        let return_text_body: bool = get_field_or_default(ctx, element, "returnTextBody")?;
+        requests.push(HttpRequest {
+            url,
+            method,
+            headers: headers.into_iter().collect(),
+            body,
+        });
+        return_text_bodies.push(return_text_body);
+        Ok(())
+    })?;
+
+    let responses = pink::ext()
+        .batch_http_request(requests, timeout_ms)
+        .map_err(|err| alloc::format!("Failed to call batch_http_request: {err:?}"))?;
+
+    let mut response_objects = Vec::new();
+    if responses.len() != return_text_bodies.len() {
+        return Err("Mismatch between number of responses and returnTextBody flags".into());
+    }
+
+    for (response, return_text_body) in responses.into_iter().zip(return_text_bodies.into_iter()) {
+        let mut response_object: BTreeMap<String, JsValue> = Default::default();
+        match response {
+            Ok(response) => {
+                let HttpResponse {
+                    status_code,
+                    reason_phrase,
+                    headers,
+                    body,
+                } = response;
+                let status_code = JsValue::Int(status_code as _);
+                let reason_phrase = JsValue::String(reason_phrase);
+                let headers: BTreeMap<String, JsValue> = headers
+                    .into_iter()
+                    .map(|(k, v)| (k, JsValue::String(v)))
+                    .collect();
+                let headers = JsValue::Object(headers);
+                let body = if return_text_body {
+                    JsValue::String(String::from_utf8_lossy(&body).into())
+                } else {
+                    JsValue::Bytes(body)
+                };
+                response_object.insert("statusCode".into(), status_code);
+                response_object.insert("reasonPhrase".into(), reason_phrase);
+                response_object.insert("headers".into(), headers);
+                response_object.insert("body".into(), body);
+            }
+            Err(err) => {
+                response_object
+                    .insert("error".into(), JsValue::String(alloc::format!("{:?}", err)));
+            }
+        }
+        response_objects.push(JsValue::Object(response_object));
+    }
+    Ok(serialize_value(ctx, JsValue::Array(response_objects))?)
 }

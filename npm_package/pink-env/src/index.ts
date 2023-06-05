@@ -117,6 +117,22 @@ declare global {
       body: Uint8Array | string;
     };
 
+    batchHttpRequest(
+      args: {
+        url: string;
+        method?: string;
+        headers?: Headers;
+        body?: Uint8Array | string;
+        returnTextBody?: boolean;
+      }[],
+      timeout_ms?: number
+    ): {
+      statusCode: number;
+      reasonPhrase: string;
+      headers: Headers;
+      body: Uint8Array | string;
+    }[];
+
     /**
      * The SCALE codec object for encoding and decoding data.
      * @typedef SCALE
