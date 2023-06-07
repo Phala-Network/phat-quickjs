@@ -25,10 +25,10 @@
             });
         },
         httpRequest(c) {
-            return __hostCall(2, {
-                ...c,
-                method: c.method || "GET",
-            });
+            return __hostCall(2, c);
+        },
+        batchHttpRequest(c, timeout) {
+            return __hostCall(3, c, timeout || 10);
         },
     };
     if (g.scriptArgs) {
