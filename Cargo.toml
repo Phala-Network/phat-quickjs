@@ -22,10 +22,6 @@ bootcode = { path = "bootcode" }
 [lib]
 name = "qjs"
 path = "lib.rs"
-crate-type = [
-	"cdylib",
-	"rlib",
-]
 
 [features]
 default = ["std"]
