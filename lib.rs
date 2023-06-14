@@ -2,10 +2,6 @@
 
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
-#[global_allocator]
-static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
-
 pub use qjs::*;
 
 mod contract_call;
