@@ -16,7 +16,7 @@ use qjs_sys::convert::{
 
 use pink_extension as pink;
 
-use crate::contract_call;
+use crate::{code_hash, contract_call};
 
 trait IntoJsValue {
     fn into_js_value(self, ctx: *mut c::JSContext) -> c::JSValue;
@@ -257,7 +257,12 @@ fn host_derive_secret(
     args: &[c::JSValueConst],
 ) -> Result<c::JSValue, String> {
     let HashableBytes(salt) = DecodeFromJSValue::decode(ctx, *args.get(0).ok_or("Missing salt")?)?;
-    let salt: Vec<u8> = b"javascript.".iter().chain(&salt).copied().collect();
+    let salt: Vec<u8> = b"javascript."
+        .iter()
+        .chain(&code_hash())
+        .chain(&salt)
+        .copied()
+        .collect();
     let secret = pink::ext().derive_sr25519_key(salt.into());
     Ok(serialize_value(ctx, JsValue::Bytes(secret))?)
 }
