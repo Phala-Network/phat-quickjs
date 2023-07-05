@@ -1,6 +1,7 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use ink::env::hash::CryptoHash;
 use pink::chain_extension::{HttpRequest, HttpResponse};
 
 use core::ffi::{c_int, c_uchar};
@@ -10,12 +11,12 @@ use qjs_sys::convert::{
     js_array_for_each as for_each, js_object_get_field as get_field,
     js_object_get_field_or_default as get_field_or_default,
     js_object_get_option_field as get_option_field, js_val_from_bytes, serialize_value,
-    DecodeFromJSValue, JsValue,
+    DecodeFromJSValue, HashableBytes, JsValue,
 };
 
 use pink_extension as pink;
 
-use crate::contract_call;
+use crate::{code_hash, contract_call};
 
 trait IntoJsValue {
     fn into_js_value(self, ctx: *mut c::JSContext) -> c::JSValue;
@@ -66,6 +67,8 @@ fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -
         1 => host_invoke_contract_delegate(ctx, args).into_js_value(ctx),
         2 => host_http_request(ctx, args).into_js_value(ctx),
         3 => host_batch_http_request(ctx, args).into_js_value(ctx),
+        4 => host_derive_secret(ctx, args).into_js_value(ctx),
+        5 => host_hash(ctx, args).into_js_value(ctx),
         _ => {
             error!("JS: host call with unknown id: {id}");
             qjs_sys::throw_type_error(ctx, &alloc::format!("Invalid host call id: {id}"));
@@ -247,4 +250,49 @@ fn host_batch_http_request(
         response_objects.push(JsValue::Object(response_object));
     }
     Ok(serialize_value(ctx, JsValue::Array(response_objects))?)
+}
+
+fn host_derive_secret(
+    ctx: *mut c::JSContext,
+    args: &[c::JSValueConst],
+) -> Result<c::JSValue, String> {
+    let HashableBytes(salt) = DecodeFromJSValue::decode(ctx, *args.get(0).ok_or("Missing salt")?)?;
+    let salt: Vec<u8> = b"javascript."
+        .iter()
+        .chain(&code_hash())
+        .chain(&salt)
+        .copied()
+        .collect();
+    let secret = pink::ext().derive_sr25519_key(salt.into());
+    Ok(serialize_value(ctx, JsValue::Bytes(secret))?)
+}
+
+fn host_hash(ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> Result<c::JSValue, String> {
+    let algorithm = String::decode(ctx, *args.get(0).ok_or("Missing algorithm")?)?;
+    let HashableBytes(message) =
+        DecodeFromJSValue::decode(ctx, *args.get(1).ok_or("Missing message")?)?;
+    let hash = match algorithm.as_str() {
+        "blake2b128" => {
+            let mut output = Default::default();
+            ink::env::hash::Blake2x128::hash(&message, &mut output);
+            output.to_vec()
+        }
+        "blake2b256" => {
+            let mut output = Default::default();
+            ink::env::hash::Blake2x256::hash(&message, &mut output);
+            output.to_vec()
+        }
+        "keccak256" => {
+            let mut output = Default::default();
+            ink::env::hash::Keccak256::hash(&message, &mut output);
+            output.to_vec()
+        }
+        "sha256" => {
+            let mut output = Default::default();
+            ink::env::hash::Sha2x256::hash(&message, &mut output);
+            output.to_vec()
+        }
+        _ => return Err(alloc::format!("Unsupported hash algorithm: {}", algorithm)),
+    };
+    Ok(serialize_value(ctx, JsValue::Bytes(hash))?)
 }

@@ -9,23 +9,18 @@ debug-assertions = false
 overflow-checks = false
 
 [dependencies]
-ink = { version = "4", default-features = false, features = ["no-allocator", "static-buffer-1M256K"]}
+ink = { version = "4", default-features = false, features = ["static-buffer-1M256K"]}
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-dlmalloc = { version = "0.2.4", default-features = false, features = ["global"] }
 qjs-sys = { path = "qjs-sys" }
-pink-extension = { version = "0.4.4-dev.0", default-features = false }
+pink-extension = { version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
 
 [lib]
 name = "qjs"
 path = "lib.rs"
-crate-type = [
-	"cdylib",
-	"rlib",
-]
 
 [features]
 default = ["std"]
