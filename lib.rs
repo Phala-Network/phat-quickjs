@@ -1,15 +1,28 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 extern crate alloc;
-
-#[cfg(not(feature = "std"))]
-#[global_allocator]
-static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 pub use qjs::*;
 
 mod contract_call;
 mod host_functions;
+
+static mut CODE_HASH: [u8; 32] = [0; 32];
+
+fn code_hash() -> [u8; 32] {
+    unsafe { CODE_HASH }
+}
+fn calc_and_set_code_hash(code: &qjs_sys::JsCode) {
+    let mut hash = [0; 32];
+    let code = match code {
+        JsCode::Source(src) => src.to_bytes(),
+        JsCode::Bytecode(code) => code,
+    };
+    ink::env::hash_bytes::<ink::env::hash::Sha2x256>(code, &mut hash);
+    unsafe {
+        CODE_HASH = hash;
+    }
+}
 
 #[ink::contract]
 mod qjs {
@@ -68,6 +81,7 @@ mod qjs {
     }
 
     fn eval(code: JsCode, args: Vec<String>) -> Result<Output, String> {
+        super::calc_and_set_code_hash(&code);
         qjs_sys::eval(
             &[
                 JsCode::Bytecode(BOOT_CODE),
