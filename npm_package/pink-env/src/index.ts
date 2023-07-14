@@ -131,6 +131,7 @@ declare global {
       reasonPhrase: string;
       headers: Headers;
       body: Uint8Array | string;
+      error?: string;
     }[];
 
     /**
