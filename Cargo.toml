@@ -9,30 +9,17 @@ debug-assertions = false
 overflow-checks = false
 
 [dependencies]
-ink = { version = "4", default-features = false, features = ["static-buffer-1M256K"]}
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 qjs-sys = { path = "qjs-sys" }
-pink-extension = { version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
+sidevm = "0.1.10"
+log = "0.4"
+tokio = { version = "1", features = ["sync", "macros"] }
+anyhow = "1.0"
 
 [lib]
 name = "qjs"
-path = "lib.rs"
+crate-type = ["cdylib"]
 
 [features]
-default = ["std"]
-std = [
-    "ink/std",
-    "scale/std",
-    "scale-info/std",
-    "serde/std",
-    "serde_json/std",
-    "pink-extension/std",
-]
-ink-as-dependency = []
-
-[patch.crates-io]
-ink = { git = "https://github.com/kvinwang/ink.git", branch = "config-buffer" }
