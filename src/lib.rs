@@ -21,7 +21,7 @@ async fn main() {
         r#"
         console.log('Hello, world!')
         function test(n) {
-            console.log("test", n);
+            console.log("test", n, Math.random());
             if (n > 100) {
                 setTimeout(test, n, n - 100);
             }
