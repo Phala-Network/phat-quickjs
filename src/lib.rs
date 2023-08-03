@@ -22,11 +22,8 @@ async fn main() {
         console.log('Hello, world!')
         function test(n) {
             console.log("test", n, Math.random());
-            if (n > 100) {
-                setTimeout(test, n, n - 100);
-            }
         }
-        test(1000);
+        setInterval(test, 1000, 42);
         "#,
     );
     loop {

@@ -3,7 +3,7 @@ all:
 	cargo build --release --target wasm32-wasi
 
 run: all
-	sidevm-host target/wasm32-wasi/release/qjs.wasm
+	sidevm-host target/wasm32-wasi/release/quickjs.wasm
 
 clean:
 	cargo clean

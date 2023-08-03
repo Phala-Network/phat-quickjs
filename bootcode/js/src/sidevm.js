@@ -1,25 +1,29 @@
 (function (g) {
+    const ecall = g.__hostCall;
     function toB(v) {
         if (typeof v != 'string') {
             v = new Uint8Array(v);
         }
         return v;
     }
-    g.setTimeout = function (f, t) {
-        const callback_args = Array.prototype.slice.call(arguments, 2);
-        const callback = () => { f.apply(null, callback_args); };
-        return __hostCall(1001, callback, t || 0);
+    function timerFn(call_id) {
+        return function (f, t) {
+            t = t || 0;
+            if (typeof f == 'string') {
+                return ecall(call_id, () => eval(f), t);
+            }
+            const args = Array.prototype.slice.call(arguments, 2);
+            const callback = () => { f.apply(null, args); };
+            return ecall(call_id, callback, t);
+        }
     }
+    g.setTimeout = timerFn(1001);
     g.clearTimeout = function (id) {
-        return __hostCall(1002, id);
-    }
-    g.setInterval = function (f, t) {
-        const callback_args = Array.prototype.slice.call(arguments, 2);
-        const callback = () => { f.apply(null, callback_args); };
-        return __hostCall(1003, callback, t || 0);
-    }
+        return ecall(1002, id);
+    };
+    g.setInterval = timerFn(1003);
     g.clearInterval = function (id) {
-        return __hostCall(1004, id);
+        return ecall(1004, id);
     }
 }(globalThis))
 export default {};
