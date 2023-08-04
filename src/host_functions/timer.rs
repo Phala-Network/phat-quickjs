@@ -1,15 +1,16 @@
 use super::*;
+
 pub(super) fn set_timeout(
     service: ServiceRef,
     ctx: *mut c::JSContext,
     args: &[c::JSValueConst],
-) -> Result<c::JSValue, &'static str> {
+) -> Result<JsValue> {
     let Some(callback) = args.get(0) else {
-        return Err("Invoking setTimeout without callback");
+        anyhow::bail!("Invoking setTimeout without callback");
     };
     let timeout_ms: u64 = match args.get(1) {
-        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout)?,
-        None => return Err("Invoking setTimeout without timeout"),
+        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout).map_err(Error::msg)?,
+        None => anyhow::bail!("Invoking setTimeout without timeout"),
     };
     let callback = service.dup_value(*callback);
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
@@ -27,7 +28,7 @@ pub(super) fn set_timeout(
         }
     });
 
-    serialize_value(ctx, JsValue::Int(id as i32))
+    Ok(JsValue::Int(id as i32))
 }
 
 fn try_fire_timer(service: Weak<Service>, id: u64) {
@@ -45,30 +46,17 @@ fn try_fire_timer(service: Weak<Service>, id: u64) {
     debug!("Timer {id} fired");
 }
 
-pub(super) fn clear_timeout(
-    service: ServiceRef,
-    ctx: *mut c::JSContext,
-    args: &[c::JSValueConst],
-) -> Result<c::JSValue, &'static str> {
-    let id: u64 = match args.get(0) {
-        Some(id) => DecodeFromJSValue::decode(ctx, *id)?,
-        None => return Err("Invoking clearTimeout without id"),
-    };
-    service.remove_resource(id);
-    Ok(c::JS_NULL)
-}
-
 pub(super) fn set_interval(
     service: ServiceRef,
     ctx: *mut c::JSContext,
     args: &[c::JSValueConst],
-) -> Result<c::JSValue, &'static str> {
+) -> Result<JsValue> {
     let Some(callback) = args.get(0) else {
-        return Err("Invoking setInterval without callback");
+        anyhow::bail!("Invoking setInterval without callback");
     };
     let timeout_ms: u64 = match args.get(1) {
-        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout)?,
-        None => return Err("Invoking setInterval without timeout"),
+        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout).map_err(Error::msg)?,
+        None => anyhow::bail!("Invoking setInterval without timeout"),
     };
     let timeout_ms = timeout_ms.max(10);
     let callback = service.dup_value(*callback);
@@ -85,7 +73,7 @@ pub(super) fn set_interval(
         }
     });
 
-    serialize_value(ctx, JsValue::Int(id as i32))
+    Ok(JsValue::Int(id as i32))
 }
 
 async fn interval_loop(service: ServiceWeakRef, timeout_ms: u64, id: u64) {
