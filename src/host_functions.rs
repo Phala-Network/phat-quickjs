@@ -1,20 +1,13 @@
-use alloc::{collections::BTreeMap, rc::Weak, string::String, vec::Vec};
-use core::ffi::{c_int, c_uchar};
-use log::{debug, error, info};
+use alloc::rc::Weak;
+use log::{debug, error};
 use qjs_sys::{
     c,
-    convert::{
-        js_array_for_each as for_each, js_object_get_field as get_field,
-        js_object_get_field_or_default as get_field_or_default,
-        js_object_get_option_field as get_option_field, js_val_from_bytes, serialize_value,
-        DecodeFromJSValue, HashableBytes, JsValue,
-    },
+    convert::{serialize_value, DecodeFromJSValue, JsValue},
 };
-use serde_json::error;
-
-mod timer;
 
 use crate::service::{js_context_get_service, Resource, Service, ServiceRef, ServiceWeakRef};
+
+mod timer;
 
 trait IntoJsValue {
     fn into_js_value(self, ctx: *mut c::JSContext) -> c::JSValue;

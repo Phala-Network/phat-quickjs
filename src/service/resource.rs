@@ -38,14 +38,14 @@ impl OwnedJsValue {
 
 pub struct Resource {
     pub js_value: OwnedJsValue,
-    cancel_token: Option<Box<dyn Any>>,
+    _cancel_token: Option<Box<dyn Any>>,
 }
 
 impl Resource {
     pub fn new(js_value: OwnedJsValue, cancel_token: Option<Box<dyn Any>>) -> Self {
         Self {
             js_value,
-            cancel_token,
+            _cancel_token: cancel_token,
         }
     }
 }

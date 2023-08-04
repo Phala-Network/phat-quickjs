@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use core::ffi::CStr;
+
 use log::info;
 use sidevm::logger::Logger;
 
@@ -16,8 +16,8 @@ async fn main() {
 
     info!("Starting sidevm...");
 
-    let service = service::Service::new_ref("test");
-    let ret = service.exec_script(
+    let service = service::Service::new_ref();
+    let _ = service.exec_script(
         r#"
         console.log('Hello, world!')
         function test(n) {

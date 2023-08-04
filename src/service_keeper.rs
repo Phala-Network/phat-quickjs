@@ -43,11 +43,13 @@ impl ServiceKeeper {
         }
     }
 
-    pub fn handle_query(from: Option<AccountId>, query: &[u8]) -> Vec<u8> {
+    pub fn handle_query(_from: Option<AccountId>, _query: &[u8]) -> Vec<u8> {
+        Self::exec_script("", "");
         todo!()
     }
 
-    pub fn handle_message(message: Vec<u8>) {
+    pub fn handle_message(_message: Vec<u8>) {
+        Self::reset("");
         todo!()
     }
 }
@@ -61,15 +63,9 @@ impl ServiceKeeper {
         if let Some(service) = self.get_service(name) {
             return service;
         }
-        let service = Service::new_ref(name);
+        let service = Service::new_ref();
         self.services.insert(name.into(), service.clone());
         service
-    }
-
-    fn put_service(name: &str, service: ServiceRef) {
-        KEEPER.with(|keeper| {
-            keeper.borrow_mut().services.insert(name.into(), service);
-        });
     }
 
     fn remove_service(&mut self, name: &str) {

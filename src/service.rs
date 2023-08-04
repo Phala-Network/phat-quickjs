@@ -3,13 +3,11 @@ use alloc::{
     collections::BTreeMap,
     ffi::CString,
     rc::{Rc, Weak},
-    string::ToString,
 };
-use core::{any::Any, cell::RefCell, ffi::CStr};
-use log::error;
+use core::{any::Any, cell::RefCell};
 
 use anyhow::Result;
-use qjs_sys::{c, convert::DecodeFromJSValue, JsCode, Output};
+use qjs_sys::{c, JsCode, Output};
 
 mod resource;
 
@@ -19,7 +17,6 @@ pub(crate) type ServiceRef = Rc<Service>;
 pub(crate) type ServiceWeakRef = Weak<Service>;
 
 pub struct Service {
-    name: String,
     runtime: *mut c::JSRuntime,
     ctx: *mut c::JSContext,
     state: RefCell<ServiceState>,
@@ -32,7 +29,7 @@ struct ServiceState {
 }
 
 impl Service {
-    pub fn new(name: &str, weak_self: ServiceWeakRef) -> Self {
+    pub fn new(weak_self: ServiceWeakRef) -> Self {
         let runtime = unsafe { c::JS_NewRuntime() };
         let ctx = unsafe { c::JS_NewContext(runtime) };
         let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
@@ -44,15 +41,14 @@ impl Service {
         unsafe { c::JS_SetContextOpaque(ctx, boxed_self as *mut _) };
         let state = RefCell::new(ServiceState::default());
         Self {
-            name: name.into(),
             runtime,
             ctx,
             state,
         }
     }
 
-    pub fn new_ref(name: &str) -> ServiceRef {
-        Rc::new_cyclic(|weak_self| Service::new(name, weak_self.clone()))
+    pub fn new_ref() -> ServiceRef {
+        Rc::new_cyclic(|weak_self| Service::new(weak_self.clone()))
     }
 
     pub fn weak_self(&self) -> ServiceWeakRef {
@@ -105,7 +101,7 @@ impl Service {
             let args = args as *mut c::JSValue;
             c::JS_Call(self.ctx, func, this, args_len, args)
         };
-        if ret == c::JS_EXCEPTION {
+        if c::is_exception(ret) {
             let exception = unsafe { c::JS_GetException(self.ctx) };
             let err = qjs_sys::ctx_to_string(self.ctx, exception);
             anyhow::bail!("Failed to call function: {err}");
