@@ -1,15 +1,11 @@
 use anyhow::Context;
-use hyper::{
-    body::{Buf, HttpBody},
-    http::request,
-    Body,
-};
+use hyper::{body::HttpBody, Body};
 use log::info;
 use qjs_sys::convert::{
     js_object_get_field, js_object_get_field_or_default, js_object_get_option_field,
 };
 use sidevm::net::HttpConnector;
-use std::{collections::BTreeMap, io::Read};
+use std::collections::BTreeMap;
 
 use crate::service::OwnedJsValue;
 

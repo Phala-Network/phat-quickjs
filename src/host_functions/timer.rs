@@ -16,7 +16,7 @@ pub(super) fn set_timeout(
     // As specified in the HTML standard, browsers will enforce a minimum timeout of 4 milliseconds
     // once a nested call to setTimeout has been scheduled 5 times. Here we enforce to 4 all the time.
     let timeout_ms = timeout_ms.max(4);
-    let callback = service.dup_value(*callback);
+    let callback = service.runtime().dup_value(*callback);
     let id = if interval {
         service.spawn(callback, do_set_interval, timeout_ms)
     } else {

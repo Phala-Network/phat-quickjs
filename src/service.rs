@@ -39,7 +39,8 @@ impl Runtime {
 
     pub fn dup_value(&self, value: c::JSValue) -> OwnedJsValue {
         let value = unsafe { c::JS_DupValue(self.ctx, value) };
-        let runtime = js_context_get_runtime(self.ctx).expect("Failed to get service from context, can not dup value");
+        let runtime = js_context_get_runtime(self.ctx)
+            .expect("Failed to get service from context, can not dup value");
         OwnedJsValue::from_raw(value, Rc::downgrade(&runtime))
     }
 }
@@ -88,14 +89,6 @@ impl Service {
         let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
         let js_code = qjs_sys::JsCode::Source(script.as_c_str());
         qjs_sys::ctx_eval(self.runtime.ctx, js_code)
-    }
-
-    pub fn dup_value(&self, value: c::JSValue) -> OwnedJsValue {
-        self.runtime.dup_value(value)
-    }
-
-    pub fn free_value(&self, value: c::JSValue) {
-        self.runtime.free_value(value);
     }
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
@@ -195,7 +188,7 @@ pub fn js_context_get_runtime(ctx: *mut c::JSContext) -> Option<Rc<Runtime>> {
 impl Drop for Service {
     fn drop(&mut self) {
         unsafe {
-            let res = core::mem::take(&mut self.state.borrow_mut().recources);
+            self.state.borrow_mut().recources.clear();
             let pname = c::JS_GetContextOpaque(self.runtime.ctx) as *mut ServiceWeakRef;
             drop(Box::from_raw(pname));
         }

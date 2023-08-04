@@ -6,7 +6,7 @@ use qjs_sys::{
     convert::{serialize_value, DecodeFromJSValue, JsValue},
 };
 
-use crate::service::{js_context_get_service, Resource, Service, ServiceRef, ServiceWeakRef};
+use crate::service::{js_context_get_service, Service, ServiceRef, ServiceWeakRef};
 use crate::traits::{ResultExt, ToAnyhowResult};
 
 mod http_request;
