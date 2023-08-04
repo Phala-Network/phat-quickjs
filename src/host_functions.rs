@@ -9,6 +9,7 @@ use crate::service::{js_context_get_service, Resource, Service, ServiceRef, Serv
 use anyhow::{anyhow, Error, Result};
 
 mod timer;
+mod http_request;
 
 #[no_mangle]
 fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> c::JSValue {
