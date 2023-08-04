@@ -1,6 +1,6 @@
 use alloc::rc::Weak;
 use anyhow::{anyhow, Result};
-use log::{debug, error};
+use log::error;
 use qjs_sys::{
     c,
     convert::{serialize_value, DecodeFromJSValue, JsValue},

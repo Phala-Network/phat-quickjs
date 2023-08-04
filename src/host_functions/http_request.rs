@@ -5,7 +5,7 @@ use qjs_sys::convert::{
     js_object_get_field, js_object_get_field_or_default, js_object_get_option_field,
 };
 use sidevm::net::HttpConnector;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use crate::service::OwnedJsValue;
 
@@ -49,39 +49,40 @@ pub(super) fn http_request(
 }
 
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
+    let result = do_http_request_inner(weak_service.clone(), id, req).await;
+    if let Err(err) = result {
+        callback(
+            &weak_service,
+            id,
+            "error",
+            JsValue::String(err.to_string().into()),
+        );
+    }
+}
+async fn do_http_request_inner(
+    weak_service: ServiceWeakRef,
+    id: u64,
+    req: HttpRequest,
+) -> Result<()> {
     let connector = HttpConnector::new();
     let client = hyper::Client::builder()
         .executor(sidevm::exec::HyperExecutor)
         .build::<_, Body>(connector);
-    let request = hyper::Request::builder()
+    let mut builder = hyper::Request::builder()
         .method(req.method.as_str())
-        .uri(req.url)
+        .uri(req.url);
+    for (k, v) in req.headers {
+        builder = builder.header(k.as_str(), v.as_str());
+    }
+    let request = builder
         .body(Body::from(req.body))
-        .context("Failed to build request");
-    let req = match request {
-        Ok(req) => req,
-        Err(err) => {
-            callback(
-                &weak_service,
-                id,
-                "error",
-                JsValue::String(err.to_string().into()),
-            );
-            return;
-        }
-    };
-    let response = match client.request(req).await.context("Failed to send request") {
-        Ok(response) => response,
-        Err(err) => {
-            callback(
-                &weak_service,
-                id,
-                "error",
-                JsValue::String(err.to_string().into()),
-            );
-            return;
-        }
-    };
+        .context("Failed to build request")?;
+    let response = sidevm::time::timeout(
+        Duration::from_millis(req.timeout_ms),
+        client.request(request),
+    )
+    .await
+    .context("Failed to send request")??;
     {
         let head: JsValue = {
             let headers = BTreeMap::from_iter(response.headers().iter().map(|(k, v)| {
@@ -103,20 +104,10 @@ async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest
     }
     tokio::pin!(response);
     while let Some(chunk) = response.data().await {
-        let chunk = match chunk {
-            Ok(chunk) => chunk,
-            Err(err) => {
-                callback(
-                    &weak_service,
-                    id,
-                    "error",
-                    JsValue::String(err.to_string().into()),
-                );
-                return;
-            }
-        };
+        let chunk = chunk.context("Failed to read response body")?;
         callback(&weak_service, id, "data", JsValue::Bytes(chunk.into()));
     }
+    Ok(())
 }
 
 fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) {
@@ -132,23 +123,25 @@ fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) 
     let args = vec![JsValue::String(name.into()), result]
         .into_iter()
         .map(|v| serialize_value(ctx, v))
-        .collect::<Result<Vec<_>, _>>();
-    match args {
-        Ok(args) => {
-            if let Err(err) = service.call_function(*res.value(), &args) {
-                error!("[{id}] Failed to report http_request event {name}: {err}");
-            }
-            debug!("[{id}] http_request event {name}");
-            // free the args
-            for arg in args {
-                unsafe {
-                    c::JS_FreeValue(ctx, arg);
-                }
-            }
-        }
-        Err(err) => {
-            // TODO: some js value mem could leak in this path
-            error!("[{id}] Failed to serialize http_request event {name}: {err}");
+        .collect::<Vec<_>>();
+
+    let n_args = args.len();
+    let args = args.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
+    if n_args != args.len() {
+        error!("[{id}] Failed to make args for http_request event {name}");
+        js_free_all(ctx, args);
+        return;
+    }
+    if let Err(err) = service.call_function(*res.value(), &args) {
+        error!("[{id}] Failed to report http_request event {name}: {err}");
+    }
+    js_free_all(ctx, args);
+}
+
+fn js_free_all(ctx: *mut c::JSContext, args: Vec<c::JSValue>) {
+    for arg in args {
+        unsafe {
+            c::JS_FreeValue(ctx, arg);
         }
     }
 }
