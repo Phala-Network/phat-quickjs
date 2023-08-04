@@ -589,6 +589,7 @@ version = "1.1.0"
 dependencies = [
  "anyhow",
  "bootcode",
+ "hyper",
  "log",
  "qjs-sys",
  "serde",

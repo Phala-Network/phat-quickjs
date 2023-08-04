@@ -1,6 +1,5 @@
 extern crate alloc;
 
-
 use log::info;
 use sidevm::logger::Logger;
 
@@ -10,12 +9,15 @@ mod host_functions;
 mod service;
 mod service_keeper;
 
+mod traits;
+
 #[sidevm::main]
 async fn main() {
     Logger::with_max_level(log::LevelFilter::Debug).init();
 
     info!("Starting sidevm...");
 
+    // for test
     let service = service::Service::new_ref();
     let _ = service.exec_script(
         r#"
@@ -23,9 +25,12 @@ async fn main() {
         function test(n) {
             console.log("test", n, Math.random());
         }
-        setInterval(test, 1000, 42);
+        const id = setInterval(test, 1000, 42);
+        setTimeout(() => clearInterval(0), 3000);
+        setInterval("hello", 4000);
         "#,
     );
+
     loop {
         tokio::select! {
             query = sidevm::channel::incoming_queries().next() => {

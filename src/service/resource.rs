@@ -1,16 +1,31 @@
+use log::info;
+use qjs_sys::convert::DecodeFromJSValue;
+
 use super::*;
 
 pub struct OwnedJsValue {
-    service: ServiceWeakRef,
+    runtime: Weak<Runtime>,
     value: c::JSValue,
+}
+
+impl DecodeFromJSValue for OwnedJsValue {
+    fn decode(ctx: *mut c::JSContext, v: c::JSValue) -> std::result::Result<Self, &'static str>
+    where
+        Self: Sized,
+    {
+        let runtime = js_context_get_runtime(ctx).ok_or("Failed to get service")?;
+        let v = unsafe { c::JS_DupValue(ctx, v) };
+        Ok(OwnedJsValue::from_raw(v, Rc::downgrade(&runtime)))
+    }
 }
 
 impl Drop for OwnedJsValue {
     fn drop(&mut self) {
-        let Some(service) = self.service.upgrade() else {
-        return;
-    };
-        service.free_value(self.value);
+        let Some(runtime) = self.runtime.upgrade() else {
+            info!("Can not free JSValue. The service has been dropped");
+            return;
+        };
+        runtime.free_value(self.value);
     }
 }
 
@@ -22,13 +37,13 @@ impl Clone for OwnedJsValue {
 }
 
 impl OwnedJsValue {
-    pub fn new(value: c::JSValue, service: ServiceWeakRef) -> Self {
-        Self { value, service }
+    pub fn from_raw(value: c::JSValue, runtime: Weak<Runtime>) -> Self {
+        Self { value, runtime }
     }
 
     pub fn dup(&self) -> Option<Self> {
-        let service = self.service.upgrade()?;
-        Some(service.dup_value(self.value))
+        let runtime = self.runtime.upgrade()?;
+        Some(runtime.dup_value(self.value))
     }
 
     pub fn value(&self) -> &c::JSValue {

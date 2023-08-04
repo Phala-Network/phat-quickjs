@@ -1,4 +1,5 @@
 use alloc::rc::Weak;
+use anyhow::{anyhow, Result};
 use log::{debug, error};
 use qjs_sys::{
     c,
@@ -6,15 +7,14 @@ use qjs_sys::{
 };
 
 use crate::service::{js_context_get_service, Resource, Service, ServiceRef, ServiceWeakRef};
-use anyhow::{anyhow, Error, Result};
+use crate::traits::{ResultExt, ToAnyhowResult};
 
-mod timer;
 mod http_request;
+mod timer;
 
 #[no_mangle]
 fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> c::JSValue {
-    let result = do_host_call(id, ctx, args)
-        .and_then(|value| serialize_value(ctx, value).map_err(Error::msg));
+    let result = do_host_call(id, ctx, args).and_then(|value| serialize_value(ctx, value).anyhow());
     match result {
         Ok(value) => value,
         Err(err) => {
@@ -30,14 +30,13 @@ fn do_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> Re
         .ok_or(anyhow!("Host call without a service attached"))?
         .upgrade()
         .ok_or(anyhow!("Host call while the service is dropped"))?;
-    let value = match id {
-        1001 => timer::set_timeout(service, ctx, args)?,
-        1002 => drop_resource(service, ctx, args)?,
-        1003 => timer::set_interval(service, ctx, args)?,
-        1004 => drop_resource(service, ctx, args)?,
+    match id {
+        1000 => drop_resource(service, ctx, args),
+        1001 => timer::set_timeout(service, ctx, args, false),
+        1002 => timer::set_timeout(service, ctx, args, true),
+        1003 => http_request::http_request(service, ctx, args),
         _ => anyhow::bail!("Invalid host call id: {id}"),
-    };
-    Ok(value)
+    }
 }
 
 #[no_mangle]
@@ -52,7 +51,7 @@ fn drop_resource(
     args: &[c::JSValueConst],
 ) -> Result<JsValue> {
     let id: u64 = match args.get(0) {
-        Some(id) => DecodeFromJSValue::decode(ctx, *id).map_err(Error::msg)?,
+        Some(id) => DecodeFromJSValue::decode(ctx, *id).anyhow()?,
         None => anyhow::bail!("Invoking clearTimeout without id"),
     };
     service.remove_resource(id);
