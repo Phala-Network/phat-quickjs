@@ -91,11 +91,13 @@ async fn do_http_request_inner(
                     JsValue::String(v.to_str().unwrap_or_default().into()),
                 )
             }));
+            let status = response.status().as_u16() as i32;
+            let reason = response.status().canonical_reason().unwrap_or_default();
+            let version = format!("{:?}", response.version());
             let response = BTreeMap::from_iter(vec![
-                (
-                    "status".into(),
-                    JsValue::Int(response.status().as_u16() as i32),
-                ),
+                ("status".into(), JsValue::Int(status)),
+                ("statusText".into(), JsValue::String(reason.into())),
+                ("version".into(), JsValue::String(version)),
                 ("headers".into(), JsValue::Object(headers)),
             ]);
             JsValue::Object(response)
@@ -103,10 +105,12 @@ async fn do_http_request_inner(
         callback(&weak_service, id, "head", head);
     }
     tokio::pin!(response);
+    let todo = "Control chunk size";
     while let Some(chunk) = response.data().await {
         let chunk = chunk.context("Failed to read response body")?;
         callback(&weak_service, id, "data", JsValue::Bytes(chunk.into()));
     }
+    callback(&weak_service, id, "end", JsValue::Null);
     Ok(())
 }
 

@@ -21,13 +21,19 @@ async fn main() {
     let service = service::Service::new_ref();
     let _ = service.exec_script(
         r#"
-        console.log('Hello, world!')
-        function test(n) {
-            console.log("test", n, Math.random());
+        const chunks = [];
+        async function test() {
+            console.log("test");
+            const response = await fetch("https://www.baidu.com/abc");
+            console.log("status:", response.status);
+            console.log("statusText:", response.statusText);
+            const body = await response.text();
+            // print in chunks of 128 bytes
+            for (let i = 0; i < body.length; i += 128) {
+                console.log(body.slice(i, i + 128));
+            }
         }
-        const id = setInterval(test, 1000, 42);
-        setTimeout(() => clearInterval(0), 3000);
-        setInterval("hello", 4000);
+        test()
         "#,
     );
 
