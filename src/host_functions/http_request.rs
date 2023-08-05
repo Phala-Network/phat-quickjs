@@ -57,7 +57,7 @@ async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest
             &weak_service,
             id,
             "error",
-            JsValue::String(err.to_string().into()),
+            JsValue::String(err.to_string()),
         );
     }
 }
@@ -133,9 +133,9 @@ fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) 
 
     let n_args = args.len();
     let args = args.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
-    scopeguard::defer! {
-        js_free_all(ctx, &args);
-    }
+    let args = scopeguard::guard(args, |args| {
+        js_free_all(ctx, args);
+    });
     if n_args != args.len() {
         error!("[{id}] Failed to make args for http_request event {name}");
         return;
@@ -145,10 +145,10 @@ fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) 
     }
 }
 
-fn js_free_all(ctx: *mut c::JSContext, args: &[c::JSValue]) {
+fn js_free_all(ctx: *mut c::JSContext, args: Vec<c::JSValue>) {
     for arg in args {
         unsafe {
-            c::JS_FreeValue(ctx, *arg);
+            c::JS_FreeValue(ctx, arg);
         }
     }
 }

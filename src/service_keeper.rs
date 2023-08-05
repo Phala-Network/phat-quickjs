@@ -38,7 +38,6 @@ impl ServiceKeeper {
             Ok(_) => {}
             Err(err) => {
                 error!("Executing script [{name}] returned error: {err}");
-                return;
             }
         }
     }

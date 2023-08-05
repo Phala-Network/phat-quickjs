@@ -130,7 +130,7 @@ impl Service {
         let res = Resource::new(js_callback, Some(Box::new(tx)));
         let id = self.push_resource(res);
         let weak_service = self.weak_self();
-        _ = crate::runtime::spawn(async move {
+        let _handle = crate::runtime::spawn(async move {
             tokio::select! {
                 _ = async_fn(weak_service.clone(), id, args) => {
                 }
