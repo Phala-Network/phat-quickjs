@@ -83,20 +83,16 @@
                 }
             }
             async text() {
-                const data = await this.bytes();
-                return new TextDecoder().decode(data);
+                return new TextDecoder().decode(await this.bytes());
             }
             async json() {
-                const data = await this.text();
-                return JSON.parse(data);
+                return JSON.parse(await this.text());
             }
             async blob() {
-                const data = await this.bytes();
-                return new Blob([data]);
+                return new Blob([await this.bytes()]);
             }
             async arrayBuffer() {
-                const data = await this.bytes();
-                return data.buffer;
+                return (await this.bytes()).buffer;
             }
             bytes() {
                 const r = this.receiver;

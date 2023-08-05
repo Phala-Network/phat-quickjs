@@ -18,10 +18,11 @@ async fn main() {
             const response = await fetch("https://www.baidu.com");
             console.log("status:", response.status);
             console.log("statusText:", response.statusText);
-            const body = await response.body();
-            for await (const chunk of body) {
-                console.log("chunk:", chunk);
-            }
+            const body = await response.text();
+            // for await (const chunk of body) {
+            //     console.log("chunk:", chunk);
+            // }
+            console.log("body:", body);
         }
         test()
         "#,

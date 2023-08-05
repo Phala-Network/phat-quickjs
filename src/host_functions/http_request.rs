@@ -133,21 +133,22 @@ fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) 
 
     let n_args = args.len();
     let args = args.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
+    scopeguard::defer! {
+        js_free_all(ctx, &args);
+    }
     if n_args != args.len() {
         error!("[{id}] Failed to make args for http_request event {name}");
-        js_free_all(ctx, args);
         return;
     }
     if let Err(err) = service.call_function(*res.value(), &args) {
         error!("[{id}] Failed to report http_request event {name}: {err}");
     }
-    js_free_all(ctx, args);
 }
 
-fn js_free_all(ctx: *mut c::JSContext, args: Vec<c::JSValue>) {
+fn js_free_all(ctx: *mut c::JSContext, args: &[c::JSValue]) {
     for arg in args {
         unsafe {
-            c::JS_FreeValue(ctx, arg);
+            c::JS_FreeValue(ctx, *arg);
         }
     }
 }
