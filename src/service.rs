@@ -115,26 +115,26 @@ impl Service {
         id
     }
 
-    pub fn spawn<Fut, Creator, Args>(
+    pub fn spawn<Fut, FutGen, Args>(
         &self,
         js_callback: OwnedJsValue,
-        async_fn: Creator,
+        fut_gen: FutGen,
         args: Args,
     ) -> u64
     where
         Fut: Future<Output = ()> + 'static,
         Args: 'static,
-        Creator: FnOnce(ServiceWeakRef, u64, Args) -> Fut + 'static,
+        FutGen: FnOnce(ServiceWeakRef, u64, Args) -> Fut + 'static,
     {
-        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        let res = Resource::new(js_callback, Some(Box::new(tx)));
+        let (cancel_tx, cancel_rx) = tokio::sync::oneshot::channel::<()>();
+        let res = Resource::new(js_callback, Some(Box::new(cancel_tx)));
         let id = self.push_resource(res);
         let weak_service = self.weak_self();
         let _handle = crate::runtime::spawn(async move {
             tokio::select! {
-                _ = async_fn(weak_service.clone(), id, args) => {
+                _ = fut_gen(weak_service.clone(), id, args) => {
                 }
-                _ = rx => {
+                _ = cancel_rx => {
                 }
             }
             close(weak_service, id);
