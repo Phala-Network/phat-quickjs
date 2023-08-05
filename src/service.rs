@@ -5,7 +5,7 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell};
-use log::debug;
+use log::{debug, error};
 use std::future::Future;
 
 use anyhow::Result;
@@ -42,6 +42,20 @@ impl Runtime {
         let runtime = js_context_get_runtime(self.ctx)
             .expect("Failed to get service from context, can not dup value");
         OwnedJsValue::from_raw(value, Rc::downgrade(&runtime))
+    }
+
+    pub fn exec_pending_jobs(&self) {
+        let mut ctx: *mut c::JSContext = core::ptr::null_mut();
+        loop {
+            let ret = unsafe { c::JS_ExecutePendingJob(self.runtime, &mut ctx) };
+            if ret == 0 {
+                break;
+            }
+            if ret < 0 {
+                error!("Failed to execute pending job");
+                unsafe { c::js_std_dump_error(ctx); }
+            }
+        }
     }
 }
 
@@ -88,7 +102,9 @@ impl Service {
     pub fn exec_script(&self, script: &str) -> Result<Output, String> {
         let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
         let js_code = qjs_sys::JsCode::Source(script.as_c_str());
-        qjs_sys::ctx_eval(self.runtime.ctx, js_code)
+        let result = qjs_sys::ctx_eval(self.runtime.ctx, js_code);
+        self.runtime.exec_pending_jobs();
+        result
     }
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
@@ -152,6 +168,7 @@ impl Service {
             let err = qjs_sys::ctx_to_string(self.runtime.ctx, exception);
             anyhow::bail!("Failed to call function: {err}");
         }
+        self.runtime.exec_pending_jobs();
         Ok(ret)
     }
 
