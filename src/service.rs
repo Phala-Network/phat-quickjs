@@ -99,6 +99,14 @@ impl Service {
         }
     }
 
+    pub fn raw_ctx(&self) -> *mut c::JSContext {
+        self.runtime.ctx
+    }
+
+    pub fn runtime(&self) -> Rc<Runtime> {
+        self.runtime.clone()
+    }
+
     pub fn exec_script(&self, script: &str) -> Result<Output, String> {
         let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
         let js_code = qjs_sys::JsCode::Source(script.as_c_str());
@@ -107,12 +115,42 @@ impl Service {
         result
     }
 
+    pub fn call_function(&self, func: c::JSValue, args: &[c::JSValue]) -> Result<c::JSValue> {
+        let this = c::JS_UNDEFINED;
+        let ret = unsafe {
+            let len = args.len();
+            let args_len = len as core::ffi::c_int;
+            let args = args.as_ptr();
+            let args = args as *mut c::JSValue;
+            c::JS_Call(self.runtime.ctx, func, this, args_len, args)
+        };
+        if c::is_exception(ret) {
+            let exception = unsafe { c::JS_GetException(self.runtime.ctx) };
+            let err = qjs_sys::ctx_to_string(self.runtime.ctx, exception);
+            anyhow::bail!("Failed to call function: {err}");
+        }
+        self.runtime.exec_pending_jobs();
+        Ok(ret)
+    }
+
     pub fn push_resource(&self, resource: Resource) -> u64 {
         let mut state = self.state.borrow_mut();
         let id = state.next_resource_id;
         state.next_resource_id += 1;
         state.recources.insert(id, resource);
         id
+    }
+
+    pub fn get_resource_value(&self, id: u64) -> Option<OwnedJsValue> {
+        let state = self.state.borrow();
+        let value = state.recources.get(&id)?.js_value.dup()?;
+        Some(value)
+    }
+
+    pub fn remove_resource(&self, id: u64) -> Option<Resource> {
+        debug!("Removing resource {id}");
+        let mut state = self.state.borrow_mut();
+        state.recources.remove(&id)
     }
 
     pub fn spawn<Fut, FutGen, Args>(
@@ -140,44 +178,6 @@ impl Service {
             close(weak_service, id);
         });
         id
-    }
-
-    pub fn get_resource_value(&self, id: u64) -> Option<OwnedJsValue> {
-        let state = self.state.borrow();
-        let value = state.recources.get(&id)?.js_value.dup()?;
-        Some(value)
-    }
-
-    pub fn remove_resource(&self, id: u64) -> Option<Resource> {
-        debug!("Removing resource {id}");
-        let mut state = self.state.borrow_mut();
-        state.recources.remove(&id)
-    }
-
-    pub fn call_function(&self, func: c::JSValue, args: &[c::JSValue]) -> Result<c::JSValue> {
-        let this = c::JS_UNDEFINED;
-        let ret = unsafe {
-            let len = args.len();
-            let args_len = len as core::ffi::c_int;
-            let args = args.as_ptr();
-            let args = args as *mut c::JSValue;
-            c::JS_Call(self.runtime.ctx, func, this, args_len, args)
-        };
-        if c::is_exception(ret) {
-            let exception = unsafe { c::JS_GetException(self.runtime.ctx) };
-            let err = qjs_sys::ctx_to_string(self.runtime.ctx, exception);
-            anyhow::bail!("Failed to call function: {err}");
-        }
-        self.runtime.exec_pending_jobs();
-        Ok(ret)
-    }
-
-    pub fn raw_ctx(&self) -> *mut c::JSContext {
-        self.runtime.ctx
-    }
-
-    pub fn runtime(&self) -> Rc<Runtime> {
-        self.runtime.clone()
     }
 }
 
