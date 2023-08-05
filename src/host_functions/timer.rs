@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::runtime::time::sleep;
+
 pub(super) fn set_timeout(
     service: ServiceRef,
     ctx: *mut c::JSContext,
@@ -39,13 +41,13 @@ fn try_fire_timer(service: &Weak<Service>, id: u64) -> Result<()> {
 }
 
 async fn do_set_timeout(service: ServiceWeakRef, id: u64, timeout_ms: u64) {
-    sidevm::time::sleep(std::time::Duration::from_millis(timeout_ms)).await;
+    sleep(std::time::Duration::from_millis(timeout_ms)).await;
     try_fire_timer(&service, id).ignore();
 }
 
 async fn do_set_interval(service: ServiceWeakRef, id: u64, timeout_ms: u64) {
     loop {
-        sidevm::time::sleep(std::time::Duration::from_millis(timeout_ms)).await;
+        sleep(std::time::Duration::from_millis(timeout_ms)).await;
         if try_fire_timer(&service, id).log_err().is_err() {
             break;
         }

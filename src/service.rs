@@ -53,7 +53,7 @@ impl Runtime {
             }
             if ret < 0 {
                 error!("Failed to execute pending job");
-                unsafe { c::js_std_dump_error(ctx); }
+                // unsafe { c::js_std_dump_error(ctx); }
             }
         }
     }
@@ -130,7 +130,7 @@ impl Service {
         let res = Resource::new(js_callback, Some(Box::new(tx)));
         let id = self.push_resource(res);
         let weak_service = self.weak_self();
-        _ = sidevm::spawn(async move {
+        _ = crate::runtime::spawn(async move {
             tokio::select! {
                 _ = async_fn(weak_service.clone(), id, args) => {
                 }

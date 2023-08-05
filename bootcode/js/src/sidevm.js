@@ -6,15 +6,6 @@
         }
         return v;
     }
-    function mergeUint8Arrays(...arrays) {
-        const totalSize = arrays.reduce((acc, e) => acc + e.length, 0);
-        const merged = new Uint8Array(totalSize);
-        arrays.forEach((array, i, arrays) => {
-            const offset = arrays.slice(0, i).reduce((acc, e) => acc + e.length, 0);
-            merged.set(array, offset);
-        });
-        return merged;
-    }
     function close(id) {
         hostCall(1000, id);
     }
@@ -34,6 +25,7 @@
     g.clearTimeout = close;
     g.clearInterval = close;
     g.sidevm = {
+        close,
         httpRequest(cfg) {
             const id = hostCall(1003, {
                 method: "GET",
@@ -44,76 +36,133 @@
                 ...cfg
             });
             return id;
-        }
+        },
     };
-    g.fetch = (url, options) => {
-        options = options || {};
-        return new Promise((resolve, reject) => {
-            function makeResponse(head) {
-                const next1 = {
-                    resolve: (data) => { },
-                    reject: (data) => { },
-                }
-                const response = {
-                    ok: ((head.status / 100) | 0) == 2,
-                    statusText: head.statusText,
-                    status: head.status,
-                    url,
-                    text: () => {
-                        return new Promise((resolve, reject) => {
-                            next1.resolve = (data) => resolve(new TextDecoder().decode(data));
-                            next1.reject = reject;
-                        });
-                    },
-                    json: () => {
-                        return new Promise((resolve, reject) => {
-                            next1.resolve = (data) => resolve(JSON.parse(new TextDecoder().decode(data)));
-                            next1.reject = reject;
-                        });
-                    },
-                    blob: () => {
-                        return new Promise((resolve, reject) => {
-                            next1.resolve = resolve;
-                            next1.reject = reject;
-                        });
-                    },
-                    headers: {
-                        keys: () => head.headers.keys(),
-                        entries: () => head.headers.entries(),
-                        get: (n) => head.headers.get(n),
-                        has: (n) => head.headers.has(n),
-                    },
-                };
+    implFetch(g);
+
+    function implFetch(g) {
+        class Headers {
+            constructor(headers) {
+                this._headers = headers;
+            }
+            keys() {
+                return this._headers.keys();
+            }
+            entries() {
+                return this._headers.entries();
+            }
+            get(n) {
+                return this._headers.get(n);
+            }
+            has(n) {
+                return this._headers.has(n);
+            }
+        }
+
+        class Response {
+            constructor(url, id, receiver, head) {
+                this.id = id;
+                this.ok = ((head.status / 100) | 0) == 2;
+                this.statusText = head.statusText;
+                this.status = head.status;
+                this.url = url;
+                this.headers = new Headers(head.headers);
+                this.receiver = receiver;
+                this.bodyUsed = false;
+                this.type = "default";
                 const chunks = [];
-                next0.callback = (cmd, data) => {
+                receiver.recv = (cmd, data) => {
                     if (cmd == "data") {
                         chunks.push(data);
                     } else if (cmd == "end") {
-                        next1.resolve(mergeUint8Arrays(...chunks));
+                        const body = mergeUint8Arrays(...chunks);
+                        receiver.resolve(body);
                     } else {
-                        next1.reject(data);
+                        receiver.reject(data);
                     }
-                };
-                return response;
-            };
-            const next0 = {
-                callback: (cmd, data) => {
-                    if (cmd == "head") {
-                        resolve(makeResponse(data));
-                    } else {
-                        reject(data);
-                    }
-                },
+                }
             }
-            g.sidevm.httpRequest({
-                url,
-                method: options.method || "GET",
-                headers: options.headers || {},
-                callback: (cmd, data) => {
-                    next0.callback(cmd, data);
-                },
+            async text() {
+                const data = await this.bytes();
+                return new TextDecoder().decode(data);
+            }
+            async json() {
+                const data = await this.text();
+                return JSON.parse(data);
+            }
+            async blob() {
+                const data = await this.bytes();
+                return new Blob([data]);
+            }
+            async arrayBuffer() {
+                const data = await this.bytes();
+                return data.buffer;
+            }
+            bytes() {
+                const r = this.receiver;
+                return new Promise((resolve, reject) => {
+                    r.resolve = resolve
+                    r.reject = reject;
+                });
+            }
+            get body() {
+                const r = this.receiver;
+                const reqId = this.id;
+                return new ReadableStream({
+                    start(controller) {
+                        r.recv = (cmd, data) => {
+                            if (cmd == "data") {
+                                controller.enqueue(data);
+                            } else if (cmd == "end") {
+                                controller.close();
+                            } else {
+                                controller.error(data);
+                            }
+                        }
+                    },
+                    cancel() {
+                        sidevm.close(reqId);
+                    }
+                });
+            }
+        }
+
+        g.fetch = (url, options) => {
+            options = options || {};
+            return new Promise((resolve, reject) => {
+                const receiver = {
+                    recv: (cmd, data) => {
+                        if (cmd == "head") {
+                            resolve(new Response(url, reqId, receiver, data));
+                        } else {
+                            reject(data);
+                        }
+                    },
+                    resolve: () => { },
+                    reject: () => { },
+                }
+                const reqId = sidevm.httpRequest({
+                    url,
+                    method: options.method || "GET",
+                    headers: options.headers || {},
+                    timeout: options.timeout || 10000,
+                    body: options.body || "0x",
+                    callback: (cmd, data) => receiver.recv(cmd, data),
+                });
             });
+        };
+        g.Response = Response;
+        g.Headers = Headers;
+    }
+    function mergeUint8Arrays(...arrays) {
+        const totalSize = arrays.reduce((acc, e) => acc + e.length, 0);
+        const merged = new Uint8Array(totalSize);
+        arrays.forEach((array, i, arrays) => {
+            const offset = arrays.slice(0, i).reduce((acc, e) => acc + e.length, 0);
+            merged.set(array, offset);
         });
-    };
+        return merged;
+    }
 }(globalThis))
+
 export default {};

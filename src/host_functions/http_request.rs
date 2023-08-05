@@ -4,10 +4,12 @@ use log::info;
 use qjs_sys::convert::{
     js_object_get_field, js_object_get_field_or_default, js_object_get_option_field,
 };
-use sidevm::net::HttpConnector;
 use std::{collections::BTreeMap, time::Duration};
 
-use crate::service::OwnedJsValue;
+use crate::{
+    runtime::{time::timeout, HttpConnector, HyperExecutor},
+    service::OwnedJsValue,
+};
 
 use super::*;
 
@@ -66,7 +68,7 @@ async fn do_http_request_inner(
 ) -> Result<()> {
     let connector = HttpConnector::new();
     let client = hyper::Client::builder()
-        .executor(sidevm::exec::HyperExecutor)
+        .executor(HyperExecutor)
         .build::<_, Body>(connector);
     let mut builder = hyper::Request::builder()
         .method(req.method.as_str())
@@ -77,7 +79,7 @@ async fn do_http_request_inner(
     let request = builder
         .body(Body::from(req.body))
         .context("Failed to build request")?;
-    let response = sidevm::time::timeout(
+    let response = timeout(
         Duration::from_millis(req.timeout_ms),
         client.request(request),
     )

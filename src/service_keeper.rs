@@ -1,7 +1,7 @@
 use log::error;
-use sidevm::env::messages::AccountId;
 use std::{cell::RefCell, collections::BTreeMap};
 
+use crate::runtime::AccountId;
 use crate::service::{Service, ServiceRef};
 
 thread_local! {

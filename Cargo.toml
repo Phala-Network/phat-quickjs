@@ -15,7 +15,17 @@ sidevm = "0.1.10"
 log = "0.4"
 anyhow = "1.0"
 
-[lib]
-crate-type = ["cdylib"]
+# Crates for native testing
+env_logger = { version = "0.10", optional = true }
+rand = { version = "0.8", optional = true }
 
 [features]
+default = ["native"]
+
+native = [
+    "tokio/full",
+    "env_logger",
+    "rand",
+    "hyper/runtime",
+    "hyper/tcp",
+]
