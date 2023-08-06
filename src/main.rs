@@ -2,12 +2,17 @@
 
 extern crate alloc;
 
+use log::info;
 use quickjs::{runtime, Service};
 
 #[runtime::main]
 async fn main() {
     runtime::init_logger();
+    info!("Starting...");
     runtime::run_local(async {
+        sidevm::time::sleep(std::time::Duration::from_secs(1)).await;
+        info!("Compile script");
+        let code = qjs_sys::compile("console.log(222)", "test.js").unwrap();
         // for test
         let service = Service::new_ref();
         let test0 = r#"

@@ -3,7 +3,7 @@ all:
 	cargo build --release --target wasm32-wasi --no-default-features
 
 run: all
-	sidevm-host target/wasm32-wasi/release/quickjs.wasm
+	RUST_LOG=info sidevm-host target/wasm32-wasi/release/quickjs.wasm
 
 clean:
 	cargo clean

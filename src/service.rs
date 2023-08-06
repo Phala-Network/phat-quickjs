@@ -5,7 +5,7 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell};
-use log::{debug, error};
+use log::{debug, error, info};
 use std::future::Future;
 
 use anyhow::Result;
@@ -111,8 +111,15 @@ impl Service {
 
     pub fn exec_script(&self, script: &str) -> Result<Output, String> {
         let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
-        let js_code = qjs_sys::JsCode::Source(script.as_c_str());
-        let result = qjs_sys::ctx_eval(self.runtime.ctx, js_code);
+        self.eval(JsCode::Source(script.as_c_str()))
+    }
+
+    pub fn exec_bytecode(&self, script: &[u8]) -> Result<Output, String> {
+        self.eval(JsCode::Bytecode(script))
+    }
+
+    pub fn eval(&self, code: JsCode) -> Result<Output, String> {
+        let result = qjs_sys::ctx_eval(self.runtime.ctx, code);
         self.runtime.exec_pending_jobs();
         result
     }

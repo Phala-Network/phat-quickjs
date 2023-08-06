@@ -7,7 +7,7 @@ use qjs_sys::convert::{
 use std::{collections::BTreeMap, time::Duration};
 
 use crate::{
-    runtime::{time::timeout, http_connector, HyperExecutor},
+    runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
 
@@ -53,12 +53,7 @@ pub(super) fn http_request(
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
     let result = do_http_request_inner(weak_service.clone(), id, req).await;
     if let Err(err) = result {
-        callback(
-            &weak_service,
-            id,
-            "error",
-            JsValue::String(err.to_string()),
-        );
+        callback(&weak_service, id, "error", JsValue::String(err.to_string()));
     }
 }
 async fn do_http_request_inner(

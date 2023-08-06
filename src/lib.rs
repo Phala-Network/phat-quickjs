@@ -61,8 +61,6 @@ pub mod runtime {
     }
     pub async fn main_loop() {
         use log::info;
-
-        info!("Starting sidevm...");
         loop {
             tokio::select! {
                 query = sidevm::channel::incoming_queries().next() => {
