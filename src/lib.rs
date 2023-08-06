@@ -15,21 +15,21 @@ pub mod runtime {
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 
     pub use tokio::main;
-    pub(crate) use tokio::{task::spawn_local as spawn, time};
-    pub(crate) fn http_connector() -> HttpsConnector<HttpConnector> {
+    pub use tokio::{task::spawn_local as spawn, time};
+    pub fn http_connector() -> HttpsConnector<HttpConnector> {
         HttpsConnectorBuilder::new()
             .with_webpki_roots()
             .https_or_http()
             .enable_http1()
             .build()
     }
-    pub(crate) fn getrandom(buf: &mut [u8]) -> Option<()> {
+    pub fn getrandom(buf: &mut [u8]) -> Option<()> {
         use rand::RngCore;
         rand::thread_rng().fill_bytes(buf);
         Some(())
     }
-    pub(crate) type AccountId = [u8; 32];
-    pub(crate) struct HyperExecutor;
+    pub type AccountId = [u8; 32];
+    pub struct HyperExecutor;
     impl<F: core::future::Future + 'static> hyper::rt::Executor<F> for HyperExecutor {
         fn execute(&self, fut: F) {
             spawn(fut);
@@ -49,14 +49,14 @@ pub mod runtime {
 
 #[cfg(not(feature = "native"))]
 pub mod runtime {
-    pub(crate) use sidevm::{
+    pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
     };
 
     pub use sidevm::main;
 
-    pub(crate) fn http_connector() -> HttpConnector {
+    pub fn http_connector() -> HttpConnector {
         HttpConnector::new()
     }
     pub async fn main_loop() {

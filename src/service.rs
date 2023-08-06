@@ -5,7 +5,7 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell};
-use log::{debug, error, info};
+use log::{debug, error};
 use std::future::Future;
 
 use anyhow::Result;

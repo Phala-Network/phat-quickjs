@@ -32,3 +32,4 @@ native = [
     "hyper/tcp",
     "hyper-rustls/webpki-roots",
 ]
+sanitize-address = ["qjs-sys/sanitize-address"]

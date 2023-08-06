@@ -10,12 +10,10 @@ async fn main() {
     runtime::init_logger();
     info!("Starting...");
     runtime::run_local(async {
-        sidevm::time::sleep(std::time::Duration::from_secs(1)).await;
-        info!("Compile script");
-        let code = qjs_sys::compile("console.log(222)", "test.js").unwrap();
         // for test
         let service = Service::new_ref();
-        let test0 = r#"
+        runtime::time::sleep(std::time::Duration::from_secs(1)).await;
+        let test_script = r#"
             console.log("Hello, world!");
             setTimeout(() => {
                 console.log("Hello, world! 2");
@@ -37,8 +35,14 @@ async fn main() {
             }
             test()
         "#;
-        let _ = service.exec_script(test0);
-        runtime::main_loop().await
+        info!("Compiling script...");
+        let code = qjs_sys::compile(test_script, "test.js").unwrap();
+        info!("Executing script...");
+        let rv = service.exec_bytecode(&code);
+        info!("Script executed: {:?}", rv);
+
+        runtime::main_loop().await;
+        info!("Exiting...");
     })
     .await;
 }
