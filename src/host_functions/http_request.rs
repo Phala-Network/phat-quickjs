@@ -7,7 +7,7 @@ use qjs_sys::convert::{
 use std::{collections::BTreeMap, time::Duration};
 
 use crate::{
-    runtime::{time::timeout, HttpConnector, HyperExecutor},
+    runtime::{time::timeout, http_connector, HyperExecutor},
     service::OwnedJsValue,
 };
 
@@ -66,7 +66,7 @@ async fn do_http_request_inner(
     id: u64,
     req: HttpRequest,
 ) -> Result<()> {
-    let connector = HttpConnector::new();
+    let connector = http_connector();
     let client = hyper::Client::builder()
         .executor(HyperExecutor)
         .build::<_, Body>(connector);

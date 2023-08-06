@@ -18,7 +18,8 @@ scopeguard = "1.2.0"
 
 # Crates for native testing
 env_logger = { version = "0.10", optional = true }
-rand = { version = "0.8", optional = true }
+rand = { version = "0.8.5", optional = true }
+hyper-rustls = { version = "0.24.1", optional = true }
 
 [features]
 default = ["native"]
@@ -29,4 +30,5 @@ native = [
     "rand",
     "hyper/runtime",
     "hyper/tcp",
+    "hyper-rustls/webpki-roots",
 ]

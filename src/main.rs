@@ -27,7 +27,7 @@ async fn main() {
                     if (done) {
                         break;
                     }
-                    console.log("chunk:", done);
+                    console.log("chunk:", value);
                 }
             }
             test()

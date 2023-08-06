@@ -11,11 +11,18 @@ mod traits;
 
 #[cfg(feature = "native")]
 pub mod runtime {
+    use hyper::client::HttpConnector;
+    use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+
     pub use tokio::main;
-    pub(crate) use {
-        hyper::client::HttpConnector,
-        tokio::{task::spawn_local as spawn, time},
-    };
+    pub(crate) use tokio::{task::spawn_local as spawn, time};
+    pub(crate) fn http_connector() -> HttpsConnector<HttpConnector> {
+        HttpsConnectorBuilder::new()
+            .with_webpki_roots()
+            .https_or_http()
+            .enable_http1()
+            .build()
+    }
     pub(crate) fn getrandom(buf: &mut [u8]) -> Option<()> {
         use rand::RngCore;
         rand::thread_rng().fill_bytes(buf);
@@ -49,6 +56,9 @@ pub mod runtime {
 
     pub use sidevm::main;
 
+    pub(crate) fn http_connector() -> HttpConnector {
+        HttpConnector::new()
+    }
     pub async fn main_loop() {
         use log::info;
 
