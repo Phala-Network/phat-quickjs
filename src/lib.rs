@@ -28,18 +28,16 @@ pub mod runtime {
             spawn(fut);
         }
     }
-
-    pub async fn main_loop() {
-        env_logger::init();
+    pub async fn run_local<F: core::future::Future>(fut: F) -> F::Output {
         let local = tokio::task::LocalSet::new();
-        local
-            .run_until(async {
-                loop {
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                }
-            })
-            .await
+        local.run_until(fut).await
     }
+    pub async fn main_loop() {
+        loop {
+            tokio::time::sleep(time::Duration::from_secs(1)).await;
+        }
+    }
+    pub use env_logger::init as init_logger;
 }
 
 #[cfg(not(feature = "native"))]
@@ -53,8 +51,6 @@ pub mod runtime {
 
     pub async fn main_loop() {
         use log::info;
-
-        sidevm::logger::Logger::with_max_level(log::LevelFilter::Debug).init();
 
         info!("Starting sidevm...");
         loop {
@@ -76,5 +72,11 @@ pub mod runtime {
                 }
             }
         }
+    }
+    pub async fn run_local<F: core::future::Future>(fut: F) -> F::Output {
+        fut.await
+    }
+    pub fn init_logger() {
+        sidevm::logger::Logger::with_max_level(log::LevelFilter::Debug).init();
     }
 }

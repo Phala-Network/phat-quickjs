@@ -52,8 +52,10 @@ impl Runtime {
                 break;
             }
             if ret < 0 {
-                error!("Failed to execute pending job");
-                // unsafe { c::js_std_dump_error(ctx); }
+                error!(
+                    "Failed to execute pending job: {}",
+                    qjs_sys::ctx_get_exception_str(ctx)
+                );
             }
         }
     }

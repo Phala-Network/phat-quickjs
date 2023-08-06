@@ -6,29 +6,36 @@ use quickjs::{runtime, Service};
 
 #[runtime::main]
 async fn main() {
-    // for test
-    let service = Service::new_ref();
-    let _ = service.exec_script(
-        r#"
-        console.log("Hello, world!");
-        console.log("ReadableStream:", ReadableStream);
-        const chunks = [];
-        async function test() {
-            console.log("test");
-            const response = await fetch("https://www.baidu.com");
-            console.log("status:", response.status);
-            console.log("statusText:", response.statusText);
-            const body = await response.text();
-            // for await (const chunk of body) {
-            //     console.log("chunk:", chunk);
-            // }
-            console.log("body:", body);
-        }
-        test()
-        "#,
-    );
-
-    runtime::main_loop().await
+    runtime::init_logger();
+    runtime::run_local(async {
+        // for test
+        let service = Service::new_ref();
+        let test0 = r#"
+            console.log("Hello, world!");
+            setTimeout(() => {
+                console.log("Hello, world! 2");
+            }, 2000);
+            const chunks = [];
+            async function test() {
+                console.log("entered test");
+                const response = await fetch("https://www.baidu.com");
+                console.log("status:", response.status);
+                console.log("statusText:", response.statusText);
+                const bodyReader = response.body.getReader();
+                while(true) {
+                    const {done, value} = await bodyReader.read();
+                    if (done) {
+                        break;
+                    }
+                    console.log("chunk:", done);
+                }
+            }
+            test()
+        "#;
+        let _ = service.exec_script(test0);
+        runtime::main_loop().await
+    })
+    .await;
 }
 
 #[cfg(not(feature = "native"))]
