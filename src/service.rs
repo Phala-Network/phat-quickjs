@@ -72,13 +72,21 @@ struct ServiceState {
     recources: BTreeMap<u64, Resource>,
 }
 
+pub fn ctx_init(ctx: *mut c::JSContext) {
+    unsafe {
+        c::js_env_add_helpers(ctx);
+        // c::js_stream_init(ctx);
+        c::js_blob_init(ctx);
+    };
+}
+
 impl Service {
     pub fn new(weak_self: ServiceWeakRef) -> Self {
         let runtime = unsafe { c::JS_NewRuntime() };
         let ctx = unsafe { c::JS_NewContext(runtime) };
         let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
 
-        qjs_sys::ctx_init(ctx);
+        ctx_init(ctx);
         qjs_sys::ctx_eval(ctx, bootcode).expect("Failed to eval bootcode");
 
         let boxed_self = Box::into_raw(Box::new(weak_self));

@@ -15,33 +15,23 @@ async fn main() {
         runtime::time::sleep(std::time::Duration::from_secs(1)).await;
         let test_script = r#"
             console.log("Hello, world!");
-            setTimeout(() => {
-                console.log("Hello, world! 2");
-            }, 2000);
             const chunks = [];
             async function test() {
                 console.log("entered test");
                 const response = await fetch("https://www.baidu.com");
                 console.log("status:", response.status);
                 console.log("statusText:", response.statusText);
-                const bodyReader = response.body.getReader();
-                while(true) {
-                    const {done, value} = await bodyReader.read();
-                    if (done) {
-                        break;
-                    }
-                    console.log("chunk:", value);
-                }
+                const blob = await response.blob();
+                console.log("blob:", blob.size);
             }
             test()
         "#;
-        info!("Compiling script...");
-        let code = qjs_sys::compile(test_script, "test.js").unwrap();
         info!("Executing script...");
-        let rv = service.exec_bytecode(&code);
+        let rv = service.exec_script(test_script);
         info!("Script executed: {:?}", rv);
 
-        runtime::main_loop().await;
+        // runtime::main_loop().await;
+        runtime::time::sleep(std::time::Duration::from_secs(2)).await;
         info!("Exiting...");
     })
     .await;
