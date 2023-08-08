@@ -1,5 +1,6 @@
+import "./polyfill-textencoding";
+import "./polyfill-streams";
 import "./sidevm";
-import "./polyfills";
 // import { parseTypes, codec } from "./scale";
 // TODO: lazy load the SCALE module
 // (function (g) {
