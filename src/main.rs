@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use log::info;
-use quickjs::{runtime, Service};
+use sidevm_quickjs::{runtime, Service};
 
 #[runtime::main]
 async fn main() {
