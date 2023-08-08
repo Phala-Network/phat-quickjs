@@ -5,7 +5,7 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell};
-use log::{debug, error};
+use log::{debug, info, error};
 use std::future::Future;
 
 use anyhow::Result;
@@ -74,8 +74,10 @@ struct ServiceState {
 
 pub fn ctx_init(ctx: *mut c::JSContext) {
     unsafe {
-        c::js_env_add_helpers(ctx);
-        // c::js_stream_init(ctx);
+        c::js_pink_env_init(ctx);
+        #[cfg(feature = "stream")]
+        c::js_stream_init(ctx);
+        #[cfg(feature = "blob")]
         c::js_blob_init(ctx);
     };
 }
@@ -194,6 +196,13 @@ impl Service {
             close(weak_service, id);
         });
         id
+    }
+    pub fn js_log(&self, fd: u32, msg: &str) {
+        if fd == 1 {
+            info!("JS:[{fd}]|  {}", msg);
+        } else if fd == 2 {
+            error!("JS:[{fd}]|  {}", msg);
+        }
     }
 }
 

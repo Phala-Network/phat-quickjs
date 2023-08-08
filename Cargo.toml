@@ -24,6 +24,9 @@ hyper-rustls = { version = "0.24.1", optional = true }
 [features]
 default = ["native"]
 
+stream = []
+blob = []
+
 native = [
     "tokio/full",
     "env_logger",

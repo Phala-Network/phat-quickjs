@@ -102,7 +102,6 @@ async fn do_http_request_inner(
         callback(&weak_service, id, "head", head);
     }
     tokio::pin!(response);
-    let todo = "Control chunk size";
     while let Some(chunk) = response.data().await {
         let chunk = chunk.context("Failed to read response body")?;
         callback(&weak_service, id, "data", JsValue::Bytes(chunk.into()));

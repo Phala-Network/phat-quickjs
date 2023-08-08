@@ -27,7 +27,7 @@
     g.sidevm = {
         close,
         httpRequest(cfg) {
-            const id = hostCall(1003, {
+            return hostCall(1003, {
                 method: "GET",
                 headers: {},
                 body: "0x",
@@ -35,9 +35,24 @@
                 callback: () => { },
                 ...cfg
             });
-            return id;
         },
+        print(...args) {
+            return hostCall(1004, ...args);
+        }
     };
+    g.console = {
+        log(...args) {
+            return sidevm.print(1, ...args);
+        },
+        error(...args) {
+            return sidevm.print(2, ...args);
+        },
+        warn(...args) {
+            return sidevm.print(3, ...args);
+        }
+    }
+    g.print = g.console.log;
+
     implFetch(g);
 
     function implFetch(g) {
