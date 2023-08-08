@@ -44,7 +44,7 @@ pub mod runtime {
             tokio::time::sleep(time::Duration::from_secs(1)).await;
         }
     }
-    pub use env_logger::init as init_logger;
+    pub use tracing_subscriber::fmt::init as init_logger;
 }
 
 #[cfg(not(feature = "native"))]
