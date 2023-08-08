@@ -142,8 +142,7 @@ impl Service {
             c::JS_Call(self.runtime.ctx, func, this, args_len, args)
         };
         if c::is_exception(ret) {
-            let exception = unsafe { c::JS_GetException(self.runtime.ctx) };
-            let err = qjs_sys::ctx_to_string(self.runtime.ctx, exception);
+            let err = qjs_sys::ctx_get_exception_str(self.runtime.ctx);
             anyhow::bail!("Failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
