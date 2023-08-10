@@ -5,11 +5,12 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell};
-use log::{debug, info, error};
+use log::{debug, error, info};
 use std::future::Future;
 
 use anyhow::Result;
 use qjs_sys::{c, JsCode, Output};
+use tokio::sync::broadcast;
 
 mod resource;
 
@@ -66,10 +67,20 @@ pub struct Service {
     state: RefCell<ServiceState>,
 }
 
-#[derive(Default)]
 struct ServiceState {
     next_resource_id: u64,
     recources: BTreeMap<u64, Resource>,
+    done_tx: broadcast::Sender<()>,
+}
+
+impl Default for ServiceState {
+    fn default() -> Self {
+        Self {
+            next_resource_id: Default::default(),
+            recources: Default::default(),
+            done_tx: broadcast::channel(1).0,
+        }
+    }
 }
 
 pub fn ctx_init(ctx: *mut c::JSContext) {
@@ -168,7 +179,12 @@ impl Service {
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
         debug!("Removing resource {id}");
         let mut state = self.state.borrow_mut();
-        state.recources.remove(&id)
+        let was_empty = state.recources.is_empty();
+        let res = state.recources.remove(&id);
+        if !was_empty && state.recources.is_empty() {
+            let _ = state.done_tx.send(());
+        }
+        res
     }
 
     pub fn spawn<Fut, FutGen, Args>(
@@ -203,6 +219,18 @@ impl Service {
         } else if fd == 2 {
             error!("JS:[{fd}]|  {}", msg);
         }
+    }
+
+    pub async fn wait_for_tasks(&self) {
+        if self.state.borrow().recources.len() == 0 {
+            return;
+        }
+        let mut rx = self.state.borrow().done_tx.subscribe();
+        let _ = rx.recv().await;
+    }
+
+    pub fn number_of_tasks(&self) -> usize {
+        self.state.borrow().recources.len()
     }
 }
 
