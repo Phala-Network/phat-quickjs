@@ -1,19 +1,18 @@
-const { Configuration, OpenAIApi } = require("openai");
+import { Configuration, OpenAIApi } from "openai";
 
-const OPENAI_API_KEY = "YOUR_API_KEY";
+const OPENAI_API_KEY = "";
 
 async function main() {
-    console.log("starting...");
     const configuration = new Configuration({
         apiKey: OPENAI_API_KEY,
-        formDataCtor: () => {},
+        formDataCtor: Object,
     });
     const openai = new OpenAIApi(configuration);
-    const chat_completion = await openai.createChatCompletion({
+    const response = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "Hello world" }],
+        messages: [{ role: "user", content: "Tell me a story" }],
     });
-    console.log("done", chat_completion);
+    console.log('response:', response.data);
 }
 
-main().catch(console.error)
+main().catch(console.error);

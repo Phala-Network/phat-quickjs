@@ -54,7 +54,6 @@ pub mod runtime {
             }
         }
         if service.number_of_tasks() > 0 {
-            info!("Waiting for background tasks to finish...");
             service.wait_for_tasks().await;
         }
     }

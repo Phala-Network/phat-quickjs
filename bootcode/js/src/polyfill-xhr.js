@@ -253,6 +253,7 @@
                         ...this._headers,
                     },
                     timeout: this.timeout || 60000,
+                    body: this.upload._body,
                     callback: (cmd, data) => {
                         switch (cmd) {
                             case "head":
