@@ -12,6 +12,7 @@ use crate::traits::{ResultExt, ToAnyhowResult};
 mod http_request;
 mod timer;
 mod print;
+mod url;
 
 #[no_mangle]
 fn __pink_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> c::JSValue {
@@ -37,6 +38,8 @@ fn do_host_call(id: u32, ctx: *mut c::JSContext, args: &[c::JSValueConst]) -> Re
         1002 => timer::set_timeout(service, ctx, args, true),
         1003 => http_request::http_request(service, ctx, args),
         1004 => print::print(service, ctx, args),
+        1005 => url::parse_url(service, ctx, args),
+        1006 => url::parse_search_params(service, ctx, args),
         _ => anyhow::bail!("Invalid host call id: {id}"),
     }
 }
