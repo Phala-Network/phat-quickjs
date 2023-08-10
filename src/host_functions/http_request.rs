@@ -36,7 +36,15 @@ pub(super) fn http_request(
         .unwrap_or_else(|| "GET".into());
     let headers: BTreeMap<String, String> =
         js_object_get_field_or_default(ctx, *config, "headers").anyhow()?;
-    let body: Vec<u8> = js_object_get_field_or_default(ctx, *config, "body").anyhow()?;
+    let mut body: Vec<u8> = js_object_get_field_or_default(ctx, *config, "body").anyhow()?;
+    if body.is_empty() {
+        let body_text: String =
+            js_object_get_field_or_default(ctx, *config, "bodyText").anyhow()?;
+        if !body_text.is_empty() {
+            body = body_text.into_bytes();
+        }
+    }
+    let body = body;
     let timeout_ms: u64 = js_object_get_field_or_default(ctx, *config, "timeout").anyhow()?;
     let callback: OwnedJsValue = js_object_get_field(ctx, *config, "callback").anyhow()?;
     let request = HttpRequest {
