@@ -79,7 +79,8 @@ async fn do_http_request_inner(
         client.request(request),
     )
     .await
-    .context("Failed to send request")??;
+    .context("Failed to send request: Timed out")?
+    .context("Failed to send request")?;
     {
         let head: JsValue = {
             let headers = BTreeMap::from_iter(response.headers().iter().map(|(k, v)| {
