@@ -14,6 +14,7 @@ pub mod runtime {
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 
+    use log::info;
     pub use tokio::main;
     pub use tokio::{task::spawn_local as spawn, time};
     pub fn http_connector() -> HttpsConnector<HttpConnector> {
@@ -40,8 +41,21 @@ pub mod runtime {
         local.run_until(fut).await
     }
     pub async fn main_loop() {
-        loop {
-            tokio::time::sleep(time::Duration::from_secs(1)).await;
+        let script_file = std::env::args()
+            .nth(1)
+            .expect("Please provide a script file as the first argument");
+        let script = std::fs::read_to_string(script_file).expect("Failed to read script file");
+        let service = crate::Service::new_ref();
+        let output = service.exec_script(&script);
+        match output {
+            Ok(qjs_sys::Output::Undefined) => {}
+            _ => {
+                info!("Script output: {output:?}");
+            }
+        }
+        if service.number_of_tasks() > 0 {
+            info!("Waiting for background tasks to finish...");
+            service.wait_for_tasks().await;
         }
     }
     pub use tracing_subscriber::fmt::init as init_logger;

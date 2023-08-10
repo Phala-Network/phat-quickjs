@@ -21,8 +21,13 @@ pub(super) fn print(
         }
         qjs::ctx_to_str(ctx, *arg, |s| buf.push_str(s));
     }
-    for line in buf.trim_end().lines() {
-        service.js_log(fd, line);
+    let buf = buf.trim_end();
+    if buf.is_empty() {
+        service.js_log(fd, "");
+    } else {
+        for line in buf.lines() {
+            service.js_log(fd, line);
+        }
     }
     return Ok(JsValue::Undefined);
 }

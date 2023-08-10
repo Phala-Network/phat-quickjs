@@ -65,11 +65,26 @@ async fn do_http_request_inner(
     let client = hyper::Client::builder()
         .executor(HyperExecutor)
         .build::<_, Body>(connector);
+    let uri: hyper::Uri = req
+        .url
+        .parse()
+        .with_context(|| format!("Failed to parse url: {}", req.url))?;
     let mut builder = hyper::Request::builder()
         .method(req.method.as_str())
-        .uri(req.url);
-    for (k, v) in req.headers {
+        .uri(&uri);
+    let headers: BTreeMap<_, _> = req.headers.into_iter().collect();
+    for (k, v) in headers.iter() {
         builder = builder.header(k.as_str(), v.as_str());
+    }
+    // Append Host, Content-Length and Content-Length if not present
+    if !headers.contains_key("Host") {
+        builder = builder.header("Host", uri.host().unwrap_or_default());
+    }
+    if !headers.contains_key("Content-Length") {
+        builder = builder.header("Content-Length", req.body.len());
+    }
+    if !headers.contains_key("User-Agent") {
+        builder = builder.header("User-Agent", "sidevm-quickjs/0.1.0");
     }
     let request = builder
         .body(Body::from(req.body))
