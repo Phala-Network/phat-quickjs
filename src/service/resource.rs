@@ -7,7 +7,7 @@ pub enum OwnedJsValue {
     Null,
     Exception,
     Other {
-        runtime: Weak<Runtime>,
+        runtime: Weak<JsEngine>,
         value: c::JSValue,
     },
 }
@@ -94,7 +94,7 @@ impl OwnedJsValue {
     pub fn exception() -> Self {
         Self::Exception
     }
-    pub fn from_raw(value: c::JSValue, runtime: Weak<Runtime>) -> Self {
+    pub fn from_raw(value: c::JSValue, runtime: Weak<JsEngine>) -> Self {
         Self::Other { value, runtime }
     }
     pub fn dup(&self) -> Option<Self> {

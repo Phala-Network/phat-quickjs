@@ -57,12 +57,12 @@ impl TryFrom<NonNull<c::JSContext>> for ServiceRef {
     }
 }
 
-pub struct Runtime {
+pub struct JsEngine {
     runtime: *mut c::JSRuntime,
     pub ctx: NonNull<c::JSContext>,
 }
 
-impl Drop for Runtime {
+impl Drop for JsEngine {
     fn drop(&mut self) {
         unsafe {
             c::JS_FreeContext(self.ctx.as_ptr());
@@ -71,7 +71,7 @@ impl Drop for Runtime {
     }
 }
 
-impl Runtime {
+impl JsEngine {
     pub fn free_value(&self, value: c::JSValue) {
         unsafe { c::JS_FreeValue(self.ctx.as_ptr(), value) };
     }
@@ -105,7 +105,7 @@ impl Runtime {
 }
 
 pub struct Service {
-    runtime: Rc<Runtime>,
+    runtime: Rc<JsEngine>,
     state: RefCell<ServiceState>,
 }
 
@@ -148,7 +148,7 @@ impl Service {
         qjs::eval(ctx, &bootcode).expect("Failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {
-            runtime: Rc::new(Runtime { runtime, ctx }),
+            runtime: Rc::new(JsEngine { runtime, ctx }),
             state,
         }
     }
@@ -170,7 +170,7 @@ impl Service {
         self.runtime.ctx
     }
 
-    pub fn runtime(&self) -> Rc<Runtime> {
+    pub fn runtime(&self) -> Rc<JsEngine> {
         self.runtime.clone()
     }
 
@@ -298,7 +298,7 @@ pub(crate) fn js_context_get_service(ctx: NonNull<c::JSContext>) -> Option<Servi
     }
 }
 
-pub fn js_context_get_runtime(ctx: NonNull<c::JSContext>) -> Option<Rc<Runtime>> {
+pub fn js_context_get_runtime(ctx: NonNull<c::JSContext>) -> Option<Rc<JsEngine>> {
     Some(js_context_get_service(ctx)?.upgrade()?.runtime())
 }
 
