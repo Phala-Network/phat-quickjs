@@ -117,13 +117,14 @@
                 reject: () => { },
             }
             const reqId = Sidevm.httpRequest({
-                url,
-                method: options.method || "GET",
-                headers: options.headers || {},
-                timeout: options.timeout || 10000,
-                body: options.body || "0x",
-                callback: (cmd, data) => receiver.recv(cmd, data),
-            });
+                    url,
+                    method: options.method || "GET",
+                    headers: options.headers || {},
+                    timeout: options.timeout || 10000,
+                    body: options.body || "0x",
+                },
+                (cmd, data) => receiver.recv(cmd, data),
+            );
         });
     };
     g.Response = Response;

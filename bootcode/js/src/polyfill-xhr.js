@@ -254,33 +254,33 @@
                     },
                     timeout: this.timeout || 60000,
                     body: this.upload._body,
-                    callback: (cmd, data) => {
-                        switch (cmd) {
-                            case "head":
-                                {
-                                    const head = data;
-                                    response.ok = ((head.status / 100) | 0) == 2;
-                                    response.headers = data.headers;
-                                    response.statusText = head.statusText;
-                                    response.statusCode = head.status;
-                                    response.url = head["Location"] || head["location"] || "";
-                                    response.bodyUsed = false;
-                                    response.type = "default";
-                                    this._onHttpResponse(request, response);
-                                    break;
-                                }
-                            case "data":
-                                this._onHttpResponseData(response, data);
-                                break;
-                            case "end": {
-                                this._onHttpResponseEnd(response);
-                                this._onHttpResponseClose(response);
+                },
+                (cmd, data) => {
+                    switch (cmd) {
+                        case "head":
+                            {
+                                const head = data;
+                                response.ok = ((head.status / 100) | 0) == 2;
+                                response.headers = data.headers;
+                                response.statusText = head.statusText;
+                                response.statusCode = head.status;
+                                response.url = head["Location"] || head["location"] || "";
+                                response.bodyUsed = false;
+                                response.type = "default";
+                                this._onHttpResponse(request, response);
                                 break;
                             }
-                            case "error": {
-                                this._onHttpRequestError(request, data);
-                                break;
-                            }
+                        case "data":
+                            this._onHttpResponseData(response, data);
+                            break;
+                        case "end": {
+                            this._onHttpResponseEnd(response);
+                            this._onHttpResponseClose(response);
+                            break;
+                        }
+                        case "error": {
+                            this._onHttpRequestError(request, data);
+                            break;
                         }
                     }
                 });

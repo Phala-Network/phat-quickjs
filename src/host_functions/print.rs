@@ -8,7 +8,7 @@ pub(crate) fn setup(ns: &JsValue) -> Result<()> {
 #[qjs::host_call]
 fn print(service: ServiceRef, _this: JsValue, fd: u32, args: Vec<JsValue>) {
     let mut buf = String::new();
-    for (i, arg) in args[1..].iter().enumerate() {
+    for (i, arg) in args.iter().enumerate() {
         if i != 0 {
             buf.push_str(" ");
         }

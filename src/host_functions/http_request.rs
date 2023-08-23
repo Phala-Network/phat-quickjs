@@ -7,7 +7,7 @@ use crate::{
     runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
-use qjs::{FromJsValue, ToJsValue, ToArgs, AsBytes, Value as JsValue, host_call};
+use qjs::{FromJsValue, ToJsValue, AsBytes, Value as JsValue, host_call};
 
 use super::*;
 
@@ -61,7 +61,7 @@ fn default_timeout() -> u64 {
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
     let result = do_http_request_inner(weak_service.clone(), id, req).await;
     if let Err(err) = result {
-        callback(&weak_service, id, "error", err.to_string());
+        invoke_callback(&weak_service, id, "error", err.to_string());
     }
 }
 async fn do_http_request_inner(
@@ -127,36 +127,31 @@ async fn do_http_request_inner(
                 headers,
             }
         };
-        callback(&weak_service, id, "head", head);
+        invoke_callback(&weak_service, id, "head", head);
     }
     tokio::pin!(response);
     while let Some(chunk) = response.data().await {
         let chunk = chunk.context("Failed to read response body")?;
-        callback(&weak_service, id, "data", AsBytes(chunk));
+        invoke_callback(&weak_service, id, "data", AsBytes(chunk));
     }
-    callback(&weak_service, id, "end", ());
+    invoke_callback(&weak_service, id, "end", ());
     Ok(())
 }
 
-fn callback(weak_service: &Weak<Service>, id: u64, name: &str, data: impl ToJsValue) {
+fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: impl ToJsValue) {
     let Some(service) = weak_service.upgrade() else {
-        info!("http_request {id} exited because the service is dropped");
+        info!("http_request {id} exited because the service has been dropped");
         return;
     };
     let Some(res) = service.get_resource_value(id) else {
-        info!("http_request {id} exited because the resource is dropped");
+        info!("http_request {id} exited because the resource has been dropped");
         return;
     };
-    let ctx = service.raw_ctx();
-    let args = match (name, data).to_args(ctx) {
-        Err(err) => {
-            error!("[{id}] Failed to report http_request event {name}: {err}");
-            return;
-        }
-        Ok(args) => args,
+    let Ok(callback) = res.try_into() else {
+        error!("[{id}] Failed to report http_request event {name}: callback gone");
+        return;
     };
-    let args = args.into_iter().map(|arg| *arg.raw_value()).collect::<Vec<_>>();
-    if let Err(err) = service.call_function(*res.value(), &args[..]) {
+    if let Err(err) = service.call_function(callback, (name, data)) {
         error!("[{id}] Failed to report http_request event {name}: {err:?}");
     }
 }

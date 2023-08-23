@@ -26,13 +26,13 @@
     g.clearInterval = Sidevm.close;
     g.console = {
         log(...args) {
-            return Sidevm.print(1, ...args);
+            return Sidevm.print(1, args);
         },
         error(...args) {
-            return Sidevm.print(2, ...args);
+            return Sidevm.print(2, args);
         },
         warn(...args) {
-            return Sidevm.print(2, ...args);
+            return Sidevm.print(2, args);
         }
     }
     g.print = g.console.log;

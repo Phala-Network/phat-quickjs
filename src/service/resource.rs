@@ -33,7 +33,7 @@ impl TryFrom<OwnedJsValue> for JsValue {
         let ctx = v
             .runtime
             .upgrade()
-            .ok_or(ValueError::Static("Runtime dropped"))?
+            .ok_or(ValueError::Static("Runtime has been dropped"))?
             .ctx;
         Ok(JsValue::new_cloned(ctx, v.value))
     }

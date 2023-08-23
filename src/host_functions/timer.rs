@@ -21,12 +21,12 @@ fn set_interval(service: ServiceRef, _this: JsValue, callback: OwnedJsValue, tim
 
 fn try_fire_timer(service: &Weak<Service>, id: u64) -> Result<()> {
     let Some(service) = service.upgrade() else {
-        anyhow::bail!("Timer {id} exited because the service is dropped");
+        anyhow::bail!("Timer {id} exited because the service has been dropped");
     };
     let Some(callback) = service.get_resource_value(id) else {
-        anyhow::bail!("Timer {id} exited because the resource is dropped");
+        anyhow::bail!("Timer {id} exited because the resource has been dropped");
     };
-    if let Err(err) = service.call_function(*callback.value(), &[]) {
+    if let Err(err) = service.call_function(callback.try_into()?, ()) {
         error!("Failed to fire timer {id}: {err}");
     }
     Ok(())

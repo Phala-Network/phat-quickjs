@@ -9,7 +9,7 @@ use log::{debug, error, info};
 use std::future::Future;
 
 use anyhow::Result;
-use qjs::{c, JsCode, Error as ValueError};
+use qjs::{c, JsCode, Error as ValueError, Value as JsValue, ToArgs};
 use tokio::sync::broadcast;
 use crate::host_functions::setup_host_functions;
 
@@ -180,21 +180,23 @@ impl Service {
         result
     }
 
-    pub fn call_function(&self, func: c::JSValue, args: &[c::JSValue]) -> Result<c::JSValue> {
+    pub fn call_function(&self, func: JsValue, args: impl ToArgs) -> Result<JsValue> {
+        let ctx = self.raw_ctx();
+        let mut args = args.to_raw_args(ctx)?;
+        let func = *func.raw_value();
         let this = c::JS_UNDEFINED;
         let ret = unsafe {
             let len = args.len();
             let args_len = len as core::ffi::c_int;
-            let args = args.as_ptr();
-            let args = args as *mut c::JSValue;
-            c::JS_Call(self.runtime.ctx, func, this, args_len, args)
+            let args = args.as_mut_ptr();
+            c::JS_Call(ctx, func, this, args_len, args)
         };
         if c::is_exception(ret) {
             let err = qjs::ctx_get_exception_str(self.runtime.ctx);
             anyhow::bail!("Failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
-        Ok(ret)
+        Ok(JsValue::new_moved(self.runtime.ctx, ret))
     }
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
