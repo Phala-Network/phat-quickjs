@@ -7,7 +7,7 @@ use crate::{
     runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
-use qjs::{FromJsValue, ToJsValue, AsBytes, Value as JsValue, host_call};
+use qjs::{host_call, AsBytes, FromJsValue, ToJsValue, Value as JsValue};
 
 use super::*;
 
@@ -38,7 +38,7 @@ struct HttpResponseHead {
 #[derive(ToJsValue, Debug)]
 struct Event<'a, Data> {
     name: &'a str,
-    data: Data
+    data: Data,
 }
 
 pub fn setup(ns: &JsValue) -> Result<()> {
@@ -47,7 +47,12 @@ pub fn setup(ns: &JsValue) -> Result<()> {
 }
 
 #[host_call]
-fn http_request(service: ServiceRef, _this: JsValue, req: HttpRequest, callback: OwnedJsValue) -> Result<i32> {
+fn http_request(
+    service: ServiceRef,
+    _this: JsValue,
+    req: HttpRequest,
+    callback: OwnedJsValue,
+) -> Result<i32> {
     Ok(service.spawn(callback, do_http_request, req) as i32)
 }
 
@@ -112,14 +117,18 @@ async fn do_http_request_inner(
     .context("Failed to send request")?;
     {
         let head = {
-            let headers = BTreeMap::from_iter(response.headers().iter().map(|(k, v)| {
-                (
-                    k.as_str().into(),
-                    v.to_str().unwrap_or_default().into(),
-                )
-            }));
+            let headers = BTreeMap::from_iter(
+                response
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (k.as_str().into(), v.to_str().unwrap_or_default().into())),
+            );
             let status = response.status().as_u16();
-            let status_text = response.status().canonical_reason().unwrap_or_default().into();
+            let status_text = response
+                .status()
+                .canonical_reason()
+                .unwrap_or_default()
+                .into();
             let version = format!("{:?}", response.version());
             HttpResponseHead {
                 status,

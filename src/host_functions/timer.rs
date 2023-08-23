@@ -1,7 +1,6 @@
 use super::*;
-use crate::{service::OwnedJsValue, runtime::time::sleep};
-use qjs::{Value as JsValue, host_call};
-
+use crate::{runtime::time::sleep, service::OwnedJsValue};
+use qjs::{host_call, Value as JsValue};
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
     ns.set_property_fn("setTimeout", set_timeout)?;
@@ -10,12 +9,22 @@ pub(crate) fn setup(ns: &JsValue) -> Result<()> {
 }
 
 #[host_call]
-fn set_timeout(service: ServiceRef, _this: JsValue, callback: OwnedJsValue, timeout_ms: u64) -> Result<i32> {
+fn set_timeout(
+    service: ServiceRef,
+    _this: JsValue,
+    callback: OwnedJsValue,
+    timeout_ms: u64,
+) -> Result<i32> {
     Ok(service.spawn(callback, do_set_timeout, timeout_ms.max(4)) as _)
 }
 
 #[host_call]
-fn set_interval(service: ServiceRef, _this: JsValue, callback: OwnedJsValue, timeout_ms: u64) -> Result<i32> {
+fn set_interval(
+    service: ServiceRef,
+    _this: JsValue,
+    callback: OwnedJsValue,
+    timeout_ms: u64,
+) -> Result<i32> {
     Ok(service.spawn(callback, do_set_interval, timeout_ms.max(4)) as _)
 }
 

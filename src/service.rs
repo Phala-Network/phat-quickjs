@@ -8,10 +8,10 @@ use core::{any::Any, cell::RefCell, ops::Deref};
 use log::{debug, error, info};
 use std::future::Future;
 
-use anyhow::Result;
-use qjs::{c, JsCode, Error as ValueError, Value as JsValue, ToArgs};
-use tokio::sync::broadcast;
 use crate::host_functions::setup_host_functions;
+use anyhow::Result;
+use qjs::{c, Error as ValueError, JsCode, ToArgs, Value as JsValue};
+use tokio::sync::broadcast;
 
 mod resource;
 
@@ -48,8 +48,11 @@ impl TryFrom<*mut c::JSContext> for ServiceRef {
     type Error = anyhow::Error;
 
     fn try_from(ctx: *mut c::JSContext) -> Result<Self, Self::Error> {
-        let weak_srv = js_context_get_service(ctx).ok_or(anyhow::anyhow!("Failed to get service from context"))?;
-        weak_srv.upgrade().ok_or(anyhow::anyhow!("Service has been dropped"))
+        let weak_srv = js_context_get_service(ctx)
+            .ok_or(anyhow::anyhow!("Failed to get service from context"))?;
+        weak_srv
+            .upgrade()
+            .ok_or(anyhow::anyhow!("Service has been dropped"))
     }
 }
 
@@ -147,7 +150,9 @@ impl Service {
     }
 
     pub(crate) fn new_ref() -> ServiceRef {
-        ServiceRef(Rc::new_cyclic(|weak_self| Service::new(ServiceWeakRef(weak_self.clone()))))
+        ServiceRef(Rc::new_cyclic(|weak_self| {
+            Service::new(ServiceWeakRef(weak_self.clone()))
+        }))
     }
 
     pub(crate) fn weak_self(&self) -> ServiceWeakRef {
@@ -175,7 +180,8 @@ impl Service {
     }
 
     pub fn eval(&self, code: JsCode) -> Result<OwnedJsValue, String> {
-        let result = qjs::eval(self.runtime.ctx, &code).map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
+        let result = qjs::eval(self.runtime.ctx, &code)
+            .map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
         self.runtime.exec_pending_jobs();
         result
     }
