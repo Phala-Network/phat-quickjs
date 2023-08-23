@@ -24,15 +24,18 @@
     g.setInterval = timerFn(Sidevm.setTimeout);
     g.clearTimeout = Sidevm.close;
     g.clearInterval = Sidevm.close;
+    g.Sidevm.inspect = function (...obj) {
+        return Sidevm.print(3, 1, obj);
+    }
     g.console = {
         log(...args) {
-            return Sidevm.print(1, args);
+            return Sidevm.print(0, 1, args);
         },
         error(...args) {
-            return Sidevm.print(2, args);
+            return Sidevm.print(0, 2, args);
         },
         warn(...args) {
-            return Sidevm.print(2, args);
+            return Sidevm.print(0, 2, args);
         }
     }
     g.print = g.console.log;

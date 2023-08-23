@@ -46,12 +46,12 @@
     }
     g.URLSearchParams = class URLSearchParams {
         constructor(options) {
-            this.params = new Map();
+            this.params = {}
             if (typeof options == 'string') {
                 options = Object.entries(Sidevm.parseURLParams(options));
             }
             for (const [key, value] of options) {
-                this.params.set(key, value);
+                this.params[key] = value;
             }
         }
 
