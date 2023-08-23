@@ -1,16 +1,13 @@
 (function (g) {
-    function close(id) {
-        __hostCall(1000, id);
-    }
-    function timerFn(call_id) {
+    function timerFn(hostFn) {
         return function (f, t) {
             t = t || 0;
             if (typeof f == 'string') {
-                return __hostCall(call_id, () => eval(f), t);
+                return hostFn(() => eval(f), t);
             }
             const args = Array.prototype.slice.call(arguments, 2);
             const callback = () => { f.apply(null, args); };
-            return __hostCall(call_id, callback, t);
+            return hostFn(callback, t);
         }
     }
     function concatU8a(arrays) {
@@ -22,42 +19,20 @@
         });
         return merged;
     }
-    g.sidevm = {
-        close,
-        concatU8a,
-        httpRequest(cfg) {
-            return __hostCall(1003, {
-                method: "GET",
-                headers: {},
-                body: "0x",
-                timeout: 10000,
-                callback: () => { },
-                ...cfg
-            });
-        },
-        print(fd, ...args) {
-            return __hostCall(1004, fd, ...args);
-        },
-        parseURL(url, base) {
-            return __hostCall(1005, url, base);
-        },
-        parseURLParams(params) {
-            return __hostCall(1006, params);
-        }
-    };
-    g.setTimeout = timerFn(1001);
-    g.setInterval = timerFn(1002);
-    g.clearTimeout = close;
-    g.clearInterval = close;
+    g.Sidevm.concatU8a = concatU8a;
+    g.setTimeout = timerFn(Sidevm.setTimeout);
+    g.setInterval = timerFn(Sidevm.setTimeout);
+    g.clearTimeout = Sidevm.close;
+    g.clearInterval = Sidevm.close;
     g.console = {
         log(...args) {
-            return sidevm.print(1, ...args);
+            return Sidevm.print(1, ...args);
         },
         error(...args) {
-            return sidevm.print(2, ...args);
+            return Sidevm.print(2, ...args);
         },
         warn(...args) {
-            return sidevm.print(2, ...args);
+            return Sidevm.print(2, ...args);
         }
     }
     g.print = g.console.log;

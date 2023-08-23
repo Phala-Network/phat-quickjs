@@ -12,8 +12,8 @@ mod timer;
 mod url;
 
 #[no_mangle]
-fn __pink_host_call(_id: u32, _ctx: *mut c::JSContext, _args: &[c::JSValueConst]) -> c::JSValue {
-    unimplemented!()
+fn __pink_host_call(_id: u32, ctx: *mut c::JSContext, _args: &[c::JSValueConst]) -> c::JSValue {
+    qjs::js_throw_type_error(ctx, "__hostCall is not implemented")
 }
 
 pub(crate) fn setup_host_functions(ctx: *mut c::JSContext) -> Result<()> {
@@ -23,6 +23,7 @@ pub(crate) fn setup_host_functions(ctx: *mut c::JSContext) -> Result<()> {
     timer::setup(&ns)?;
     http_request::setup(&ns)?;
     ns.set_property_fn("close", close_res)?;
+    qjs::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())
 }
 

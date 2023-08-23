@@ -34,7 +34,7 @@
                 if (cmd == "data") {
                     chunks.push(data);
                 } else if (cmd == "end") {
-                    const body = sidevm.concatU8a(chunks);
+                    const body = Sidevm.concatU8a(chunks);
                     receiver.resolve(body);
                 } else {
                     receiver.reject(data);
@@ -76,7 +76,7 @@
                     }
                 },
                 cancel() {
-                    sidevm.close(reqId);
+                    Sidevm.close(reqId);
                 }
             });
         }
@@ -116,7 +116,7 @@
                 resolve: () => { },
                 reject: () => { },
             }
-            const reqId = sidevm.httpRequest({
+            const reqId = Sidevm.httpRequest({
                 url,
                 method: options.method || "GET",
                 headers: options.headers || {},

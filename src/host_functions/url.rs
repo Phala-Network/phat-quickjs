@@ -62,7 +62,7 @@ fn parse_search_params(
 }
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("parseUrl", parse_url)?;
-    ns.set_property_fn("parseSearchParams", parse_search_params)?;
+    ns.set_property_fn("parseURL", parse_url)?;
+    ns.set_property_fn("parseURLParams", parse_search_params)?;
     Ok(())
 }

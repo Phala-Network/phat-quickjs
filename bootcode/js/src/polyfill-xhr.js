@@ -245,7 +245,7 @@
                     headers: {},
                     body: [],
                 };
-                const reqId = sidevm.httpRequest({
+                const reqId = Sidevm.httpRequest({
                     url: this.url,
                     method: this._method,
                     headers: {
@@ -285,7 +285,7 @@
                     }
                 });
                 request.abort = () => {
-                    sidevm.close(reqId);
+                    Sidevm.close(reqId);
                 };
                 this._request = request;
                 this._dispatchProgress('loadstart');
@@ -448,7 +448,7 @@
 
             _parseResponse() {
                 var arrayBuffer, buffer, i, j, jsonError, ref, view;
-                buffer = sidevm.concatU8a(this._responseParts);
+                buffer = Sidevm.concatU8a(this._responseParts);
                 this._responseParts = null;
                 switch (this.responseType) {
                     case 'text':

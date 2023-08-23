@@ -41,7 +41,7 @@ struct Event<'a, Data> {
 }
 
 pub fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("http_request", http_request)?;
+    ns.set_property_fn("httpRequest", http_request)?;
     Ok(())
 }
 

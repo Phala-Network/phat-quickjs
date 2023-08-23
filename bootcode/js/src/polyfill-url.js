@@ -1,7 +1,7 @@
 (function (g) {
     g.URL = class URL {
         constructor(url, base) {
-            const pairs = sidevm.parseURL(url, base);
+            const pairs = Sidevm.parseURL(url, base);
             this._pairs = pairs;
             this.hash = pairs['hash'];
             this.host = pairs['host'];
@@ -48,8 +48,7 @@
         constructor(options) {
             this.params = new Map();
             if (typeof options == 'string') {
-                // __hostCall returns an array of [key, value] pairs
-                options = sidevm.parseURLParams(options);
+                options = Object.entries(Sidevm.parseURLParams(options));
             }
             for (const [key, value] of options) {
                 this.params.set(key, value);
