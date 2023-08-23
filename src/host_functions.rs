@@ -2,6 +2,7 @@ use alloc::rc::Weak;
 use anyhow::Result;
 use log::error;
 use qjs::{c, Value as JsValue};
+use core::ptr::NonNull;
 
 use crate::service::{Service, ServiceRef, ServiceWeakRef};
 use crate::traits::ResultExt;
@@ -11,12 +12,7 @@ mod print;
 mod timer;
 mod url;
 
-#[no_mangle]
-fn __pink_host_call(_id: u32, ctx: *mut c::JSContext, _args: &[c::JSValueConst]) -> c::JSValue {
-    qjs::js_throw_type_error(ctx, "__hostCall is not implemented")
-}
-
-pub(crate) fn setup_host_functions(ctx: *mut c::JSContext) -> Result<()> {
+pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     let ns = JsValue::new_object(ctx);
     print::setup(&ns)?;
     url::setup(&ns)?;

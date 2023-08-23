@@ -86,6 +86,11 @@ async fn do_http_request_inner(
     let mut builder = hyper::Request::builder()
         .method(req.method.as_str())
         .uri(&uri);
+    let body: Vec<u8> = if let Some(body_text) = req.body_text {
+        body_text.into_bytes()
+    } else {
+        req.body
+    };
     let headers: BTreeMap<_, _> = req.headers.into_iter().collect();
     for (k, v) in headers.iter() {
         builder = builder.header(k.as_str(), v.as_str());
@@ -95,16 +100,11 @@ async fn do_http_request_inner(
         builder = builder.header("Host", uri.host().unwrap_or_default());
     }
     if !headers.contains_key("Content-Length") {
-        builder = builder.header("Content-Length", req.body.len());
+        builder = builder.header("Content-Length", body.len());
     }
     if !headers.contains_key("User-Agent") {
         builder = builder.header("User-Agent", "sidevm-quickjs/0.1.0");
     }
-    let body: Vec<u8> = if let Some(body_text) = req.body_text {
-        body_text.into_bytes()
-    } else {
-        req.body
-    };
     let request = builder
         .body(Body::from(body))
         .context("Failed to build request")?;
