@@ -27,6 +27,7 @@ pub struct HttpRequest {
 }
 
 #[derive(ToJsValue, Debug)]
+#[qjsbind(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
     status_text: String,
