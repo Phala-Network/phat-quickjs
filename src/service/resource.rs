@@ -1,5 +1,5 @@
 use log::info;
-use qjs_sys::convert::DecodeFromJSValue;
+use qjs::{Error as ValueError, FromJsValue, Value as JsValue};
 
 use super::*;
 
@@ -8,14 +8,34 @@ pub struct OwnedJsValue {
     value: c::JSValue,
 }
 
-impl DecodeFromJSValue for OwnedJsValue {
-    fn decode(ctx: *mut c::JSContext, v: c::JSValue) -> std::result::Result<Self, &'static str>
-    where
-        Self: Sized,
-    {
-        let runtime = js_context_get_runtime(ctx).ok_or("Failed to get service")?;
-        let v = unsafe { c::JS_DupValue(ctx, v) };
+impl TryFrom<JsValue> for OwnedJsValue {
+    type Error = ValueError;
+
+    fn try_from(v: JsValue) -> Result<Self, Self::Error> {
+        let ctx = v.context()?;
+        let runtime =
+            js_context_get_runtime(ctx).ok_or(ValueError::Static("Failed to get service"))?;
+        let v = unsafe { c::JS_DupValue(ctx, *v.raw_value()) };
         Ok(OwnedJsValue::from_raw(v, Rc::downgrade(&runtime)))
+    }
+}
+
+impl FromJsValue for OwnedJsValue {
+    fn from_js_value(value: JsValue) -> Result<Self, ValueError> {
+        Self::try_from(value)
+    }
+}
+
+impl TryFrom<OwnedJsValue> for JsValue {
+    type Error = ValueError;
+
+    fn try_from(v: OwnedJsValue) -> Result<Self, Self::Error> {
+        let ctx = v
+            .runtime
+            .upgrade()
+            .ok_or(ValueError::Static("Runtime dropped"))?
+            .ctx;
+        Ok(JsValue::new_cloned(ctx, v.value))
     }
 }
 
@@ -36,6 +56,15 @@ impl Clone for OwnedJsValue {
     }
 }
 
+impl core::fmt::Debug for OwnedJsValue {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match JsValue::try_from(self.clone()) {
+            Ok(value) => write!(f, "{}", value),
+            Err(_) => write!(f, "<dropped>"),
+        }
+    }
+}
+
 impl OwnedJsValue {
     pub fn from_raw(value: c::JSValue, runtime: Weak<Runtime>) -> Self {
         Self { value, runtime }
@@ -48,6 +77,10 @@ impl OwnedJsValue {
 
     pub fn value(&self) -> &c::JSValue {
         &self.value
+    }
+
+    pub fn is_undefined(&self) -> bool {
+        unsafe { c::JS_IsUndefined(self.value) == 1 }
     }
 }
 

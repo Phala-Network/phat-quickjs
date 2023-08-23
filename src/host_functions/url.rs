@@ -1,73 +1,68 @@
-use std::collections::BTreeMap;
-
-use super::*;
-
-use ::url::{form_urlencoded, Url};
 use anyhow::Context;
+use qjs::ToJsValue;
+use std::collections::BTreeMap;
+use url::{form_urlencoded, Url};
 
-pub(super) fn parse_url(
-    _service: ServiceRef,
-    ctx: *mut c::JSContext,
-    args: &[c::JSValueConst],
-) -> Result<JsValue> {
-    if args.len() < 1 {
-        return Err("URL: expected at least one argument").anyhow();
-    }
-    let url: String = DecodeFromJSValue::decode(ctx, args[0])
-        .anyhow()
-        .context("URL: Failed to decode url")?;
-    let url = if args.len() > 1 {
-        let base_url: String = DecodeFromJSValue::decode(ctx, args[1])
-            .anyhow()
-            .context("URL: Invalid base URL")?;
-        let base_url: Url = base_url.parse().context("URL: Invalid base URL")?;
-        base_url.join(&url).context("URL: Invalid URL")?
-    } else {
-        Url::parse(&url).context("URL: Invalid URL")?
-    };
+use super::{JsValue, Result, ServiceRef};
 
-    let mut attrs = BTreeMap::new();
-    fn set_value(o: &mut BTreeMap<String, JsValue>, k: &str, v: &str) {
-        o.insert(k.to_string(), JsValue::String(v.to_string()));
-    }
-    set_value(&mut attrs, "hash", url.fragment().unwrap_or(""));
-    set_value(&mut attrs, "host", url.host_str().unwrap_or(""));
-    set_value(&mut attrs, "hostname", url.host_str().unwrap_or(""));
-    set_value(&mut attrs, "href", url.as_str());
-    set_value(&mut attrs, "origin", &url.origin().unicode_serialization());
-    set_value(&mut attrs, "password", url.password().unwrap_or(""));
-    set_value(&mut attrs, "pathname", &url.path().to_string());
-    set_value(
-        &mut attrs,
-        "port",
-        &url.port().map(|p| p.to_string()).unwrap_or("".to_string()),
-    );
-    set_value(&mut attrs, "protocol", &url.scheme().to_string());
-    set_value(&mut attrs, "search", url.query().unwrap_or(""));
-    set_value(&mut attrs, "username", url.username());
-
-    Ok(JsValue::Object(attrs))
+#[derive(ToJsValue, Debug)]
+struct URL {
+    host: String,
+    hostname: String,
+    href: String,
+    origin: String,
+    password: String,
+    pathname: String,
+    hash: String,
+    port: String,
+    protocol: String,
+    search: String,
+    username: String,
 }
 
-pub(super) fn parse_search_params(
+#[qjs::host_call]
+fn parse_url(
     _service: ServiceRef,
-    ctx: *mut c::JSContext,
-    args: &[c::JSValueConst],
-) -> Result<JsValue> {
-    let query = args
-        .get(0)
-        .ok_or("URLSearchParams: expected at least one argument")
-        .anyhow()?;
-    let query_str: String = DecodeFromJSValue::decode(ctx, *query)
-        .anyhow()
-        .context("URLSearchParams: Failed to decode query")?;
-    let pairs: Vec<_> = form_urlencoded::parse(query_str.as_bytes())
-        .map(|(k, v)| {
-            JsValue::Array(vec![
-                JsValue::String(k.to_string()),
-                JsValue::String(v.to_string()),
-            ])
-        })
-        .collect();
-    Ok(JsValue::Array(pairs))
+    _this: JsValue,
+    url: String,
+    base_url: Option<String>,
+) -> Result<URL> {
+    let url = match base_url {
+        Some(base_url) => {
+            let base_url: Url = base_url.parse().context("URL: Invalid base URL")?;
+            base_url.join(&url).context("URL: Invalid URL")?
+        }
+        None => url.parse().context("URL: Invalid URL")?,
+    };
+
+    Ok(URL {
+        hash: url.fragment().unwrap_or("").to_string(),
+        host: url.host_str().unwrap_or("").to_string(),
+        hostname: url.host_str().unwrap_or("").to_string(),
+        href: url.as_str().to_string(),
+        origin: url.origin().unicode_serialization(),
+        password: url.password().unwrap_or("").to_string(),
+        pathname: url.path().to_string(),
+        port: url.port().map(|p| p.to_string()).unwrap_or("".to_string()),
+        protocol: url.scheme().to_string(),
+        search: url.query().unwrap_or("").to_string(),
+        username: url.username().to_string(),
+    })
+}
+
+#[qjs::host_call]
+fn parse_search_params(
+    _service: ServiceRef,
+    _this: JsValue,
+    query_str: String,
+) -> Result<BTreeMap<String, String>> {
+    Ok(form_urlencoded::parse(query_str.as_bytes())
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect())
+}
+
+pub(crate) fn setup(ns: &JsValue) -> Result<()> {
+    ns.set_property_fn("parseUrl", parse_url)?;
+    ns.set_property_fn("parseSearchParams", parse_search_params)?;
+    Ok(())
 }

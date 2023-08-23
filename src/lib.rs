@@ -48,9 +48,9 @@ pub mod runtime {
         let service = crate::Service::new_ref();
         let output = service.exec_script(&script);
         match output {
-            Ok(qjs_sys::Output::Undefined) => {}
+            Ok(value) if value.is_undefined() => {}
             _ => {
-                info!("Script output: {output:?}");
+                info!("Script output: {:?}", output);
             }
         }
         if service.number_of_tasks() > 0 {

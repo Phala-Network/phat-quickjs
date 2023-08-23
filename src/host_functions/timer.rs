@@ -1,30 +1,22 @@
 use super::*;
+use crate::{service::OwnedJsValue, runtime::time::sleep};
+use qjs::{Value as JsValue, host_call};
 
-use crate::runtime::time::sleep;
 
-pub(super) fn set_timeout(
-    service: ServiceRef,
-    ctx: *mut c::JSContext,
-    args: &[c::JSValueConst],
-    interval: bool,
-) -> Result<JsValue> {
-    let Some(callback) = args.get(0) else {
-        anyhow::bail!("Invoking setTimeout without callback");
-    };
-    let timeout_ms: u64 = match args.get(1) {
-        Some(timeout) => DecodeFromJSValue::decode(ctx, *timeout).anyhow()?,
-        None => anyhow::bail!("Invoking setTimeout without timeout"),
-    };
-    // As specified in the HTML standard, browsers will enforce a minimum timeout of 4 milliseconds
-    // once a nested call to setTimeout has been scheduled 5 times. Here we enforce to 4 all the time.
-    let timeout_ms = timeout_ms.max(4);
-    let callback = service.runtime().dup_value(*callback);
-    let id = if interval {
-        service.spawn(callback, do_set_interval, timeout_ms)
-    } else {
-        service.spawn(callback, do_set_timeout, timeout_ms)
-    };
-    Ok(JsValue::Int(id as i32))
+pub(crate) fn setup(ns: &JsValue) -> Result<()> {
+    ns.set_property_fn("setTimeout", set_timeout)?;
+    ns.set_property_fn("setInterval", set_interval)?;
+    Ok(())
+}
+
+#[host_call]
+fn set_timeout(service: ServiceRef, _this: JsValue, callback: OwnedJsValue, timeout_ms: u64) -> Result<i32> {
+    Ok(service.spawn(callback, do_set_timeout, timeout_ms.max(4)) as _)
+}
+
+#[host_call]
+fn set_interval(service: ServiceRef, _this: JsValue, callback: OwnedJsValue, timeout_ms: u64) -> Result<i32> {
+    Ok(service.spawn(callback, do_set_interval, timeout_ms.max(4)) as _)
 }
 
 fn try_fire_timer(service: &Weak<Service>, id: u64) -> Result<()> {

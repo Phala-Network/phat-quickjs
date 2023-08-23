@@ -5,11 +5,11 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
+qjs = { package = "qjsbind", path = "qjs-sys/qjsbind" }
 tokio = { version = "1", features = ["sync", "macros"] }
 hyper = { version = "0.14", features = ["client", "http1"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-qjs-sys = { path = "qjs-sys" }
 bootcode = { path = "bootcode" }
 sidevm = "0.1.10"
 log = "0.4"
@@ -36,4 +36,3 @@ native = [
     "hyper/tcp",
     "hyper-rustls/webpki-roots",
 ]
-sanitize-address = ["qjs-sys/sanitize-address"]

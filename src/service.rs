@@ -4,24 +4,58 @@ use alloc::{
     ffi::CString,
     rc::{Rc, Weak},
 };
-use core::{any::Any, cell::RefCell};
+use core::{any::Any, cell::RefCell, ops::Deref};
 use log::{debug, error, info};
 use std::future::Future;
 
 use anyhow::Result;
-use qjs_sys::{c, JsCode, Output};
+use qjs::{c, JsCode, Error as ValueError};
 use tokio::sync::broadcast;
+use crate::host_functions::setup_host_functions;
 
 mod resource;
 
 pub(crate) use resource::{OwnedJsValue, Resource};
 
-pub(crate) type ServiceRef = Rc<Service>;
-pub(crate) type ServiceWeakRef = Weak<Service>;
+#[derive(Clone)]
+pub(crate) struct ServiceRef(Rc<Service>);
+#[derive(Clone)]
+pub(crate) struct ServiceWeakRef(Weak<Service>);
+
+impl Deref for ServiceRef {
+    type Target = Rc<Service>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for ServiceWeakRef {
+    type Target = Weak<Service>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ServiceWeakRef {
+    pub fn upgrade(&self) -> Option<ServiceRef> {
+        self.0.upgrade().map(ServiceRef)
+    }
+}
+
+impl TryFrom<*mut c::JSContext> for ServiceRef {
+    type Error = anyhow::Error;
+
+    fn try_from(ctx: *mut c::JSContext) -> Result<Self, Self::Error> {
+        let weak_srv = js_context_get_service(ctx).ok_or(anyhow::anyhow!("Failed to get service from context"))?;
+        weak_srv.upgrade().ok_or(anyhow::anyhow!("Service has been dropped"))
+    }
+}
 
 pub struct Runtime {
     runtime: *mut c::JSRuntime,
-    ctx: *mut c::JSContext,
+    pub ctx: *mut c::JSContext,
 }
 
 impl Drop for Runtime {
@@ -55,7 +89,7 @@ impl Runtime {
             if ret < 0 {
                 error!(
                     "Failed to execute pending job: {}",
-                    qjs_sys::ctx_get_exception_str(ctx)
+                    qjs::ctx_get_exception_str(ctx)
                 );
             }
         }
@@ -94,13 +128,14 @@ pub fn ctx_init(ctx: *mut c::JSContext) {
 }
 
 impl Service {
-    pub fn new(weak_self: ServiceWeakRef) -> Self {
+    pub(crate) fn new(weak_self: ServiceWeakRef) -> Self {
         let runtime = unsafe { c::JS_NewRuntime() };
         let ctx = unsafe { c::JS_NewContext(runtime) };
         let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
 
         ctx_init(ctx);
-        qjs_sys::ctx_eval(ctx, bootcode).expect("Failed to eval bootcode");
+        setup_host_functions(ctx).expect("Failed to setup host functions");
+        qjs::eval(ctx, &bootcode).expect("Failed to eval bootcode");
 
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx, boxed_self as *mut _) };
@@ -111,11 +146,11 @@ impl Service {
         }
     }
 
-    pub fn new_ref() -> ServiceRef {
-        Rc::new_cyclic(|weak_self| Service::new(weak_self.clone()))
+    pub(crate) fn new_ref() -> ServiceRef {
+        ServiceRef(Rc::new_cyclic(|weak_self| Service::new(ServiceWeakRef(weak_self.clone()))))
     }
 
-    pub fn weak_self(&self) -> ServiceWeakRef {
+    pub(crate) fn weak_self(&self) -> ServiceWeakRef {
         unsafe {
             let ptr = c::JS_GetContextOpaque(self.runtime.ctx) as *mut ServiceWeakRef;
             (*ptr).clone()
@@ -130,17 +165,17 @@ impl Service {
         self.runtime.clone()
     }
 
-    pub fn exec_script(&self, script: &str) -> Result<Output, String> {
+    pub fn exec_script(&self, script: &str) -> Result<OwnedJsValue, String> {
         let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
         self.eval(JsCode::Source(script.as_c_str()))
     }
 
-    pub fn exec_bytecode(&self, script: &[u8]) -> Result<Output, String> {
+    pub fn exec_bytecode(&self, script: &[u8]) -> Result<OwnedJsValue, String> {
         self.eval(JsCode::Bytecode(script))
     }
 
-    pub fn eval(&self, code: JsCode) -> Result<Output, String> {
-        let result = qjs_sys::ctx_eval(self.runtime.ctx, code);
+    pub fn eval(&self, code: JsCode) -> Result<OwnedJsValue, String> {
+        let result = qjs::eval(self.runtime.ctx, &code).map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
         self.runtime.exec_pending_jobs();
         result
     }
@@ -155,7 +190,7 @@ impl Service {
             c::JS_Call(self.runtime.ctx, func, this, args_len, args)
         };
         if c::is_exception(ret) {
-            let err = qjs_sys::ctx_get_exception_str(self.runtime.ctx);
+            let err = qjs::ctx_get_exception_str(self.runtime.ctx);
             anyhow::bail!("Failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
@@ -187,7 +222,7 @@ impl Service {
         res
     }
 
-    pub fn spawn<Fut, FutGen, Args>(
+    pub(crate) fn spawn<Fut, FutGen, Args>(
         &self,
         js_callback: OwnedJsValue,
         fut_gen: FutGen,
@@ -234,14 +269,14 @@ impl Service {
     }
 }
 
-pub fn close(weak_service: Weak<Service>, id: u64) {
+pub(crate) fn close(weak_service: ServiceWeakRef, id: u64) {
     let Some(service) = weak_service.upgrade() else {
         return;
     };
     _ = service.remove_resource(id);
 }
 
-pub fn js_context_get_service(ctx: *mut c::JSContext) -> Option<ServiceWeakRef> {
+pub(crate) fn js_context_get_service(ctx: *mut c::JSContext) -> Option<ServiceWeakRef> {
     unsafe {
         let name = c::JS_GetContextOpaque(ctx) as *mut ServiceWeakRef;
         if name.is_null() {

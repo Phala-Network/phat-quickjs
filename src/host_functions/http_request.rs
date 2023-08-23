@@ -1,67 +1,67 @@
 use anyhow::Context;
 use hyper::{body::HttpBody, Body};
 use log::info;
-use qjs_sys::convert::{
-    js_object_get_field, js_object_get_field_or_default, js_object_get_option_field,
-};
 use std::{collections::BTreeMap, time::Duration};
 
 use crate::{
     runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
+use qjs::{FromJsValue, ToJsValue, ToArgs, AsBytes, Value as JsValue, host_call};
 
 use super::*;
 
-struct HttpRequest {
+#[derive(FromJsValue, Debug)]
+#[qjsbind(rename_all = "camelCase")]
+pub struct HttpRequest {
     url: String,
+    #[qjsbind(default = "default_method")]
     method: String,
+    #[qjsbind(default)]
     headers: BTreeMap<String, String>,
+    #[qjsbind(default, as_bytes)]
     body: Vec<u8>,
+    body_text: Option<String>,
+    #[qjsbind(default = "default_timeout")]
     timeout_ms: u64,
 }
 
-pub(super) fn http_request(
-    service: ServiceRef,
-    ctx: *mut c::JSContext,
-    args: &[c::JSValueConst],
-) -> Result<JsValue> {
-    let Some(config) = args.get(0) else {
-        anyhow::bail!("Invoking http_request without arguments");
-    };
+#[derive(ToJsValue, Debug)]
+struct HttpResponseHead {
+    status: u16,
+    status_text: String,
+    version: String,
+    headers: BTreeMap<String, String>,
+}
 
-    let url: String = js_object_get_field(ctx, *config, "url").anyhow()?;
-    let method: String = js_object_get_option_field(ctx, *config, "method")
-        .anyhow()?
-        .unwrap_or_else(|| "GET".into());
-    let headers: BTreeMap<String, String> =
-        js_object_get_field_or_default(ctx, *config, "headers").anyhow()?;
-    let mut body: Vec<u8> = js_object_get_field_or_default(ctx, *config, "body").anyhow()?;
-    if body.is_empty() {
-        let body_text: String =
-            js_object_get_field_or_default(ctx, *config, "bodyText").anyhow()?;
-        if !body_text.is_empty() {
-            body = body_text.into_bytes();
-        }
-    }
-    let body = body;
-    let timeout_ms: u64 = js_object_get_field_or_default(ctx, *config, "timeout").anyhow()?;
-    let callback: OwnedJsValue = js_object_get_field(ctx, *config, "callback").anyhow()?;
-    let request = HttpRequest {
-        url,
-        method,
-        headers,
-        body,
-        timeout_ms,
-    };
-    let id = service.spawn(callback, do_http_request, request);
-    Ok(JsValue::Int(id as i32))
+#[derive(ToJsValue, Debug)]
+struct Event<'a, Data> {
+    name: &'a str,
+    data: Data
+}
+
+pub fn setup(ns: &JsValue) -> Result<()> {
+    ns.set_property_fn("http_request", http_request)?;
+    Ok(())
+}
+
+#[host_call]
+fn http_request(service: ServiceRef, _this: JsValue, req: HttpRequest, callback: OwnedJsValue) -> Result<i32> {
+    Ok(service.spawn(callback, do_http_request, req) as i32)
+}
+
+fn default_method() -> String {
+    "GET".into()
+}
+
+fn default_timeout() -> u64 {
+    30_000
 }
 
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
     let result = do_http_request_inner(weak_service.clone(), id, req).await;
     if let Err(err) = result {
-        callback(&weak_service, id, "error", JsValue::String(err.to_string()));
+        callback(&weak_service, id, "error", err.to_string());
     }
 }
 async fn do_http_request_inner(
@@ -94,8 +94,13 @@ async fn do_http_request_inner(
     if !headers.contains_key("User-Agent") {
         builder = builder.header("User-Agent", "sidevm-quickjs/0.1.0");
     }
+    let body: Vec<u8> = if let Some(body_text) = req.body_text {
+        body_text.into_bytes()
+    } else {
+        req.body
+    };
     let request = builder
-        .body(Body::from(req.body))
+        .body(Body::from(body))
         .context("Failed to build request")?;
     let response = timeout(
         Duration::from_millis(req.timeout_ms),
@@ -105,36 +110,35 @@ async fn do_http_request_inner(
     .context("Failed to send request: Timed out")?
     .context("Failed to send request")?;
     {
-        let head: JsValue = {
+        let head = {
             let headers = BTreeMap::from_iter(response.headers().iter().map(|(k, v)| {
                 (
                     k.as_str().into(),
-                    JsValue::String(v.to_str().unwrap_or_default().into()),
+                    v.to_str().unwrap_or_default().into(),
                 )
             }));
-            let status = response.status().as_u16() as i32;
-            let reason = response.status().canonical_reason().unwrap_or_default();
+            let status = response.status().as_u16();
+            let status_text = response.status().canonical_reason().unwrap_or_default().into();
             let version = format!("{:?}", response.version());
-            let response = BTreeMap::from_iter(vec![
-                ("status".into(), JsValue::Int(status)),
-                ("statusText".into(), JsValue::String(reason.into())),
-                ("version".into(), JsValue::String(version)),
-                ("headers".into(), JsValue::Object(headers)),
-            ]);
-            JsValue::Object(response)
+            HttpResponseHead {
+                status,
+                status_text,
+                version,
+                headers,
+            }
         };
         callback(&weak_service, id, "head", head);
     }
     tokio::pin!(response);
     while let Some(chunk) = response.data().await {
         let chunk = chunk.context("Failed to read response body")?;
-        callback(&weak_service, id, "data", JsValue::Bytes(chunk.into()));
+        callback(&weak_service, id, "data", AsBytes(chunk));
     }
-    callback(&weak_service, id, "end", JsValue::Null);
+    callback(&weak_service, id, "end", ());
     Ok(())
 }
 
-fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) {
+fn callback(weak_service: &Weak<Service>, id: u64, name: &str, data: impl ToJsValue) {
     let Some(service) = weak_service.upgrade() else {
         info!("http_request {id} exited because the service is dropped");
         return;
@@ -144,29 +148,15 @@ fn callback(weak_service: &Weak<Service>, id: u64, name: &str, result: JsValue) 
         return;
     };
     let ctx = service.raw_ctx();
-    let args = vec![JsValue::String(name.into()), result]
-        .into_iter()
-        .map(|v| serialize_value(ctx, v))
-        .collect::<Vec<_>>();
-
-    let n_args = args.len();
-    let args = args.into_iter().filter_map(|x| x.ok()).collect::<Vec<_>>();
-    let args = scopeguard::guard(args, |args| {
-        js_free_all(ctx, args);
-    });
-    if n_args != args.len() {
-        error!("[{id}] Failed to make args for http_request event {name}");
-        return;
-    }
-    if let Err(err) = service.call_function(*res.value(), &args) {
-        error!("[{id}] Failed to report http_request event {name}: {err}");
-    }
-}
-
-fn js_free_all(ctx: *mut c::JSContext, args: Vec<c::JSValue>) {
-    for arg in args {
-        unsafe {
-            c::JS_FreeValue(ctx, arg);
+    let args = match (name, data).to_args(ctx) {
+        Err(err) => {
+            error!("[{id}] Failed to report http_request event {name}: {err}");
+            return;
         }
+        Ok(args) => args,
+    };
+    let args = args.into_iter().map(|arg| *arg.raw_value()).collect::<Vec<_>>();
+    if let Err(err) = service.call_function(*res.value(), &args[..]) {
+        error!("[{id}] Failed to report http_request event {name}: {err:?}");
     }
 }
