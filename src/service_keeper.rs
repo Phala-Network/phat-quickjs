@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Result};
-use log::{error, info};
+use log::error;
 use serde::{Deserialize, Serialize};
 use sidevm::channel::HttpRequest;
 use std::{cell::RefCell, collections::BTreeMap};
@@ -71,7 +71,6 @@ impl ServiceKeeper {
     }
 
     pub fn handle_connection(connection: HttpRequest) -> Result<()> {
-        info!("Handling incoming http request: {:?}", connection.head);
         let name = connection
             .head
             .path
@@ -80,7 +79,6 @@ impl ServiceKeeper {
             .ok_or(anyhow!("Failed to get path segments"))?
             .nth(2)
             .ok_or(anyhow!("Failed to get service name from path"))?;
-        info!("Handling request for service {name}");
         let Some(service) = KEEPER.with(|keeper| keeper.borrow_mut().get_service(name)) else {
             bail!("Service {name} not found");
         };
