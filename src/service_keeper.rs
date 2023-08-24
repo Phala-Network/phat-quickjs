@@ -1,11 +1,17 @@
-use log::error;
+use anyhow::{anyhow, bail, Result};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use sidevm::channel::HttpRequest;
-use sidevm::env::messages::HttpResponseHead;
 use std::{cell::RefCell, collections::BTreeMap};
-use tokio::io::AsyncWriteExt;
 
 use crate::runtime::AccountId;
 use crate::service::{Service, ServiceRef};
+
+#[derive(Debug, Serialize, Deserialize)]
+enum Message {
+    Run { name: String, source: String },
+    Reset { name: String },
+}
 
 thread_local! {
     static KEEPER: RefCell<ServiceKeeper>  = RefCell::new(ServiceKeeper::new());
@@ -50,32 +56,36 @@ impl ServiceKeeper {
         todo!()
     }
 
-    pub fn handle_message(_message: Vec<u8>) {
-        Self::reset("");
-        todo!()
-    }
-    pub fn handle_connection(mut connection: HttpRequest) {
-        let result = connection.response_tx.send(HttpResponseHead {
-            status: 200,
-            headers: vec![],
-        });
-        if let Err(err) = result {
-            error!("Failed to send response head: {err}");
-            return;
-        }
-        sidevm::spawn(async move {
-            for i in 0..10 {
-                if let Err(err) = connection
-                    .io_stream
-                    .write_all(format!("message {i}").as_bytes())
-                    .await
-                {
-                    error!("Failed to write to connection: {err}");
-                    break;
-                }
-                sidevm::time::sleep(std::time::Duration::from_secs(1)).await;
+    pub fn handle_message(message: Vec<u8>) {
+        let message = match serde_json::from_slice::<Message>(&message) {
+            Ok(message) => message,
+            Err(err) => {
+                error!("Failed to parse incoming message: {err}");
+                return;
             }
-        });
+        };
+        match message {
+            Message::Run { name, source } => Self::exec_script(&name, &source),
+            Message::Reset { name } => Self::reset(&name),
+        }
+    }
+
+    pub fn handle_connection(connection: HttpRequest) -> Result<()> {
+        info!("Handling incoming http request: {:?}", connection.head);
+        let name = connection
+            .head
+            .path
+            .strip_prefix('/')
+            .map(|remainder| remainder.split('/'))
+            .ok_or(anyhow!("Failed to get path segments"))?
+            .nth(2)
+            .ok_or(anyhow!("Failed to get service name from path"))?;
+        info!("Handling request for service {name}");
+        let Some(service) = KEEPER.with(|keeper| keeper.borrow_mut().get_service(name)) else {
+            bail!("Service {name} not found");
+        };
+        crate::host_functions::try_accept_http_request(service, connection)?;
+        Ok(())
     }
 }
 

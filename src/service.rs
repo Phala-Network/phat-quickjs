@@ -112,7 +112,16 @@ pub struct Service {
 struct ServiceState {
     next_resource_id: u64,
     recources: BTreeMap<u64, Resource>,
+    http_listener: Option<OwnedJsValue>,
     done_tx: broadcast::Sender<()>,
+}
+
+impl ServiceState {
+    fn take_next_resource_id(&mut self) -> u64 {
+        let id = self.next_resource_id;
+        self.next_resource_id += 1;
+        id
+    }
 }
 
 impl Default for ServiceState {
@@ -120,6 +129,7 @@ impl Default for ServiceState {
         Self {
             next_resource_id: Default::default(),
             recources: Default::default(),
+            http_listener: Default::default(),
             done_tx: broadcast::channel(1).0,
         }
     }
@@ -213,8 +223,7 @@ impl Service {
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
         let mut state = self.state.borrow_mut();
-        let id = state.next_resource_id;
-        state.next_resource_id += 1;
+        let id = state.take_next_resource_id();
         state.recources.insert(id, resource);
         id
     }
@@ -281,6 +290,14 @@ impl Service {
     pub fn number_of_tasks(&self) -> usize {
         self.state.borrow().recources.len()
     }
+
+    pub(crate) fn set_http_listener(&self, listener: OwnedJsValue) {
+        self.state.borrow_mut().http_listener = Some(listener);
+    }
+
+    pub(crate) fn http_listener(&self) -> Option<OwnedJsValue> {
+        self.state.borrow().http_listener.clone()
+    }
 }
 
 pub(crate) fn close(weak_service: ServiceWeakRef, id: u64) {
@@ -307,7 +324,8 @@ pub fn js_context_get_runtime(ctx: NonNull<c::JSContext>) -> Option<Rc<JsEngine>
 impl Drop for Service {
     fn drop(&mut self) {
         unsafe {
-            self.state.borrow_mut().recources.clear();
+            // release all js resources before destroy the runtime
+            *self.state.borrow_mut() = Default::default();
             let pname = c::JS_GetContextOpaque(self.raw_ctx().as_ptr()) as *mut ServiceWeakRef;
             drop(Box::from_raw(pname));
         }

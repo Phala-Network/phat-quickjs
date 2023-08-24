@@ -62,7 +62,7 @@ pub mod runtime {
 
 #[cfg(not(feature = "native"))]
 pub mod runtime {
-    use log::info;
+    use log::{info, error};
     pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
@@ -97,7 +97,9 @@ pub mod runtime {
                         info!("Host dropped the channel, exiting...");
                         break;
                     };
-                    crate::ServiceKeeper::handle_connection(connection);
+                    if let Err(err) = crate::ServiceKeeper::handle_connection(connection) {
+                        error!("Failed to handle incoming http connection: {err:?}");
+                    }
                 }
             }
         }

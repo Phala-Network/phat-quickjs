@@ -1068,9 +1068,9 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 
 [[package]]
 name = "sidevm"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fd443813377e8b5c72d0adc63d256d9ed69b0a91131ab0a0bab2ad1f4e455b3"
+checksum = "1d04d21ba2aeec61db66336885fb7d27e83b0083a9287ff1d2c0d44baa131779"
 dependencies = [
  "derive_more",
  "futures",
@@ -1087,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "sidevm-env"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2caae97606610f7540eff5bfacfe851c4a5d48fd9819859f497ab7959640da4b"
+checksum = "0ac35ec9781d13febd403b81000182ad59838be06877770a4aeaa45d6d088a51"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1103,9 +1103,9 @@ dependencies = [
 
 [[package]]
 name = "sidevm-logger"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fff9a206f66778d8b7c602b08ffd568ab92aa506a7c8e38394ff42c77718ff5"
+checksum = "8d1ef095586aa693a50e35412f2749a170b9e8b3228f540610c4223735d733f7"
 dependencies = [
  "log",
  "sidevm-env",
@@ -1113,9 +1113,9 @@ dependencies = [
 
 [[package]]
 name = "sidevm-macro"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "495c9345b679138e1f71e70b18a39ba8a1241f9404920b61203703a37fb22429"
+checksum = "64bc8e4faa1c8105e5ddf3340b02946a6a6307f7ad46e5c4bd69b3684ecb9dfc"
 dependencies = [
  "heck",
  "proc-macro-crate",

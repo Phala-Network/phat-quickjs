@@ -21,7 +21,7 @@
     }
     g.Sidevm.concatU8a = concatU8a;
     g.setTimeout = timerFn(Sidevm.setTimeout);
-    g.setInterval = timerFn(Sidevm.setTimeout);
+    g.setInterval = timerFn(Sidevm.setInterval);
     g.clearTimeout = Sidevm.close;
     g.clearInterval = Sidevm.close;
     g.Sidevm.inspect = function (...obj) {
