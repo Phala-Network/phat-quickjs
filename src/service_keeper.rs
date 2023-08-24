@@ -1,5 +1,8 @@
 use log::error;
+use sidevm::channel::HttpRequest;
+use sidevm::env::messages::HttpResponseHead;
 use std::{cell::RefCell, collections::BTreeMap};
+use tokio::io::AsyncWriteExt;
 
 use crate::runtime::AccountId;
 use crate::service::{Service, ServiceRef};
@@ -50,6 +53,29 @@ impl ServiceKeeper {
     pub fn handle_message(_message: Vec<u8>) {
         Self::reset("");
         todo!()
+    }
+    pub fn handle_connection(mut connection: HttpRequest) {
+        let result = connection.response_tx.send(HttpResponseHead {
+            status: 200,
+            headers: vec![],
+        });
+        if let Err(err) = result {
+            error!("Failed to send response head: {err}");
+            return;
+        }
+        sidevm::spawn(async move {
+            for i in 0..10 {
+                if let Err(err) = connection
+                    .io_stream
+                    .write_all(format!("message {i}").as_bytes())
+                    .await
+                {
+                    error!("Failed to write to connection: {err}");
+                    break;
+                }
+                sidevm::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        });
     }
 }
 

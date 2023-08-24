@@ -62,6 +62,7 @@ pub mod runtime {
 
 #[cfg(not(feature = "native"))]
 pub mod runtime {
+    use log::info;
     pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
@@ -73,7 +74,7 @@ pub mod runtime {
         HttpConnector::new()
     }
     pub async fn main_loop() {
-        use log::info;
+        info!("Listening for incoming queries...");
         loop {
             tokio::select! {
                 query = sidevm::channel::incoming_queries().next() => {
@@ -90,6 +91,13 @@ pub mod runtime {
                         break;
                     };
                     crate::ServiceKeeper::handle_message(message);
+                }
+                connection = sidevm::channel::incoming_http_connections().next() => {
+                    let Some(connection) = connection else {
+                        info!("Host dropped the channel, exiting...");
+                        break;
+                    };
+                    crate::ServiceKeeper::handle_connection(connection);
                 }
             }
         }
