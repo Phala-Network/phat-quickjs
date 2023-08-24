@@ -1,4 +1,5 @@
 use super::*;
+use log::info;
 use qjs::{host_call, Value as JsValue};
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
@@ -11,7 +12,7 @@ struct Marker {
 }
 impl Drop for Marker {
     fn drop(&mut self) {
-        println!("Dropping marker: {}", self.tag);
+        info!("Dropping marker: {}", self.tag);
     }
 }
 

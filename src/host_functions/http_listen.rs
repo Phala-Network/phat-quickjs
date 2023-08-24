@@ -138,7 +138,6 @@ fn http_make_writer(
                     warn!("Failed to report write result: {err:?}");
                 }
             }
-            info!("rmme: Writer task finished");
         },
         (),
     );
