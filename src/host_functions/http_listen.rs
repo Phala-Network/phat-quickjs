@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use qjs::{host_call, ToJsValue, Value as JsValue};
+use log::info;
+use qjs::{host_call, FromJsValue, ToJsValue, Value as JsValue};
 
 use super::*;
 use crate::service::OwnedJsValue;
@@ -16,12 +17,10 @@ pub struct HttpRequest {
     opaque_response_tx: JsValue,
 }
 
-#[derive(ToJsValue, Debug)]
+#[derive(FromJsValue, Debug)]
 #[qjsbind(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
-    status_text: String,
-    version: String,
     headers: BTreeMap<String, String>,
 }
 
@@ -33,17 +32,53 @@ struct Event<'a, Data> {
 
 pub fn setup(ns: &JsValue) -> Result<()> {
     ns.set_property_fn("httpListen", http_listen)?;
+    ns.set_property_fn("httpSendResponse", http_send_response)?;
     Ok(())
 }
 
 #[host_call]
 fn http_listen(service: ServiceRef, _this: JsValue, callback: OwnedJsValue) {
+    info!("http_listen");
+    let op = JsValue::new_opaque_object(service.raw_ctx(), 123u32);
+    info!("op created");
+    let value: u32 = op.opaque_object_take_data().unwrap();
+    info!("value: {value}");
     service.set_http_listener(callback)
+}
+
+fn use_2nd<F1, I1, F2, O>(_f1: F1, f2: F2) -> Option<O>
+where
+    F1: FnOnce(I1) -> O,
+    F2: FnOnce() -> Option<O>,
+{
+    f2()
+}
+
+#[host_call]
+fn http_send_response(service: ServiceRef, _this: JsValue, tx: JsValue, response: HttpResponseHead) {
+    info!("http_send_response");
+    let op = JsValue::new_opaque_object(service.raw_ctx(), 123u32);
+    info!("op created");
+    let value: u32 = op.opaque_object_take_data().unwrap();
+    info!("value: {value}");
+    let Some(response_tx) = use_2nd(
+        |req: crate::runtime::HttpRequest| req.response_tx,
+        || tx.opaque_object_take_data(),
+    ) else {
+        info!("Failed to get response tx");
+        return;
+    };
+    if let Err(err) = response_tx.send(crate::runtime::HttpResponseHead {
+        status: response.status,
+        headers: response.headers.into_iter().collect(),
+    }) {
+        info!("Failed to send response: {err:?}");
+    }
 }
 
 pub(crate) fn try_accept_http_request(
     service: ServiceRef,
-    request: sidevm::channel::HttpRequest,
+    request: crate::runtime::HttpRequest,
 ) -> Result<()> {
     let Some(Ok(listener)) = service.http_listener().map(TryInto::try_into) else {
         return Ok(());

@@ -1,7 +1,6 @@
 use anyhow::{anyhow, bail, Result};
 use log::error;
 use serde::{Deserialize, Serialize};
-use sidevm::channel::HttpRequest;
 use std::{cell::RefCell, collections::BTreeMap};
 
 use crate::runtime::AccountId;
@@ -70,7 +69,7 @@ impl ServiceKeeper {
         }
     }
 
-    pub fn handle_connection(connection: HttpRequest) -> Result<()> {
+    pub fn handle_connection(connection: crate::runtime::HttpRequest) -> Result<()> {
         let name = connection
             .head
             .path

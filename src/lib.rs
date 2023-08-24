@@ -13,6 +13,17 @@ mod traits;
 pub mod runtime {
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+    use tokio::io::DuplexStream;
+    pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
+
+    pub struct HttpRequest {
+        /// The HTTP request head.
+        pub head: HttpHead,
+        /// The IO stream to read the request body and write the response body.
+        pub io_stream: DuplexStream,
+        /// The reply channel to send the response head.
+        pub response_tx: tokio::sync::oneshot::Sender<HttpResponseHead>,
+    }
 
     use log::info;
     pub use tokio::main;
@@ -62,11 +73,13 @@ pub mod runtime {
 
 #[cfg(not(feature = "native"))]
 pub mod runtime {
-    use log::{info, error};
+    use log::{error, info};
     pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
     };
+    pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
+    pub use sidevm::channel::HttpRequest;
 
     pub use sidevm::main;
 
