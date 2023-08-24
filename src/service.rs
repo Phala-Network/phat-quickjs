@@ -10,9 +10,9 @@ use std::future::Future;
 
 use crate::host_functions::setup_host_functions;
 use anyhow::Result;
+use qjs::ToNonNull;
 use qjs::{c, Error as ValueError, JsCode, ToArgs, Value as JsValue};
 use tokio::sync::broadcast;
-use qjs::ToNonNull;
 
 mod resource;
 
@@ -126,25 +126,27 @@ impl Default for ServiceState {
 }
 
 pub fn ctx_init(ctx: NonNull<c::JSContext>) {
-    #[allow(unused_variables)]
-    let ctx = ctx;
-    #[cfg(feature = "stream")]
-    c::js_stream_init(ctx);
-    #[cfg(feature = "blob")]
-    c::js_blob_init(ctx);
+    unsafe {
+        let ctx = ctx.as_ptr();
+        #[cfg(feature = "stream")]
+        c::js_stream_init(ctx);
+        #[cfg(feature = "blob")]
+        c::js_blob_init(ctx);
+        c::js_opaque_class_init(ctx)
+    };
 }
 
 impl Service {
     pub(crate) fn new(weak_self: ServiceWeakRef) -> Self {
         let runtime = unsafe { c::JS_NewRuntime() };
-        let ctx = unsafe { c::JS_NewContext(runtime) }.to_non_null().expect("Failed to create context");
+        let ctx = unsafe { c::JS_NewContext(runtime) }
+            .to_non_null()
+            .expect("Failed to create context");
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
-
-        let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
-
         ctx_init(ctx);
         setup_host_functions(ctx).expect("Failed to setup host functions");
+        let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
         qjs::eval(ctx, &bootcode).expect("Failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {

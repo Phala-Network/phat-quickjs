@@ -24,6 +24,7 @@ hyper-rustls = { version = "0.24.1", optional = true }
 
 [features]
 default = ["native"]
+sanitize-address = ["qjs/sanitize-address"]
 
 stream = []
 blob = []
