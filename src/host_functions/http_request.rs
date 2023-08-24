@@ -52,8 +52,8 @@ fn http_request(
     _this: JsValue,
     req: HttpRequest,
     callback: OwnedJsValue,
-) -> Result<i32> {
-    Ok(service.spawn(callback, do_http_request, req) as i32)
+) -> Result<u64> {
+    Ok(service.spawn(callback, do_http_request, req))
 }
 
 fn default_method() -> String {

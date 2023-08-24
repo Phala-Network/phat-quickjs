@@ -14,8 +14,8 @@ fn set_timeout(
     _this: JsValue,
     callback: OwnedJsValue,
     timeout_ms: u64,
-) -> Result<i32> {
-    Ok(service.spawn(callback, do_set_timeout, timeout_ms.max(4)) as _)
+) -> Result<u64> {
+    Ok(service.spawn(callback, do_set_timeout, timeout_ms.max(4)))
 }
 
 #[host_call]
@@ -24,8 +24,8 @@ fn set_interval(
     _this: JsValue,
     callback: OwnedJsValue,
     timeout_ms: u64,
-) -> Result<i32> {
-    Ok(service.spawn(callback, do_set_interval, timeout_ms.max(4)) as _)
+) -> Result<u64> {
+    Ok(service.spawn(callback, do_set_interval, timeout_ms.max(4)))
 }
 
 fn try_fire_timer(service: &Weak<Service>, id: u64) -> Result<()> {

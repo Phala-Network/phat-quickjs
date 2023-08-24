@@ -295,7 +295,7 @@ impl Service {
     }
 
     pub(crate) fn http_listener(&self) -> Option<OwnedJsValue> {
-        self.state.borrow().http_listener.clone()
+        self.state.borrow().http_listener.as_ref()?.dup()
     }
 }
 

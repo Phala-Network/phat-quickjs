@@ -68,18 +68,11 @@ impl Drop for OwnedJsValue {
     }
 }
 
-impl Clone for OwnedJsValue {
-    fn clone(&self) -> Self {
-        self.dup()
-            .expect("Failed to dup JsValue, the service has been dropped")
-    }
-}
-
 impl core::fmt::Debug for OwnedJsValue {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match JsValue::try_from(self.clone()) {
-            Ok(value) => write!(f, "{}", value),
-            Err(_) => write!(f, "<dropped>"),
+        match self.to_js_value() {
+            Some(value) => write!(f, "{}", value),
+            None => write!(f, "<dropped>"),
         }
     }
 }
@@ -119,6 +112,10 @@ impl OwnedJsValue {
 
     pub fn is_undefined(&self) -> bool {
         unsafe { c::JS_IsUndefined(*self.value()) == 1 }
+    }
+
+    pub fn to_js_value(&self) -> Option<JsValue> {
+        self.dup()?.try_into().ok()
     }
 }
 
