@@ -14,6 +14,7 @@ mod print;
 mod timer;
 mod url;
 mod http_listen;
+mod debug;
 
 pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     let ns = JsValue::new_object(ctx);
@@ -22,6 +23,7 @@ pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     timer::setup(&ns)?;
     http_request::setup(&ns)?;
     http_listen::setup(&ns)?;
+    debug::setup(&ns)?;
     ns.set_property_fn("close", close_res)?;
     qjs::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())
