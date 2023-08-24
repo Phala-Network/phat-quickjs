@@ -38,11 +38,6 @@ pub fn setup(ns: &JsValue) -> Result<()> {
 
 #[host_call]
 fn http_listen(service: ServiceRef, _this: JsValue, callback: OwnedJsValue) {
-    info!("http_listen");
-    let op = JsValue::new_opaque_object(service.raw_ctx(), 123u32);
-    info!("op created");
-    let value: u32 = op.opaque_object_take_data().unwrap();
-    info!("value: {value}");
     service.set_http_listener(callback)
 }
 
@@ -55,12 +50,7 @@ where
 }
 
 #[host_call]
-fn http_send_response(service: ServiceRef, _this: JsValue, tx: JsValue, response: HttpResponseHead) {
-    info!("http_send_response");
-    let op = JsValue::new_opaque_object(service.raw_ctx(), 123u32);
-    info!("op created");
-    let value: u32 = op.opaque_object_take_data().unwrap();
-    info!("value: {value}");
+fn http_send_response(_service: ServiceRef, _this: JsValue, tx: JsValue, response: HttpResponseHead) {
     let Some(response_tx) = use_2nd(
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),

@@ -79,6 +79,12 @@ impl ServiceKeeper {
             .nth(2)
             .ok_or(anyhow!("Failed to get service name from path"))?;
         let Some(service) = KEEPER.with(|keeper| keeper.borrow_mut().get_service(name)) else {
+            connection.response_tx.send(crate::runtime::HttpResponseHead {
+                status: 404,
+                headers: vec![
+                    ("Content-Length".into(), "0".into()),
+                ],
+            })?;
             bail!("Service {name} not found");
         };
         crate::host_functions::try_accept_http_request(service, connection)?;
