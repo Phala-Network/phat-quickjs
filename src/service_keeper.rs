@@ -84,7 +84,7 @@ impl ServiceKeeper {
                 headers: vec![
                     ("Content-Length".into(), "0".into()),
                 ],
-            })?;
+            }).map_err(|err| anyhow!("Failed to send response: {err:?}"))?;
             bail!("Service {name} not found");
         };
         crate::host_functions::try_accept_http_request(service, connection)?;
