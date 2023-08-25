@@ -1,6 +1,8 @@
 console.log = Sidevm.inspect;
+const url = "https://httpbin.kvin.wang:8443/anything";
+console.log('Posting data to url:', url);
 Sidevm.httpRequest({
-        url: "https://httpbin.kvin.wang:8443/anything",
+        url,
         method: "POST",
         bodyText: "0x303132",
         headers: {

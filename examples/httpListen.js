@@ -4,7 +4,10 @@ console.log('Start to listen http requests...');
 Sidevm.httpListen(async (req) => {
     console.log('Incomming HTTP request:', req);
 
-    const body = await receiveBody(req.opaqueInputStream);
+    var body = '';
+    if (req.method === "POST") {
+        body = await receiveBody(req.opaqueInputStream);
+    }
 
     console.log('Received body of length:', body.length);
     Sidevm.httpSendResponse(req.opaqueResponseTx, {

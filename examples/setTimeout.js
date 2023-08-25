@@ -1,4 +1,5 @@
+console.log("Before timeout: " + new Date());
 setTimeout(() => {
-    console.log("Timed out");
-}, 1000);
+    console.log("Inside timeout: " + new Date());
+}, 2000);
 
