@@ -1,10 +1,9 @@
-use std::collections::BTreeMap;
-
 use log::{info, warn};
 use qjs::{host_call, AsBytes, FromJsValue, ToJsValue, Value as JsValue};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc::Sender;
 
+use super::http_request::Headers;
 use super::*;
 use crate::service::OwnedJsValue;
 
@@ -14,7 +13,7 @@ pub struct HttpRequest {
     method: String,
     path: String,
     query: String,
-    headers: BTreeMap<String, String>,
+    headers: Headers,
     opaque_response_tx: JsValue,
     opaque_input_stream: JsValue,
     opaque_output_stream: JsValue,
@@ -24,7 +23,7 @@ pub struct HttpRequest {
 #[qjsbind(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
-    headers: BTreeMap<String, String>,
+    headers: Headers,
 }
 
 #[derive(FromJsValue)]
@@ -100,7 +99,7 @@ fn http_send_response(
     };
     if let Err(err) = response_tx.send(crate::runtime::HttpResponseHead {
         status: response.status,
-        headers: response.headers.into_iter().collect(),
+        headers: response.headers.into(),
     }) {
         info!("Failed to send response: {err:?}");
     }

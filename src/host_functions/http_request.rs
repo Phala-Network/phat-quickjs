@@ -1,15 +1,68 @@
 use anyhow::Context;
 use hyper::{body::HttpBody, Body};
 use log::info;
-use std::{collections::BTreeMap, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Duration,
+};
 
 use crate::{
     runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
-use qjs::{host_call, AsBytes, FromJsValue, ToJsValue, Value as JsValue};
+use qjs::{host_call, AsBytes, Error as ValueError, FromJsValue, ToJsValue, Value as JsValue};
 
 use super::*;
+
+#[derive(Debug, Default)]
+pub struct Headers {
+    pairs: Vec<(String, String)>,
+}
+
+impl FromJsValue for Headers {
+    fn from_js_value(value: JsValue) -> Result<Self, ValueError> {
+        Ok(if value.is_array() {
+            Vec::<(String, String)>::from_js_value(value)?.into()
+        } else {
+            BTreeMap::<String, String>::from_js_value(value)?.into()
+        })
+    }
+}
+
+impl ToJsValue for Headers {
+    fn to_js_value(&self, ctx: NonNull<c::JSContext>) -> Result<JsValue, ValueError> {
+        self.pairs.to_js_value(ctx)
+    }
+}
+
+impl From<Vec<(String, String)>> for Headers {
+    fn from(pairs: Vec<(String, String)>) -> Self {
+        Self { pairs }
+    }
+}
+
+impl From<BTreeMap<String, String>> for Headers {
+    fn from(headers: BTreeMap<String, String>) -> Self {
+        Self {
+            pairs: headers.into_iter().collect(),
+        }
+    }
+}
+
+impl From<Headers> for Vec<(String, String)> {
+    fn from(headers: Headers) -> Self {
+        headers.pairs
+    }
+}
+
+
+impl FromIterator<(String, String)> for Headers {
+    fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
+        Self {
+            pairs: iter.into_iter().collect(),
+        }
+    }
+}
 
 #[derive(FromJsValue, Debug)]
 #[qjsbind(rename_all = "camelCase")]
@@ -18,7 +71,7 @@ pub struct HttpRequest {
     #[qjsbind(default = "default_method")]
     method: String,
     #[qjsbind(default)]
-    headers: BTreeMap<String, String>,
+    headers: Headers,
     #[qjsbind(default, as_bytes)]
     body: Vec<u8>,
     body_text: Option<String>,
@@ -32,7 +85,7 @@ struct HttpResponseHead {
     status: u16,
     status_text: String,
     version: String,
-    headers: BTreeMap<String, String>,
+    headers: Headers,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -91,18 +144,18 @@ async fn do_http_request_inner(
     } else {
         req.body
     };
-    let headers: BTreeMap<_, _> = req.headers.into_iter().collect();
-    for (k, v) in headers.iter() {
+    for (k, v) in req.headers.pairs.iter() {
         builder = builder.header(k.as_str(), v.as_str());
     }
+    let headers: BTreeSet<&str> = req.headers.pairs.iter().map(|(k, _v)| k.as_str()).collect();
     // Append Host, Content-Length and Content-Length if not present
-    if !headers.contains_key("Host") {
+    if !headers.contains("Host") {
         builder = builder.header("Host", uri.host().unwrap_or_default());
     }
-    if !headers.contains_key("Content-Length") {
+    if !headers.contains("Content-Length") {
         builder = builder.header("Content-Length", body.len());
     }
-    if !headers.contains_key("User-Agent") {
+    if !headers.contains("User-Agent") {
         builder = builder.header("User-Agent", "sidevm-quickjs/0.1.0");
     }
     let request = builder
@@ -117,12 +170,11 @@ async fn do_http_request_inner(
     .context("Failed to send request")?;
     {
         let head = {
-            let headers = BTreeMap::from_iter(
-                response
-                    .headers()
-                    .iter()
-                    .map(|(k, v)| (k.as_str().into(), v.to_str().unwrap_or_default().into())),
-            );
+            let headers = response
+                .headers()
+                .iter()
+                .map(|(k, v)| (k.as_str().into(), v.to_str().unwrap_or_default().into()))
+                .collect();
             let status = response.status().as_u16();
             let status_text = response
                 .status()

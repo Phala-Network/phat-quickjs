@@ -3,6 +3,10 @@ Sidevm.httpRequest({
         url: "https://httpbin.kvin.wang:8443/anything",
         method: "POST",
         bodyText: "0x303132",
+        headers: {
+            "X-Foo": "Bar",
+            "Content-Type": "text/plain",
+        }
     },
     (cmd, data) => {
         console.log(`=================[${cmd}]===================`);
@@ -12,7 +16,8 @@ Sidevm.httpRequest({
                 break;
             case "data":
                 console.log(`data.length=${data.length}`);
-                console.log("dataText", new TextDecoder().decode(data));
+                console.log('-------------------------------------------');
+                console.log(new TextDecoder().decode(data));
                 break;
             case "end":
                 break;

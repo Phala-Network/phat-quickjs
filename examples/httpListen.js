@@ -9,7 +9,7 @@ Sidevm.httpListen(async (req) => {
             'Content-Type': 'text/plain',
             'X-Foo': 'Bar',
         }
-    })
+    });
     const writer = Sidevm.httpMakeWriter(req.opaqueOutputStream);
     await writeString(writer, `method: ${req.method}\n`);
     await sleep(1000);
@@ -18,13 +18,11 @@ Sidevm.httpListen(async (req) => {
     await writeString(writer, `query: ${req.query}\n`);
     await sleep(1000);
     await writeString(writer, `headers: \n`);
-    for (var p of Object.entries(req.headers)) {
+    for (var p of req.headers) {
         await writeString(writer, `    ${p[0]}: ${p[1]}\n`);
         await sleep(500);
     }
 });
-
-
 
 async function writeString(writer, s) {
     const data = new TextEncoder().encode(s);
