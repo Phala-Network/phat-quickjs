@@ -87,7 +87,7 @@ impl JsEngine {
     }
 
     pub fn to_owned_value(&self, js_value: &JsValue) -> OwnedJsValue {
-        OwnedJsValue::from_raw(*js_value.raw_value(), self.weak_self.clone())
+        self.dup_value(*js_value.raw_value())
     }
 
     pub fn exec_pending_jobs(&self) {
