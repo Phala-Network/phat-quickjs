@@ -1,8 +1,8 @@
 console.log("Listening for fetch");
-addEventListener("fetch", async (event) => {
+addEventListener("fetch", async event => {
     const request = event.request;
     console.log("Incoming fetch event");
-    if (request.method = "POST") {
+    if (request.method == "POST") {
         for await (const chunk of request.body) {
             console.log("Received chunk of length:", chunk.length);
         }
@@ -72,7 +72,7 @@ function addEventListener(type, callback) {
     switch (type) {
         case "fetch":
             {
-                Sidevm.httpListen((req) => {
+                Sidevm.httpListen(req => {
                     const request = {
                         url: 'https://localhost' + req.path, // TODO: add query and origin
                         method: req.method,

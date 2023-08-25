@@ -1,7 +1,7 @@
 console.log = Sidevm.inspect;
 console.log('Start to listen http requests...');
 
-Sidevm.httpListen(async (req) => {
+Sidevm.httpListen(async req => {
     console.log('Incomming HTTP request:', req);
 
     var body = '';
