@@ -44,6 +44,7 @@ pub fn setup(ns: &JsValue) -> Result<()> {
     ns.set_property_fn("httpMakeWriter", http_make_writer)?;
     ns.set_property_fn("httpWriteChunk", http_write_chunk)?;
     ns.set_property_fn("httpReceiveBody", http_receive_body)?;
+    ns.set_property_fn("httpCloseWriter", http_close_writer)?;
     Ok(())
 }
 
@@ -161,19 +162,16 @@ fn http_make_writer(
     service: ServiceRef,
     _this: JsValue,
     output_stream: JsValue,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<JsValue> {
     let Some(write_half) = use_2nd(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
     ) else {
         anyhow::bail!("Failed to get output_stream");
     };
-
     let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(1);
-    let opaque_tx = JsValue::new_opaque_object(service.raw_ctx(), tx);
-    let owned_opaque_tx = service.to_owned_value(&opaque_tx);
-    let id = service.spawn(
-        owned_opaque_tx,
+    let _id = service.spawn(
+        OwnedJsValue::Null,
         |weak_srv, _id, _| async move {
             let mut rx = rx;
             let mut write_half = write_half;
@@ -194,22 +192,19 @@ fn http_make_writer(
         },
         (),
     );
-    Ok(id)
+    Ok(JsValue::new_opaque_object(service.raw_ctx(), tx))
 }
 
 #[host_call]
 fn http_write_chunk(
     service: ServiceRef,
     _this: JsValue,
-    id: u64,
+    writer: JsValue,
     chunk: AsBytes<Vec<u8>>,
     callback: JsValue,
 ) -> Result<()> {
-    let Some(res_obj) = service.get_resource_value(id) else {
-        anyhow::bail!("Failed to get resource {id}");
-    };
-    let Some(tx) = res_obj.opaque_object_data::<Sender<WriteChunk>>() else {
-        anyhow::bail!("Failed to get writer from resource {id}");
+    let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
+        anyhow::bail!("Failed to get writer");
     };
     let result = tx.try_send(WriteChunk {
         data: chunk,
@@ -222,4 +217,15 @@ fn http_write_chunk(
         anyhow::bail!("Failed to send chunk");
     }
     Ok(())
+}
+
+#[host_call]
+fn http_close_writer(_service: ServiceRef, _this: JsValue, writer: JsValue) {
+    if writer
+        .opaque_object_take_data::<Sender<WriteChunk>>()
+        .is_none()
+    {
+        warn!("Double drop of writer");
+        return;
+    };
 }
