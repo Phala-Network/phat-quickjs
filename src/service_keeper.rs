@@ -70,11 +70,9 @@ impl ServiceKeeper {
     }
 
     pub fn handle_connection(connection: crate::runtime::HttpRequest) -> Result<()> {
-        let name = connection
-            .head
-            .path
-            .strip_prefix('/')
-            .map(|remainder| remainder.split('/'))
+        let url: url::Url = connection.head.url.parse()?;
+        let name = url
+            .path_segments()
             .ok_or(anyhow!("Failed to get path segments"))?
             .nth(2)
             .ok_or(anyhow!("Failed to get service name from path"))?;

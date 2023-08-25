@@ -11,8 +11,7 @@ use crate::service::OwnedJsValue;
 #[qjsbind(rename_all = "camelCase")]
 pub struct HttpRequest {
     method: String,
-    path: String,
-    query: String,
+    url: String,
     headers: Headers,
     opaque_response_tx: JsValue,
     opaque_input_stream: JsValue,
@@ -63,8 +62,7 @@ pub(crate) fn try_accept_http_request(
     let (input_stream, output_stream) = tokio::io::split(request.io_stream);
     let req = HttpRequest {
         method: request.head.method.clone(),
-        path: request.head.path.clone(),
-        query: request.head.query.clone(),
+        url: request.head.url.clone(),
         headers: request.head.headers.iter().cloned().collect(),
         opaque_response_tx: JsValue::new_opaque_object(service.raw_ctx(), request.response_tx),
         opaque_input_stream: JsValue::new_opaque_object(service.raw_ctx(), input_stream),
