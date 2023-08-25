@@ -3,6 +3,9 @@ console.log('Start to listen http requests...');
 
 Sidevm.httpListen(async (req) => {
     console.log('Incomming HTTP request:', req);
+
+    const body = await receiveBody(req.opaqueInputStream);
+
     Sidevm.httpSendResponse(req.opaqueResponseTx, {
         status: 200,
         headers: {
@@ -22,7 +25,31 @@ Sidevm.httpListen(async (req) => {
         await writeString(writer, `    ${p[0]}: ${p[1]}\n`);
         await sleep(500);
     }
+    await writeString(writer, `actual body length: ${body.length}\n`);
 });
+
+async function receiveBody(streamHandle) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        Sidevm.httpReceiveBody(streamHandle, (cmd, data) => {
+            switch (cmd) {
+                case "data":
+                    chunks.push(data);
+                    console.log(`Received a chunk, length=${data.length}`);
+                    break;
+                case "error":
+                    reject(data);
+                    break;
+                case "end":
+                    resolve(Sidevm.concatU8a(chunks));
+                    break;
+                default:
+                    console.log("unknown cmd:", cmd);
+                    break;
+            }
+        });
+    });
+}
 
 async function writeString(writer, s) {
     const data = new TextEncoder().encode(s);

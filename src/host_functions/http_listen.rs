@@ -209,7 +209,7 @@ fn http_write_chunk(
         anyhow::bail!("Failed to get resource {id}");
     };
     let Some(tx) = res_obj.opaque_object_data::<Sender<WriteChunk>>() else {
-        anyhow::bail!("Failed to get writer");
+        anyhow::bail!("Failed to get writer from resource {id}");
     };
     let result = tx.try_send(WriteChunk {
         data: chunk,
