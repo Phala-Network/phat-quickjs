@@ -82,7 +82,8 @@ function addEventListener(type, callback) {
                     const event = {
                         type: "fetch",
                         request,
-                        respondWith(response) {
+                        async respondWith(response) {
+                            response = await response;
                             Sidevm.httpSendResponse(req.opaqueResponseTx, {
                                 status: response.status,
                                 headers: response.headers,
