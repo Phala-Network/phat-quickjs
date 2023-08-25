@@ -60,6 +60,7 @@ impl TryFrom<NonNull<c::JSContext>> for ServiceRef {
 pub struct JsEngine {
     runtime: *mut c::JSRuntime,
     pub ctx: NonNull<c::JSContext>,
+    weak_self: Weak<JsEngine>,
 }
 
 impl Drop for JsEngine {
@@ -78,9 +79,15 @@ impl JsEngine {
 
     pub fn dup_value(&self, value: c::JSValue) -> OwnedJsValue {
         let value = unsafe { c::JS_DupValue(self.ctx.as_ptr(), value) };
-        let runtime = js_context_get_runtime(self.ctx)
-            .expect("Failed to get service from context, can not dup value");
-        OwnedJsValue::from_raw(value, Rc::downgrade(&runtime))
+        OwnedJsValue::from_raw(value, self.weak_self.clone())
+    }
+
+    pub fn to_js_value(&self, owned: &OwnedJsValue) -> JsValue {
+        JsValue::new_cloned(self.ctx, *owned.value())
+    }
+
+    pub fn to_owned_value(&self, js_value: &JsValue) -> OwnedJsValue {
+        OwnedJsValue::from_raw(*js_value.raw_value(), self.weak_self.clone())
     }
 
     pub fn exec_pending_jobs(&self) {
@@ -159,7 +166,11 @@ impl Service {
         qjs::eval(ctx, &bootcode).expect("Failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {
-            runtime: Rc::new(JsEngine { runtime, ctx }),
+            runtime: Rc::new_cyclic(|weak_self| JsEngine {
+                runtime,
+                ctx,
+                weak_self: weak_self.clone(),
+            }),
             state,
         }
     }
@@ -227,10 +238,9 @@ impl Service {
         id
     }
 
-    pub fn get_resource_value(&self, id: u64) -> Option<OwnedJsValue> {
+    pub fn get_resource_value(&self, id: u64) -> Option<JsValue> {
         let state = self.state.borrow();
-        let value = state.recources.get(&id)?.js_value.dup()?;
-        Some(value)
+        Some(self.to_js_value(&state.recources.get(&id)?.js_value))
     }
 
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
@@ -296,6 +306,14 @@ impl Service {
 
     pub(crate) fn http_listener(&self) -> Option<OwnedJsValue> {
         self.state.borrow().http_listener.as_ref()?.dup()
+    }
+
+    pub fn to_js_value(&self, owned: &OwnedJsValue) -> JsValue {
+        self.runtime.to_js_value(owned)
+    }
+
+    pub fn to_owned_value(&self, js_value: &JsValue) -> OwnedJsValue {
+        self.runtime.to_owned_value(js_value)
     }
 }
 

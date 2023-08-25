@@ -205,12 +205,8 @@ fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: impl
         info!("http_request {id} exited because the service has been dropped");
         return;
     };
-    let Some(res) = service.get_resource_value(id) else {
+    let Some(callback) = service.get_resource_value(id) else {
         info!("http_request {id} exited because the resource has been dropped");
-        return;
-    };
-    let Ok(callback) = res.try_into() else {
-        error!("[{id}] Failed to report http_request event {name}: callback gone");
         return;
     };
     if let Err(err) = service.call_function(callback, (name, data)) {

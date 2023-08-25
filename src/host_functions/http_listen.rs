@@ -1,6 +1,6 @@
 use log::{info, warn};
 use qjs::{host_call, AsBytes, FromJsValue, ToJsValue, Value as JsValue};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc::Sender;
 
 use super::http_request::Headers;
@@ -43,7 +43,7 @@ pub fn setup(ns: &JsValue) -> Result<()> {
     ns.set_property_fn("httpSendResponse", http_send_response)?;
     ns.set_property_fn("httpMakeWriter", http_make_writer)?;
     ns.set_property_fn("httpWriteChunk", http_write_chunk)?;
-    ns.set_property_fn("httpCloseWriter", http_close_writer)?;
+    ns.set_property_fn("httpReceiveBody", http_receive_body)?;
     Ok(())
 }
 
@@ -106,20 +106,74 @@ fn http_send_response(
 }
 
 #[host_call]
+fn http_receive_body(
+    service: ServiceRef,
+    _this: JsValue,
+    input_stream: JsValue,
+    callback: OwnedJsValue,
+) -> Result<u64> {
+    let Some(read_half) = use_2nd(
+        |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
+        || input_stream.opaque_object_take_data(),
+    ) else {
+        anyhow::bail!("Failed to get input_stream");
+    };
+
+    let id = service.spawn(
+        callback,
+        |weak_srv, id, _| async move {
+            let mut reader = BufReader::with_capacity(1024, read_half);
+            let mut buf = [0u8; 1024];
+            loop {
+                let result = reader.read(&mut buf).await;
+                let Some(service) = weak_srv.upgrade() else {
+                    warn!("Service dropped while reading from stream");
+                    break;
+                };
+                let Some(callback) = service.get_resource_value(id) else {
+                    warn!("Callback dropped while reading from stream");
+                    break;
+                };
+                let mut end = false;
+                let result = match result {
+                    Ok(0) => {
+                        end = true;
+                        service.call_function(callback, ("end", JsValue::Null))
+                    }
+                    Ok(n) => service.call_function(callback, ("data", AsBytes(&buf[..n]))),
+                    Err(err) => service.call_function(callback, ("error", err.to_string())),
+                };
+                if let Err(err) = result {
+                    warn!("Failed to report read result: {err:?}");
+                }
+                if end {
+                    break;
+                }
+            }
+        },
+        (),
+    );
+    Ok(id)
+}
+
+#[host_call]
 fn http_make_writer(
     service: ServiceRef,
     _this: JsValue,
     output_stream: JsValue,
-) -> anyhow::Result<JsValue> {
+) -> anyhow::Result<u64> {
     let Some(write_half) = use_2nd(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
     ) else {
         anyhow::bail!("Failed to get output_stream");
     };
+
     let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(1);
-    let _id = service.spawn(
-        OwnedJsValue::Null,
+    let opaque_tx = JsValue::new_opaque_object(service.raw_ctx(), tx);
+    let owned_opaque_tx = service.to_owned_value(&opaque_tx);
+    let id = service.spawn(
+        owned_opaque_tx,
         |weak_srv, _id, _| async move {
             let mut rx = rx;
             let mut write_half = write_half;
@@ -140,40 +194,32 @@ fn http_make_writer(
         },
         (),
     );
-    Ok(JsValue::new_opaque_object(service.raw_ctx(), tx))
+    Ok(id)
 }
 
 #[host_call]
 fn http_write_chunk(
     service: ServiceRef,
     _this: JsValue,
-    writer: JsValue,
+    id: u64,
     chunk: AsBytes<Vec<u8>>,
     callback: JsValue,
-) {
-    let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
-        info!("Failed to get writer");
-        return;
+) -> Result<()> {
+    let Some(res_obj) = service.get_resource_value(id) else {
+        anyhow::bail!("Failed to get resource {id}");
+    };
+    let Some(tx) = res_obj.opaque_object_data::<Sender<WriteChunk>>() else {
+        anyhow::bail!("Failed to get writer");
     };
     let result = tx.try_send(WriteChunk {
         data: chunk,
         callback: callback.clone(),
     });
     if result.is_err() {
-        info!("Failed to send chunk");
         if let Err(err) = service.call_function(callback, (false, "Failed to send chunk")) {
             info!("Failed to report write result: {err:?}");
         }
+        anyhow::bail!("Failed to send chunk");
     }
-}
-
-#[host_call]
-fn http_close_writer(_service: ServiceRef, _this: JsValue, writer: JsValue) {
-    if writer
-        .opaque_object_take_data::<Sender<WriteChunk>>()
-        .is_none()
-    {
-        warn!("Double drop of writer");
-        return;
-    };
+    Ok(())
 }

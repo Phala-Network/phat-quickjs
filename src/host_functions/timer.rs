@@ -35,7 +35,7 @@ fn try_fire_timer(service: &Weak<Service>, id: u64) -> Result<()> {
     let Some(callback) = service.get_resource_value(id) else {
         anyhow::bail!("Timer {id} exited because the resource has been dropped");
     };
-    if let Err(err) = service.call_function(callback.try_into()?, ()) {
+    if let Err(err) = service.call_function(callback, ()) {
         error!("Failed to fire timer {id}: {err}");
     }
     Ok(())
