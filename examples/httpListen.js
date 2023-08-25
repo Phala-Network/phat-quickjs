@@ -6,6 +6,7 @@ Sidevm.httpListen(async (req) => {
 
     const body = await receiveBody(req.opaqueInputStream);
 
+    console.log('Received body of length:', body.length);
     Sidevm.httpSendResponse(req.opaqueResponseTx, {
         status: 200,
         headers: {
@@ -14,6 +15,7 @@ Sidevm.httpListen(async (req) => {
         }
     });
     const writer = Sidevm.httpMakeWriter(req.opaqueOutputStream);
+    await writeString(writer, `You have sent me the following info\n`);
     await writeString(writer, `method: ${req.method}\n`);
     await sleep(1000);
     await writeString(writer, `path: ${req.path}\n`);
@@ -26,6 +28,8 @@ Sidevm.httpListen(async (req) => {
         await sleep(500);
     }
     await writeString(writer, `actual body length: ${body.length}\n`);
+    console.log('Response sent, closing writer');
+    Sidevm.httpCloseWriter(writer);
 });
 
 async function receiveBody(streamHandle) {
