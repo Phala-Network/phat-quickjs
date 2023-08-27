@@ -3,7 +3,7 @@ use log::info;
 use qjs::{host_call, Value as JsValue};
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("marker", marker)?;
+    ns.define_property_fn("marker", marker)?;
     Ok(())
 }
 

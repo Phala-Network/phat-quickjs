@@ -3,8 +3,8 @@ use crate::{runtime::time::sleep, service::OwnedJsValue};
 use qjs::{host_call, Value as JsValue};
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("setTimeout", set_timeout)?;
-    ns.set_property_fn("setInterval", set_interval)?;
+    ns.define_property_fn("setTimeout", set_timeout)?;
+    ns.define_property_fn("setInterval", set_interval)?;
     Ok(())
 }
 

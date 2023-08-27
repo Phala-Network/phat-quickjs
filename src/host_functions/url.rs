@@ -51,18 +51,14 @@ fn parse_url(
 }
 
 #[qjs::host_call]
-fn parse_search_params(
-    _service: ServiceRef,
-    _this: JsValue,
-    query_str: String,
-) -> Result<BTreeMap<String, String>> {
+fn parse_search_params(query_str: String) -> Result<BTreeMap<String, String>> {
     Ok(form_urlencoded::parse(query_str.as_bytes())
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect())
 }
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("parseURL", parse_url)?;
-    ns.set_property_fn("parseURLParams", parse_search_params)?;
+    ns.define_property_fn("parseURL", parse_url)?;
+    ns.define_property_fn("parseURLParams", parse_search_params)?;
     Ok(())
 }

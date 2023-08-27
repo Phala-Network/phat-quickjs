@@ -1,7 +1,7 @@
 use super::*;
 
 pub(crate) fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("print", print)?;
+    ns.define_property_fn("print", print)?;
     Ok(())
 }
 

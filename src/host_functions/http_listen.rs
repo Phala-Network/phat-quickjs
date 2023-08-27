@@ -38,12 +38,12 @@ struct Event<'a, Data> {
 }
 
 pub fn setup(ns: &JsValue) -> Result<()> {
-    ns.set_property_fn("httpListen", http_listen)?;
-    ns.set_property_fn("httpSendResponse", http_send_response)?;
-    ns.set_property_fn("httpMakeWriter", http_make_writer)?;
-    ns.set_property_fn("httpWriteChunk", http_write_chunk)?;
-    ns.set_property_fn("httpReceiveBody", http_receive_body)?;
-    ns.set_property_fn("httpCloseWriter", http_close_writer)?;
+    ns.define_property_fn("httpListen", http_listen)?;
+    ns.define_property_fn("httpSendResponse", http_send_response)?;
+    ns.define_property_fn("httpMakeWriter", http_make_writer)?;
+    ns.define_property_fn("httpWriteChunk", http_write_chunk)?;
+    ns.define_property_fn("httpReceiveBody", http_receive_body)?;
+    ns.define_property_fn("httpCloseWriter", http_close_writer)?;
     Ok(())
 }
 
