@@ -16,7 +16,7 @@ impl Drop for Marker {
     }
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn marker(service: ServiceRef, _this: JsValue, tag: String) -> JsValue {
     JsValue::new_opaque_object(service.raw_ctx(), Marker { tag })
 }

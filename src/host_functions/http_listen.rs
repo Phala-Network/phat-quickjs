@@ -47,7 +47,7 @@ pub fn setup(ns: &JsValue) -> Result<()> {
     Ok(())
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn http_listen(service: ServiceRef, _this: JsValue, callback: OwnedJsValue) {
     service.set_http_listener(callback)
 }
@@ -84,8 +84,6 @@ where
 
 #[host_call]
 fn http_send_response(
-    _service: ServiceRef,
-    _this: JsValue,
     tx: JsValue,
     response: HttpResponseHead,
 ) {
@@ -104,7 +102,7 @@ fn http_send_response(
     }
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn http_receive_body(
     service: ServiceRef,
     _this: JsValue,
@@ -155,7 +153,7 @@ fn http_receive_body(
     Ok(id)
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn http_make_writer(
     service: ServiceRef,
     _this: JsValue,
@@ -193,7 +191,7 @@ fn http_make_writer(
     Ok(JsValue::new_opaque_object(service.raw_ctx(), tx))
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn http_write_chunk(
     service: ServiceRef,
     _this: JsValue,
@@ -218,7 +216,7 @@ fn http_write_chunk(
 }
 
 #[host_call]
-fn http_close_writer(_service: ServiceRef, _this: JsValue, writer: JsValue) {
+fn http_close_writer(writer: JsValue) {
     if writer
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()

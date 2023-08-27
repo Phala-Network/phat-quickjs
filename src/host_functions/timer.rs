@@ -8,7 +8,7 @@ pub(crate) fn setup(ns: &JsValue) -> Result<()> {
     Ok(())
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn set_timeout(
     service: ServiceRef,
     _this: JsValue,
@@ -18,7 +18,7 @@ fn set_timeout(
     Ok(service.spawn(callback, do_set_timeout, timeout_ms.max(4)))
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn set_interval(
     service: ServiceRef,
     _this: JsValue,

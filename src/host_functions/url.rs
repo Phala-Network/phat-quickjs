@@ -3,7 +3,7 @@ use qjs::ToJsValue;
 use std::collections::BTreeMap;
 use url::{form_urlencoded, Url};
 
-use super::{JsValue, Result, ServiceRef};
+use super::{JsValue, Result};
 
 #[derive(ToJsValue, Debug)]
 struct URL {
@@ -21,12 +21,7 @@ struct URL {
 }
 
 #[qjs::host_call]
-fn parse_url(
-    _service: ServiceRef,
-    _this: JsValue,
-    url: String,
-    base_url: Option<String>,
-) -> Result<URL> {
+fn parse_url(url: String, base_url: Option<String>) -> Result<URL> {
     let url = match base_url {
         Some(base_url) => {
             let base_url: Url = base_url.parse().context("URL: Invalid base URL")?;

@@ -35,7 +35,7 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
     crate::runtime::getrandom(buf).expect("Failed to get random bytes");
 }
 
-#[qjs::host_call]
+#[qjs::host_call(with_context)]
 fn close_res(service: ServiceRef, _this: JsValue, res_id: u64) {
     service.remove_resource(res_id);
 }

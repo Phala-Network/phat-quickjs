@@ -57,7 +57,7 @@ fn recursive_to_string(value: &JsValue, level: u8, escape: bool, buf: &mut Strin
     buf.push_str(&value.to_string());
 }
 
-#[qjs::host_call]
+#[qjs::host_call(with_context)]
 fn print(service: ServiceRef, _this: JsValue, level: u8, fd: u32, args: Vec<JsValue>) {
     let mut buf = String::new();
     for (i, arg) in args.iter().enumerate() {

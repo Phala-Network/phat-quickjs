@@ -99,7 +99,7 @@ pub fn setup(ns: &JsValue) -> Result<()> {
     Ok(())
 }
 
-#[host_call]
+#[host_call(with_context)]
 fn http_request(
     service: ServiceRef,
     _this: JsValue,
