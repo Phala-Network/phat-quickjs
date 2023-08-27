@@ -74,7 +74,7 @@ impl ServiceKeeper {
         let name = url
             .path_segments()
             .ok_or(anyhow!("Failed to get path segments"))?
-            .nth(2)
+            .next()
             .ok_or(anyhow!("Failed to get service name from path"))?;
         let Some(service) = KEEPER.with(|keeper| keeper.borrow_mut().get_service(name)) else {
             connection.response_tx.send(crate::runtime::HttpResponseHead {

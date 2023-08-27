@@ -74,7 +74,7 @@ function addEventListener(type, callback) {
             {
                 Sidevm.httpListen(req => {
                     const request = {
-                        url: 'https://localhost' + req.path, // TODO: add query and origin
+                        url: req.url,
                         method: req.method,
                         headers: req.headers,
                         body: toReadableStream(req.opaqueInputStream),

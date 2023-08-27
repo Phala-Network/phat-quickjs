@@ -21,9 +21,7 @@ Sidevm.httpListen(async req => {
     await writeString(writer, `You have sent me the following info\n`);
     await writeString(writer, `method: ${req.method}\n`);
     await sleep(1000);
-    await writeString(writer, `path: ${req.path}\n`);
-    await sleep(1000);
-    await writeString(writer, `query: ${req.query}\n`);
+    await writeString(writer, `url: ${req.url}\n`);
     await sleep(1000);
     await writeString(writer, `headers: \n`);
     for (var p of req.headers) {
