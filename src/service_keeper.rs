@@ -8,8 +8,15 @@ use crate::service::{Service, ServiceRef};
 
 #[derive(Debug, Serialize, Deserialize)]
 enum Message {
-    Run { name: String, source: String },
-    Reset { name: String },
+    Run {
+        name: String,
+        source: String,
+        #[serde(default)]
+        reset: bool,
+    },
+    Reset {
+        name: String,
+    },
 }
 
 thread_local! {
@@ -51,8 +58,7 @@ impl ServiceKeeper {
     }
 
     pub fn handle_query(_from: Option<AccountId>, _query: &[u8]) -> Vec<u8> {
-        Self::exec_script("", "");
-        todo!()
+        Vec::new()
     }
 
     pub fn handle_message(message: Vec<u8>) {
@@ -64,7 +70,16 @@ impl ServiceKeeper {
             }
         };
         match message {
-            Message::Run { name, source } => Self::exec_script(&name, &source),
+            Message::Run {
+                name,
+                source,
+                reset,
+            } => {
+                if reset {
+                    Self::reset(&name);
+                }
+                Self::exec_script(&name, &source);
+            }
             Message::Reset { name } => Self::reset(&name),
         }
     }
@@ -83,7 +98,7 @@ impl ServiceKeeper {
                     ("Content-Length".into(), "0".into()),
                 ],
             }).map_err(|err| anyhow!("Failed to send response: {err:?}"))?;
-            bail!("Service {name} not found");
+            bail!("Service [{name}] not found");
         };
         crate::host_functions::try_accept_http_request(service, connection)?;
         Ok(())
