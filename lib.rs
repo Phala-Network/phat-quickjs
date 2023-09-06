@@ -52,6 +52,11 @@ mod contract_qjs {
             info!("evaluating js bytecode, code len: {}", bytecode.len());
             eval(JsCode::Bytecode(&bytecode), args)
         }
+
+        #[ink(message)]
+        pub fn compile(&self, js: String) -> Result<Vec<u8>, String> {
+            Ok(qjsbind::compile(&js, "<eval>")?)
+        }
     }
 
     fn eval(code: JsCode, args: Vec<String>) -> Result<Output, String> {
