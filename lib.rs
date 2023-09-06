@@ -11,7 +11,7 @@ mod host_functions;
 mod contract_qjs {
     use pink::info;
 
-    use alloc::string::String;
+    use alloc::string::{String, ToString};
     use alloc::vec::Vec;
     use bootcode::BOOT_CODE;
     use qjsbind::{JsCode, ToJsValue as _};
@@ -31,6 +31,7 @@ mod contract_qjs {
     pub struct QuickJS {}
 
     impl QuickJS {
+        #[allow(clippy::should_implement_trait)]
         #[ink(constructor)]
         pub fn default() -> Self {
             QuickJS {}

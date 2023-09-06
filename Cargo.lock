@@ -27,6 +27,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "base64"
+version = "0.21.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "414dcefbc63d77c526a76b3afcf6fbb9b5e2791c19c3aa2297733208750c6e53"
+
+[[package]]
 name = "bindgen"
 version = "0.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -297,6 +303,12 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hex_fmt"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b07f60793ff0a4d9cef0f18e63b5357e06209987153a64648c972c1e5aff336f"
 
 [[package]]
 name = "ident_case"
@@ -796,10 +808,21 @@ dependencies = [
  "ink",
  "parity-scale-codec",
  "pink-extension",
+ "qjs-extensions",
  "qjsbind",
  "scale-info",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "qjs-extensions"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "hex",
+ "hex_fmt",
+ "qjsbind",
 ]
 
 [[package]]

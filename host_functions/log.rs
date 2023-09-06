@@ -1,16 +1,18 @@
-use qjsbind::{Value as JsValue, host_call, Result};
+use qjsbind as js;
+use alloc::vec::Vec;
+use alloc::string::{String, ToString};
 
-pub fn setup(obj: &JsValue) -> Result<()> {
+pub fn setup(obj: &js::Value) -> js::Result<()> {
     obj.define_property_fn("log", log)?;
     Ok(())
 }
 
-#[host_call]
-fn log(level: u8, args: Vec<JsValue>) {
+#[js::host_call]
+fn log(level: u8, args: Vec<js::Value>) {
     let mut buf = String::new();
     for (i, arg) in args.iter().enumerate() {
         if i != 0 {
-            buf.push_str(" ");
+            buf.push(' ');
         }
         buf.push_str(&arg.to_string());
     }

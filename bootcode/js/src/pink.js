@@ -30,9 +30,6 @@
         batchHttpRequest(c, t) {
             return __hostCall(3, c, t || 10000);
         },
-        deriveSecret(s) {
-            return __hostCall(4, s);
-        },
         hash(alg, m) {
             return __hostCall(5, alg, m);
         },

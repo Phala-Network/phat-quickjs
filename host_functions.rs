@@ -1,8 +1,9 @@
 use core::ffi::{c_int, c_uchar};
 use pink::{error, info};
-use qjsbind::{Context as JsContext, Result as JsResult};
+use qjsbind as js;
 
 mod log;
+mod contract_call {}
 
 #[no_mangle]
 extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usize {
@@ -10,7 +11,7 @@ extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usi
     let bin = unsafe { core::slice::from_raw_parts(buf, len) };
     let mut message = core::str::from_utf8(bin).unwrap_or("<Invalid UTF-8 string>");
     if message.ends_with('\n') {
-        let new_len = message.len() - 1;
+        let new_len = message.len().saturating_sub(1);
         message = unsafe { message.get_unchecked(0..new_len) };
     }
     match fd {
@@ -23,7 +24,7 @@ extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usi
 
 #[no_mangle]
 extern "C" fn __pink_clock_time_get(_id: u32, _precision: u64, retptr0: *mut u64) -> u16 {
-    let t = pink::ext().untrusted_millis_since_unix_epoch() * 1_000_000;
+    let t = pink::ext().untrusted_millis_since_unix_epoch().saturating_mul(1_000_000);
     unsafe {
         *retptr0 = t;
     }
@@ -40,9 +41,21 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
     buf.copy_from_slice(&bytes);
 }
 
-pub fn setup_host_functions(ctx: &JsContext) -> JsResult<()> {
+pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     let global_object = ctx.get_global_object();
     let pink = ctx.new_object();
+    setup_encoding_functions(&pink)?;
     log::setup(&pink)?;
     global_object.set_property("pink", &pink)
+}
+
+fn setup_encoding_functions(pink: &js::Value) -> js::Result<()> {
+    use qjs_extensions as ext;
+    pink.define_property_fn("utf8Encode", ext::utf8::encode)?;
+    pink.define_property_fn("utf8Decode", ext::utf8::decode)?;
+    pink.define_property_fn("base64Encode", ext::base64::encode)?;
+    pink.define_property_fn("base64Decode", ext::base64::decode)?;
+    pink.define_property_fn("hexEncode", ext::hex::encode)?;
+    pink.define_property_fn("hexDecode", ext::hex::decode)?;
+    Ok(())
 }
