@@ -2,6 +2,7 @@ use core::ptr::NonNull;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloc::collections::BTreeMap;
 
 use js::c;
 use qjsbind as js;
@@ -37,7 +38,7 @@ struct HttpRequest {
     #[qjsbind(default = "defualt_method")]
     method: String,
     #[qjsbind(default)]
-    headers: Vec<(String, String)>,
+    headers: Headers,
     #[qjsbind(default, as_bytes)]
     body: Vec<u8>,
     #[qjsbind(default)]
@@ -49,10 +50,13 @@ fn defualt_method() -> String {
 
 impl From<HttpRequest> for pink::chain_extension::HttpRequest {
     fn from(req: HttpRequest) -> Self {
+        if !req.body.is_empty() {
+            pink::info!("Got body: {}", String::from_utf8_lossy(&req.body));
+        }
         Self {
             url: req.url,
             method: req.method,
-            headers: req.headers,
+            headers: req.headers.pairs,
             body: req.body,
         }
     }
@@ -138,4 +142,54 @@ fn host_batch_http_request(
         }
     }
     Ok(response_objects)
+}
+
+#[derive(Debug, Default)]
+pub struct Headers {
+    pairs: Vec<(String, String)>,
+}
+
+impl js::FromJsValue for Headers {
+    fn from_js_value(value: js::Value) -> js::Result<Self> {
+        Ok(if value.is_array() {
+            Vec::<(String, String)>::from_js_value(value)?.into()
+        } else {
+            BTreeMap::<String, String>::from_js_value(value)?.into()
+        })
+    }
+}
+
+impl js::ToJsValue for Headers {
+    fn to_js_value(&self, ctx: NonNull<c::JSContext>) -> js::Result<js::Value> {
+        self.pairs.to_js_value(ctx)
+    }
+}
+
+impl From<Vec<(String, String)>> for Headers {
+    fn from(pairs: Vec<(String, String)>) -> Self {
+        Self { pairs }
+    }
+}
+
+impl From<BTreeMap<String, String>> for Headers {
+    fn from(headers: BTreeMap<String, String>) -> Self {
+        Self {
+            pairs: headers.into_iter().collect(),
+        }
+    }
+}
+
+impl From<Headers> for Vec<(String, String)> {
+    fn from(headers: Headers) -> Self {
+        headers.pairs
+    }
+}
+
+
+impl FromIterator<(String, String)> for Headers {
+    fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
+        Self {
+            pairs: iter.into_iter().collect(),
+        }
+    }
 }
