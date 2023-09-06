@@ -50,9 +50,6 @@ fn defualt_method() -> String {
 
 impl From<HttpRequest> for pink::chain_extension::HttpRequest {
     fn from(req: HttpRequest) -> Self {
-        if !req.body.is_empty() {
-            pink::info!("Got body: {}", String::from_utf8_lossy(&req.body));
-        }
         Self {
             url: req.url,
             method: req.method,
