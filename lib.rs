@@ -13,18 +13,11 @@ mod contract_qjs {
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
     use bootcode::BOOT_CODE;
-    use qjsbind::{JsCode, ToJsValue as _};
-    use scale::{Decode, Encode};
+    use qjsbind::{JsCode, ToJsValue as _, Value as JsValue};
 
     use crate::host_functions::setup_host_functions;
 
-    #[derive(Debug, Encode, Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub enum Output {
-        String(String),
-        Bytes(Vec<u8>),
-        Undefined,
-    }
+    use phat_js::{Output, Value};
 
     #[ink(storage)]
     pub struct QuickJS {}
@@ -39,7 +32,7 @@ mod contract_qjs {
         #[ink(message)]
         pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
             info!("evaluating js, code len: {}", js.len());
-            eval(JsCode::Source(&js), args)
+            eval(&[JsCode::Source(&js)], args)
         }
 
         #[ink(message)]
@@ -49,7 +42,26 @@ mod contract_qjs {
             args: Vec<String>,
         ) -> Result<Output, String> {
             info!("evaluating js bytecode, code len: {}", bytecode.len());
-            eval(JsCode::Bytecode(&bytecode), args)
+            eval(&[JsCode::Bytecode(&bytecode)], args)
+        }
+
+        #[ink(message)]
+        pub fn eval_all(
+            &self,
+            codes: Vec<phat_js::Value>,
+            args: Vec<String>,
+        ) -> Result<Output, String> {
+            let mut js_codes = Vec::new();
+            for code in &codes {
+                let js_code = match code {
+                    Value::String(s) => JsCode::Source(s),
+                    Value::Bytes(b) => JsCode::Bytecode(b),
+                    Value::Undefined => return Err("undefined code".to_string()),
+                };
+                js_codes.push(js_code);
+            }
+            let output = eval(&js_codes, args)?;
+            Ok(output)
         }
 
         #[ink(message)]
@@ -58,7 +70,7 @@ mod contract_qjs {
         }
     }
 
-    fn eval(code: JsCode, args: Vec<String>) -> Result<Output, String> {
+    fn eval(codes: &[JsCode], args: Vec<String>) -> Result<Output, String> {
         let rt = qjsbind::Runtime::new();
         let ctx = rt.new_context();
 
@@ -70,7 +82,10 @@ mod contract_qjs {
 
         ctx.eval(&JsCode::Bytecode(BOOT_CODE))?;
         ctx.eval(&JsCode::Source(&set_version()))?;
-        let output = ctx.eval(&code)?;
+        let mut output = JsValue::undefined();
+        for code in codes.iter() {
+            output = ctx.eval(&code)?;
+        }
         if output.is_uint8_array() {
             let bytes = output.decode_bytes()?;
             return Ok(Output::Bytes(bytes));

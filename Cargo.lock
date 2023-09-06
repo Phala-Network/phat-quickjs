@@ -601,6 +601,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "md5"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -697,10 +703,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 
 [[package]]
+name = "phat_js"
+version = "0.1.2"
+dependencies = [
+ "ink",
+ "parity-scale-codec",
+ "pink-extension",
+ "scale-info",
+]
+
+[[package]]
 name = "pink-extension"
-version = "0.4.4-dev.2"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b696ea6079fd0317d62c4c7286940f60cc3ce3d5208d77dc99d1705a01783cca"
+checksum = "74333ed749dd52e97b091654bf5f56f47f0aa8cf62d6324693991988142cc59c"
 dependencies = [
  "dlmalloc",
  "ink",
@@ -807,6 +823,7 @@ dependencies = [
  "bootcode",
  "ink",
  "parity-scale-codec",
+ "phat_js",
  "pink-extension",
  "qjs-extensions",
  "qjsbind",
@@ -820,9 +837,14 @@ name = "qjs-extensions"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "blake2",
  "hex",
  "hex_fmt",
+ "md5",
  "qjsbind",
+ "sha1",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
@@ -1085,6 +1107,17 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
 ]
 
 [[package]]

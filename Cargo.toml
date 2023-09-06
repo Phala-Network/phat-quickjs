@@ -1,3 +1,6 @@
+[workspace]
+members = ["phat_js"]
+
 [package]
 name = "qjs"
 version = "1.2.0"
@@ -18,6 +21,7 @@ qjsbind = { path = "qjs-sys/qjsbind", default-features = false }
 qjs-extensions = { path = "qjs-sys/qjs-extensions", default-features = false, features = ["base64", "hex"] }
 pink = { package = "pink-extension", version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
+phat_js = { path = "phat_js" }
 
 [lib]
 name = "qjs"
