@@ -4,6 +4,7 @@ use qjsbind as js;
 
 mod log;
 mod contract_call;
+mod hash;
 
 #[no_mangle]
 extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usize {
@@ -47,6 +48,7 @@ pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     setup_encoding_functions(&pink)?;
     log::setup(&pink)?;
     contract_call::setup(&pink)?;
+    hash::setup(&pink)?;
     global_object.set_property("pink", &pink)
 }
 
