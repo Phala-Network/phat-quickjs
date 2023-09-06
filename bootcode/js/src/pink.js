@@ -37,8 +37,5 @@
             return __hostCall(5, alg, m);
         },
     };
-    if (g.scriptArgs) {
-        g.process = { argv: ["/node", ...g.scriptArgs] }
-    }
 }(globalThis))
 export default {};

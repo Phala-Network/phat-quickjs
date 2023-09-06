@@ -2,38 +2,22 @@
 
 extern crate alloc;
 
-pub use qjs::*;
+pub use contract_qjs::*;
 
-mod contract_call;
+// mod contract_call;
 mod host_functions;
 
-static mut CODE_HASH: [u8; 32] = [0; 32];
-
-fn code_hash() -> [u8; 32] {
-    unsafe { CODE_HASH }
-}
-fn calc_and_set_code_hash(code: &qjs_sys::JsCode) {
-    let mut hash = [0; 32];
-    let code = match code {
-        JsCode::Source(src) => src.to_bytes(),
-        JsCode::Bytecode(code) => code,
-    };
-    ink::env::hash_bytes::<ink::env::hash::Sha2x256>(code, &mut hash);
-    unsafe {
-        CODE_HASH = hash;
-    }
-}
-
 #[ink::contract]
-mod qjs {
+mod contract_qjs {
     use pink::info;
-    use pink_extension as pink;
 
+    use alloc::string::String;
     use alloc::vec::Vec;
-    use alloc::{ffi::CString, string::String};
     use bootcode::BOOT_CODE;
-    pub use qjs_sys::JsCode;
+    use qjsbind::{JsCode, ToJsValue as _};
     use scale::{Decode, Encode};
+
+    use crate::host_functions::setup_host_functions;
 
     #[derive(Debug, Encode, Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
@@ -41,16 +25,6 @@ mod qjs {
         String(String),
         Bytes(Vec<u8>),
         Undefined,
-    }
-
-    impl From<qjs_sys::Output> for Output {
-        fn from(output: qjs_sys::Output) -> Self {
-            match output {
-                qjs_sys::Output::String(s) => Output::String(s),
-                qjs_sys::Output::Bytes(b) => Output::Bytes(b),
-                qjs_sys::Output::Undefined => Output::Undefined,
-            }
-        }
     }
 
     #[ink(storage)]
@@ -65,8 +39,7 @@ mod qjs {
         #[ink(message)]
         pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
             info!("evaluating js, code len: {}", js.len());
-            let code = alloc::ffi::CString::new(js).or(Err("Invalid encoding"))?;
-            eval(JsCode::Source(&code), args)
+            eval(JsCode::Source(&js), args)
         }
 
         #[ink(message)]
@@ -81,26 +54,35 @@ mod qjs {
     }
 
     fn eval(code: JsCode, args: Vec<String>) -> Result<Output, String> {
-        super::calc_and_set_code_hash(&code);
-        qjs_sys::eval(
-            &[
-                JsCode::Bytecode(BOOT_CODE),
-                JsCode::Source(&set_version()),
-                code,
-            ],
-            &args,
-        )
-        .map(Into::into)
+        let rt = qjsbind::Runtime::new();
+        let ctx = rt.new_context();
+
+        setup_host_functions(&ctx)?;
+
+        let args = args.to_js_value(ctx.ptr())?;
+        let global = ctx.get_global_object();
+        global.set_property("scriptArgs", &args)?;
+
+        ctx.eval(&JsCode::Bytecode(BOOT_CODE))?;
+        ctx.eval(&JsCode::Source(&set_version()))?;
+        let output = ctx.eval(&code)?;
+        if output.is_uint8_array() {
+            let bytes = output.decode_bytes()?;
+            return Ok(Output::Bytes(bytes));
+        }
+        if output.is_undefined() {
+            return Ok(Output::Undefined);
+        }
+        Ok(Output::String(output.to_string()))
     }
 
-    fn set_version() -> CString {
+    fn set_version() -> String {
         let version = env!("CARGO_PKG_VERSION");
-        CString::new(alloc::format!(
+        alloc::format!(
             r#"
             globalThis.pink.version = "{}";
             "#,
             version
-        ))
-        .unwrap()
+        )
     }
 }

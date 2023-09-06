@@ -1,4 +1,4 @@
-use qjs_sys as js;
+use qjsbind as js;
 
 fn main() {
     yarn_build();
