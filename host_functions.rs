@@ -3,7 +3,7 @@ use pink::{error, info};
 use qjsbind as js;
 
 mod log;
-mod contract_call {}
+mod contract_call;
 
 #[no_mangle]
 extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usize {
@@ -46,6 +46,7 @@ pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     let pink = ctx.new_object();
     setup_encoding_functions(&pink)?;
     log::setup(&pink)?;
+    contract_call::setup(&pink)?;
     global_object.set_property("pink", &pink)
 }
 

@@ -4,7 +4,6 @@ extern crate alloc;
 
 pub use contract_qjs::*;
 
-// mod contract_call;
 mod host_functions;
 
 #[ink::contract]
