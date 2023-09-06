@@ -1,6 +1,6 @@
 [package]
 name = "phat_js"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Provide a function to call the JSDelegate in a phat contract cluster"
 license = "MIT"
