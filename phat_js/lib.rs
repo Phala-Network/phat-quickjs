@@ -89,6 +89,23 @@ pub fn eval_all_with(
         .invoke()
 }
 
+/// Compile a script with the default delegate contract
+pub fn compile(script: &str) -> Result<Vec<u8>, String> {
+    compile_with(js_delegate()?, script)
+}
+
+/// Compile a script with given delegate contract
+pub fn compile_with(delegate: Hash, script: &str) -> Result<Vec<u8>, String> {
+    call::build_call::<pink::PinkEnvironment>()
+        .call_type(call::DelegateCall::new(delegate))
+        .exec_input(
+            call::ExecutionInput::new(call::Selector::new(ink::selector_bytes!("compile")))
+                .push_arg(script),
+        )
+        .returns::<Result<Vec<u8>, String>>()
+        .invoke()
+}
+
 pub trait ConvertTo<To> {
     fn convert_to(&self) -> To;
 }
