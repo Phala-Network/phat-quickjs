@@ -830,6 +830,7 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
+ "this-crate",
 ]
 
 [[package]]

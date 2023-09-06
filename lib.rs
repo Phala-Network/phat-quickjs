@@ -30,6 +30,11 @@ mod contract_qjs {
         }
 
         #[ink(message)]
+        pub fn version(&self) -> this_crate::VersionTuple {
+            this_crate::version_tuple!()
+        }
+
+        #[ink(message)]
         pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
             info!("evaluating js, code len: {}", js.len());
             eval(&[JsCode::Source(&js)], args)

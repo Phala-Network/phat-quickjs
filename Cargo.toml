@@ -21,7 +21,8 @@ qjsbind = { path = "qjs-sys/qjsbind", default-features = false }
 qjs-extensions = { path = "qjs-sys/qjs-extensions", default-features = false, features = ["base64", "hex"] }
 pink = { package = "pink-extension", version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
-phat_js = { path = "phat_js" }
+phat_js = { path = "phat_js", default-features = false }
+this-crate = "0.1"
 
 [lib]
 name = "qjs"
@@ -38,6 +39,7 @@ std = [
     "pink/std",
     "qjsbind/std",
     "qjs-extensions/std",
+    "phat_js/std",
 ]
 ink-as-dependency = []
 
