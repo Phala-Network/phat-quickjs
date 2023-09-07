@@ -15,7 +15,7 @@ mod contract_qjs {
     use bootcode::BOOT_CODE;
     use qjsbind::{JsCode, ToJsValue as _, Value as JsValue};
 
-    use crate::host_functions::setup_host_functions;
+    use crate::host_functions::{setup_host_functions, set_codes};
 
     use phat_js::{Output, Value};
 
@@ -83,6 +83,8 @@ mod contract_qjs {
     }
 
     fn eval(codes: &[JsCode], args: Vec<String>) -> Result<Output, String> {
+        unsafe { set_codes(codes) };
+
         let rt = qjsbind::Runtime::new();
         let ctx = rt.new_context();
 

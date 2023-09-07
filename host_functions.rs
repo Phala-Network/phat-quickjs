@@ -2,10 +2,13 @@ use core::ffi::{c_int, c_uchar};
 use pink::{error, info};
 use qjsbind as js;
 
+pub use derive_key::set_codes;
+
 mod contract_call;
 mod hash;
 mod http_client;
 mod log;
+mod derive_key;
 
 #[no_mangle]
 extern "C" fn __pink_fd_write(fd: c_int, buf: *const c_uchar, len: usize) -> usize {
@@ -53,6 +56,7 @@ pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     contract_call::setup(&pink)?;
     hash::setup(&pink)?;
     http_client::setup(&pink)?;
+    derive_key::setup(&pink)?;
     global_object.set_property("pink", &pink)
 }
 
