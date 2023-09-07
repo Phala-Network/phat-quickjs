@@ -1,8 +1,8 @@
 use core::ptr::NonNull;
 
+use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
 
 use js::c;
 use qjsbind as js;
@@ -181,7 +181,6 @@ impl From<Headers> for Vec<(String, String)> {
         headers.pairs
     }
 }
-
 
 impl FromIterator<(String, String)> for Headers {
     fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
