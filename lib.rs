@@ -56,11 +56,18 @@ mod contract_qjs {
             codes: Vec<phat_js::Value>,
             args: Vec<String>,
         ) -> Result<Output, String> {
+            info!("batch evaluating {} scripts", codes.len());
             let mut js_codes = Vec::new();
             for code in &codes {
                 let js_code = match code {
-                    Value::String(s) => JsCode::Source(s),
-                    Value::Bytes(b) => JsCode::Bytecode(b),
+                    Value::String(s) => {
+                        info!("src len: {}", s.len());
+                        JsCode::Source(s)
+                    }
+                    Value::Bytes(b) => {
+                        info!("bytecode len: {}", b.len());
+                        JsCode::Bytecode(b)
+                    }
                     Value::Undefined => return Err("undefined code".to_string()),
                 };
                 js_codes.push(js_code);
