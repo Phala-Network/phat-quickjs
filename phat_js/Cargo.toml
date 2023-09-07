@@ -1,6 +1,6 @@
 [package]
 name = "phat_js"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "Provide a function to call the JSDelegate in a phat contract cluster"
 license = "MIT"
@@ -11,7 +11,7 @@ name = "phat_js"
 path = "lib.rs"
 
 [dependencies]
-ink = { version = "4", default-features = false }
+ink = { version = "4.3", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }

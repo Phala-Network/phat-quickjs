@@ -103,7 +103,7 @@ pub(crate) fn invoke_contract_delegate(
         )
         .returns::<RawBytes<Vec<u8>>>()
         .try_invoke()
-        .map(|x| x.0)
+        .map(|x| x.encode())
 }
 
 pub(crate) fn invoke_contract(
