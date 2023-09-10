@@ -1,8 +1,17 @@
 console.log = Sidevm.inspect;
 const scl = Sidevm.SCALE;
 
-(() => {
-    const anonTypes = `
+
+// Helper functions for colorizing console output
+function green(str) {
+    return `\x1b[32m${str}\x1b[0m`;
+}
+
+function red(str) {
+    return `\x1b[31m${str}\x1b[0m`;
+}
+
+const typeRegistry0 = `
 #u8
 #str
 (0,1)
@@ -11,153 +20,72 @@ const scl = Sidevm.SCALE;
 [1]
 [0;2]
 {foo:0,bar:1}
-`
-
-    let registry = scl.parseTypes(anonTypes)
-    console.log("registry:", registry);
-
-    function testEnum() {
-        console.log("===========");
-        console.log("testEnum");
-        let orig = { Ok: 9 };
-        console.log("orig:", orig);
-        const encoded = scl.encode(orig, 3, registry);
-        console.log("encoded:", encoded);
-        const decoded = scl.decode(encoded, 3, registry);
-        console.log("decoded:", decoded);
-    }
-
-    function testU8a() {
-        console.log("===========");
-        console.log("testU8a");
-        var orig = new Uint8Array([1, 2, 3]);
-        console.log("orig:", orig);
-        var encoded = scl.encode(orig, 4, registry);
-        console.log("encoded:", encoded);
-        var decoded = scl.decode(encoded, 4, registry);
-        console.log("decoded:", decoded);
-
-        orig = "0x020304";
-        console.log("orig:", orig);
-        encoded = scl.encode(orig, 4, registry);
-        console.log("encoded:", encoded);
-        decoded = scl.decode(encoded, 4, registry);
-        console.log("decoded:", decoded);
-    }
-
-    function testArray() {
-        console.log("===========");
-        console.log("testArray");
-        let orig = [1, 2];
-        console.log("orig:", orig);
-        const encoded = scl.encode(orig, 6, registry);
-        console.log("encoded:", encoded);
-        const decoded = scl.decode(encoded, 6, registry);
-        console.log("decoded:", decoded);
-    }
-
-    function testTuple() {
-        console.log("===========");
-        console.log("testTuple");
-        let orig = [1, "hello"];
-        console.log("orig:", orig);
-        const encoded = scl.encode(orig, 2, registry);
-        console.log("encoded:", encoded);
-        const decoded = scl.decode(encoded, 2, registry);
-        console.log("decoded:", decoded);
-    }
-
-    function testStrArray() {
-        console.log("===========");
-        console.log("testStrArray");
-        let orig = ["foo", "bar", "baz"];
-        console.log("orig:", orig);
-        const encoded = scl.encode(orig, 5, registry);
-        console.log("encoded:", encoded);
-        const decoded = scl.decode(encoded, 5, registry);
-        console.log("decoded:", decoded);
-    }
-
-    testArray();
-    testTuple();
-    testStrArray();
-    testU8a();
-    testEnum();
-
-
-})();
-
-(() => {
-    const anonTypes = `
+    `;
+const registry0Tests = [
+    { input: { Ok: 9 }, type: 3, title: 'Encoding a enum' },
+    { input: new Uint8Array([1, 2, 3]), type: 4, title: 'Encoding a Uint8Array' },
+    { input: [1, 2, 3], type: 4, title: 'Encoding a seq u8', u8a: true },
+    { input: [1, 2], type: 6, title: 'Encoding an Array', u8a: true },
+    { input: [1, "hello"], type: 2, title: 'Encoding a Tuple' },
+    { input: ["foo", "bar", "baz"], type: 5, title: 'Encoding a String Array' },
+];
+const typeRegistry1 = `
     Age = u32
     Person = {
         name:str,
         age:Age,
     }
 `
+const registry1Tests = [
+    { input: "Hello world!", type: "str", title: 'Encoding String' },
+    { input: { name: "Tom", age: 9 }, type: "Person", title: 'Encoding Person Object' },
+    { input: { name: "Tom", age: 9n }, type: '{name:str,age:u32}', title: 'Encoding Immediate Definition' },
+    { input: { name: "Tom", age: 9, cards: { foo: "fooz", bar: 42 } }, type: '{name:str,age:u32,cards:{foo:str,bar:u8}}', title: 'Encoding Recursive Definition' },
+    { input: { name: "Tom", age: 1000000000000000000000000000n }, type: '{name:str,age:u128}', title: 'Encoding with big number' },
+    { input: { name: "Tom", age: 10n }, type: '{name:str,age:@u128}', title: 'Encoding compact u128' },
+    { input: [1, 2, 3, 4], type: '[u32]', title: 'Encoding [u32]' },
+    { input: [1, 'foo', { name: "Tom", age: 10n }], type: ['u8', 'str', 'Person'], title: 'Encoding multiple types' }
+];
 
-    let registry = scl.parseTypes(anonTypes)
-    console.log("registry:", registry);
+const repr = Sidevm.repr;
+function assertEqual(expected, actual, title) {
+    const reprExpected = repr(expected);
+    const reprActual = repr(actual);
+    if (reprExpected == reprActual) {
+        console.log(`${title} [${green('OK')}]`);
+    } else {
+        console.error(`${title} [${red('FAIL')}]`);
+        console.error(`Expected: ${reprExpected}`);
+        console.error(`Actual  :   ${reprActual}`);
+    }
+}
 
-    function testPerson() {
-        console.log("===========");
-        console.log("testPerson");
-        let orig = { name: "Tom", age: 9 };
-        console.log("orig:", orig);
-        const encoded = scl.encode(orig, "Person", registry);
-        console.log("encoded:", encoded);
-        const decoded = scl.decode(encoded, "Person", registry);
-        console.log("decoded:", decoded);
-    }
-    function testImediateDef() {
-        console.log("===========");
-        console.log("testImediateDef");
-        {
-            let orig = "Hello world!"
-            console.log("orig:", orig);
-            const encoded = scl.encode(orig, "str");
-            console.log("encoded:", encoded);
-            const decoded = scl.decode(encoded, "str");
-            console.log("decoded:", decoded);
+function runTests(registry, cases) {
+    const parsedRegistry = scl.parseTypes(registry);
+    cases.forEach(({ input, type, title, u8a }, index) => {
+        console.log();
+        console.log(`=================[ ${index + 1}: ${title} ]===================`);
+        console.log(`Input: ${repr(input)}`);
+        const encode = Array.isArray(type) ? scl.encodeAll : scl.encode;
+        const decode = Array.isArray(type) ? scl.decodeAll : scl.decode;
+        const encode0 = encode(input, type, parsedRegistry);
+        const encode1 = encode(input, type, registry);
+        assertEqual(encode0, encode1, 'Encoding results equal');
+        const decode0 = decode(encode0, type, parsedRegistry);
+        const decode1 = decode(encode1, type, registry);
+        assertEqual(decode0, decode1, 'Decoding results equal');
+        if (!u8a) {
+            assertEqual(decode0, input, 'Decoding equals input');
         }
-        console.log("------------");
-        {
-            let orig = { name: "Tom", age: 9n };
-            console.log("orig:", orig);
-            const encoded = scl.encode(orig, '{name:str,age:u32}');
-            console.log("encoded:", encoded);
-            const decoded = scl.decode(encoded, '{name:str,age:u32}');
-            console.log("decoded:", decoded);
-        }
-        console.log("------------");
-        // Recursive
-        {
-            let orig = { name: "Tom", age: 9, cards: { foo: "fooz", bar: 42 } };
-            console.log("orig:", orig);
-            const typedef = '{name:str,age:u32,cards:{foo:str,bar:u8}}';
-            const encoded = scl.encode(orig, typedef);
-            console.log("encoded:", encoded);
-            const decoded = scl.decode(encoded, typedef);
-            console.log("decoded:", decoded);
-        }
-    }
-    function testCodecObj() {
-        console.log("===========");
-        {
-            const registry = scl.parseTypes(`Person={name:str,age:u8}`)
-            const coder = scl.codec(['Person'], registry);
-            console.log("coder:", coder);
-            let orig = { name: "Tom", age: 9 };
-            console.log("orig:", orig);
-            const encoded = coder.encode([orig]);
-            console.log("encoded:", encoded);
-            const decoded = coder.decode(encoded);
-            console.log("decoded:", decoded);
-            console.log("encoded again:", coder.encode(decoded));
-        }
-    }
-    testPerson();
-    testImediateDef();
-    testCodecObj();
 
-})();
+        const coder = scl.codec(type, registry);
+        const encode2 = coder.encode(input);
+        assertEqual(encode0, encode2, 'Encoding with codec results equal');
+        const decode2 = coder.decode(encode2);
+        assertEqual(decode0, decode2, 'Decoding with codec results equal');
+    });
+}
+
+// Run the tests
+runTests(typeRegistry0, registry0Tests);
+runTests(typeRegistry1, registry1Tests);
