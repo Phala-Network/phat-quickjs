@@ -1,10 +1,7 @@
-use core::ptr::NonNull;
-
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-use js::c;
 use qjsbind as js;
 
 pub fn setup(pink: &js::Value) -> js::Result<()> {
@@ -23,7 +20,7 @@ where
     A: js::ToJsValue,
     B: js::ToJsValue,
 {
-    fn to_js_value(&self, ctx: NonNull<c::JSContext>) -> js::Result<js::Value> {
+    fn to_js_value(&self, ctx: &js::Context) -> js::Result<js::Value> {
         match &self {
             Either::A(a) => a.to_js_value(ctx),
             Either::B(b) => b.to_js_value(ctx),
@@ -157,7 +154,7 @@ impl js::FromJsValue for Headers {
 }
 
 impl js::ToJsValue for Headers {
-    fn to_js_value(&self, ctx: NonNull<c::JSContext>) -> js::Result<js::Value> {
+    fn to_js_value(&self, ctx: &js::Context) -> js::Result<js::Value> {
         self.pairs.to_js_value(ctx)
     }
 }

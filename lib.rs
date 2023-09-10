@@ -15,7 +15,7 @@ mod contract_qjs {
     use bootcode::BOOT_CODE;
     use qjsbind::{JsCode, ToJsValue as _, Value as JsValue};
 
-    use crate::host_functions::{setup_host_functions, set_codes};
+    use crate::host_functions::{set_codes, setup_host_functions};
 
     use phat_js::{Output, Value};
 
@@ -90,7 +90,7 @@ mod contract_qjs {
 
         setup_host_functions(&ctx)?;
 
-        let args = args.to_js_value(ctx.ptr())?;
+        let args = args.to_js_value(&ctx)?;
         let global = ctx.get_global_object();
         global.set_property("scriptArgs", &args)?;
 
@@ -98,7 +98,7 @@ mod contract_qjs {
         ctx.eval(&JsCode::Source(&set_version()))?;
         let mut output = JsValue::undefined();
         for code in codes.iter() {
-            output = ctx.eval(&code)?;
+            output = ctx.eval(code)?;
         }
         if output.is_uint8_array() {
             let bytes = output.decode_bytes()?;

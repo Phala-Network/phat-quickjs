@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use ink::env::hash::CryptoHash;
 
 use qjsbind as js;
@@ -14,7 +15,7 @@ pub fn setup(pink: &js::Value) -> js::Result<()> {
 ///
 /// Safety: Make sure the codes would live as long as the entire call of eval.
 pub unsafe fn set_codes(codes: &[js::JsCode]) {
-    if codes.len() == 0 {
+    if codes.is_empty() {
         return;
     }
     unsafe {
@@ -38,12 +39,12 @@ fn js_code_hash() -> [u8; 32] {
         let codes = core::slice::from_raw_parts(CODE_PTR as *const js::JsCode<'static>, CODE_LEN);
         for code in codes {
             let hash = match code {
-                js::JsCode::Source(src) => hash(&src.as_bytes()),
-                js::JsCode::Bytecode(bytes) => hash(&bytes),
+                js::JsCode::Source(src) => hash(src.as_bytes()),
+                js::JsCode::Bytecode(bytes) => hash(bytes),
             };
             output.extend_from_slice(&hash);
         }
-        return hash(&output);
+        hash(&output)
     }
 }
 

@@ -51,16 +51,16 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
 pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     let global_object = ctx.get_global_object();
     let pink = ctx.new_object();
-    setup_encoding_functions(&pink)?;
     log::setup(&pink)?;
     contract_call::setup(&pink)?;
     hash::setup(&pink)?;
     http_client::setup(&pink)?;
     derive_key::setup(&pink)?;
+    setup_encoding_functions(&pink, ctx)?;
     global_object.set_property("pink", &pink)
 }
 
-fn setup_encoding_functions(pink: &js::Value) -> js::Result<()> {
+fn setup_encoding_functions(pink: &js::Value, ctx: &js::Context) -> js::Result<()> {
     use qjs_extensions as ext;
     pink.define_property_fn("utf8Encode", ext::utf8::encode)?;
     pink.define_property_fn("utf8Decode", ext::utf8::decode)?;
@@ -68,5 +68,8 @@ fn setup_encoding_functions(pink: &js::Value) -> js::Result<()> {
     pink.define_property_fn("base64Decode", ext::base64::decode)?;
     pink.define_property_fn("hexEncode", ext::hex::encode)?;
     pink.define_property_fn("hexDecode", ext::hex::decode)?;
+    let scale = ctx.new_object();
+    ext::scale2::setup(&scale)?;
+    pink.set_property("SCALE", &scale)?;
     Ok(())
 }
