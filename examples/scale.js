@@ -141,7 +141,23 @@ const scl = Sidevm.SCALE;
             console.log("decoded:", decoded);
         }
     }
+    function testCodecObj() {
+        console.log("===========");
+        {
+            const registry = scl.parseTypes(`Person={name:str,age:u8}`)
+            const coder = scl.codec(['Person'], registry);
+            console.log("coder:", coder);
+            let orig = { name: "Tom", age: 9 };
+            console.log("orig:", orig);
+            const encoded = coder.encode([orig]);
+            console.log("encoded:", encoded);
+            const decoded = coder.decode(encoded);
+            console.log("decoded:", decoded);
+            console.log("encoded again:", coder.encode(decoded));
+        }
+    }
     testPerson();
     testImediateDef();
+    testCodecObj();
 
 })();

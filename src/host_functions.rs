@@ -31,7 +31,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     use qjs_extensions as ext;
     let scale = js::Value::new_object(ctx);
-    ext::scale2::setup(&scale)?;
+    ext::scale2::setup(&scale, ctx)?;
     ns.set_property("SCALE", &scale)?;
     Ok(())
 }
