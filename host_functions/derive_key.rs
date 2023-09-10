@@ -14,7 +14,7 @@ pub fn setup(pink: &js::Value) -> js::Result<()> {
 /// Record the codes to be used to calculate the hash of the evaluating JS code.
 ///
 /// Safety: Make sure the codes would live as long as the entire call of eval.
-pub unsafe fn set_codes(codes: &[js::JsCode]) {
+pub unsafe fn set_codes(codes: &[js::Code]) {
     if codes.is_empty() {
         return;
     }
@@ -36,11 +36,11 @@ fn js_code_hash() -> [u8; 32] {
             return Default::default();
         }
         let mut output = Vec::new();
-        let codes = core::slice::from_raw_parts(CODE_PTR as *const js::JsCode<'static>, CODE_LEN);
+        let codes = core::slice::from_raw_parts(CODE_PTR as *const js::Code<'static>, CODE_LEN);
         for code in codes {
             let hash = match code {
-                js::JsCode::Source(src) => hash(src.as_bytes()),
-                js::JsCode::Bytecode(bytes) => hash(bytes),
+                js::Code::Source(src) => hash(src.as_bytes()),
+                js::Code::Bytecode(bytes) => hash(bytes),
             };
             output.extend_from_slice(&hash);
         }

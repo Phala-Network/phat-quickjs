@@ -13,7 +13,7 @@ mod contract_qjs {
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
     use bootcode::BOOT_CODE;
-    use qjsbind::{JsCode, ToJsValue as _, Value as JsValue};
+    use qjsbind::{Code, ToJsValue as _, Value as JsValue};
 
     use crate::host_functions::{set_codes, setup_host_functions};
 
@@ -37,7 +37,7 @@ mod contract_qjs {
         #[ink(message)]
         pub fn eval(&self, js: String, args: Vec<String>) -> Result<Output, String> {
             info!("evaluating js, code len: {}", js.len());
-            eval(&[JsCode::Source(&js)], args)
+            eval(&[Code::Source(&js)], args)
         }
 
         #[ink(message)]
@@ -47,7 +47,7 @@ mod contract_qjs {
             args: Vec<String>,
         ) -> Result<Output, String> {
             info!("evaluating js bytecode, code len: {}", bytecode.len());
-            eval(&[JsCode::Bytecode(&bytecode)], args)
+            eval(&[Code::Bytecode(&bytecode)], args)
         }
 
         #[ink(message)]
@@ -62,11 +62,11 @@ mod contract_qjs {
                 let js_code = match code {
                     Value::String(s) => {
                         info!("src len: {}", s.len());
-                        JsCode::Source(s)
+                        Code::Source(s)
                     }
                     Value::Bytes(b) => {
                         info!("bytecode len: {}", b.len());
-                        JsCode::Bytecode(b)
+                        Code::Bytecode(b)
                     }
                     Value::Undefined => return Err("undefined code".to_string()),
                 };
@@ -82,7 +82,7 @@ mod contract_qjs {
         }
     }
 
-    fn eval(codes: &[JsCode], args: Vec<String>) -> Result<Output, String> {
+    fn eval(codes: &[Code], args: Vec<String>) -> Result<Output, String> {
         unsafe { set_codes(codes) };
 
         let rt = qjsbind::Runtime::new();
@@ -94,8 +94,8 @@ mod contract_qjs {
         let global = ctx.get_global_object();
         global.set_property("scriptArgs", &args)?;
 
-        ctx.eval(&JsCode::Bytecode(BOOT_CODE))?;
-        ctx.eval(&JsCode::Source(&set_version()))?;
+        ctx.eval(&Code::Bytecode(BOOT_CODE))?;
+        ctx.eval(&Code::Source(&set_version()))?;
         let mut output = JsValue::undefined();
         for code in codes.iter() {
             output = ctx.eval(code)?;
