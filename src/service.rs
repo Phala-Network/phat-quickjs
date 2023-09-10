@@ -9,7 +9,7 @@ use std::future::Future;
 
 use crate::host_functions::setup_host_functions;
 use anyhow::Result;
-use js::{c, Error as ValueError, JsCode, ToArgs};
+use js::{c, Error as ValueError, Code, ToArgs};
 use tokio::sync::broadcast;
 
 mod resource;
@@ -145,7 +145,7 @@ impl Service {
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
         ctx_init(&ctx);
         setup_host_functions(&ctx).expect("Failed to setup host functions");
-        let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
+        let bootcode = Code::Bytecode(bootcode::BOOT_CODE);
         ctx.eval(&bootcode).expect("Failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {
@@ -181,14 +181,14 @@ impl Service {
     }
 
     pub fn exec_script(&self, script: &str) -> Result<OwnedJsValue, String> {
-        self.eval(JsCode::Source(script))
+        self.eval(Code::Source(script))
     }
 
     pub fn exec_bytecode(&self, script: &[u8]) -> Result<OwnedJsValue, String> {
-        self.eval(JsCode::Bytecode(script))
+        self.eval(Code::Bytecode(script))
     }
 
-    pub fn eval(&self, code: JsCode) -> Result<OwnedJsValue, String> {
+    pub fn eval(&self, code: Code) -> Result<OwnedJsValue, String> {
         let result = js::eval(self.raw_ctx(), &code)
             .map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
         self.runtime.exec_pending_jobs();
