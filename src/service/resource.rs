@@ -1,4 +1,4 @@
-use qjs::{Error as ValueError, FromJsValue, Value as JsValue};
+use js::{Error as ValueError, FromJsValue};
 
 use super::*;
 
@@ -12,18 +12,18 @@ pub enum OwnedJsValue {
     },
 }
 
-impl TryFrom<JsValue> for OwnedJsValue {
+impl TryFrom<js::Value> for OwnedJsValue {
     type Error = ValueError;
 
-    fn try_from(v: JsValue) -> Result<Self, Self::Error> {
-        match v {
-            JsValue::Undefined => Ok(OwnedJsValue::Undefined),
-            JsValue::Null => Ok(OwnedJsValue::Null),
-            JsValue::Exception => Ok(OwnedJsValue::Exception),
-            JsValue::Other { ctx, value } => {
+    fn try_from(v: js::Value) -> Result<Self, Self::Error> {
+        match &v {
+            js::Value::Undefined => Ok(OwnedJsValue::Undefined),
+            js::Value::Null => Ok(OwnedJsValue::Null),
+            js::Value::Exception => Ok(OwnedJsValue::Exception),
+            js::Value::Other { ctx, value } => {
                 let runtime =
-                    js_context_get_runtime(ctx).ok_or(ValueError::Static("service gone"))?;
-                let v = unsafe { c::JS_DupValue(ctx.as_ptr(), value) };
+                    js_context_get_runtime(&ctx).ok_or(ValueError::Static("service gone"))?;
+                let v = unsafe { c::JS_DupValue(ctx.as_ptr(), *value) };
                 Ok(OwnedJsValue::from_raw(v, Rc::downgrade(&runtime)))
             }
         }
@@ -31,25 +31,24 @@ impl TryFrom<JsValue> for OwnedJsValue {
 }
 
 impl FromJsValue for OwnedJsValue {
-    fn from_js_value(value: JsValue) -> Result<Self, ValueError> {
+    fn from_js_value(value: js::Value) -> Result<Self, ValueError> {
         Self::try_from(value)
     }
 }
 
-impl TryFrom<OwnedJsValue> for JsValue {
+impl TryFrom<OwnedJsValue> for js::Value {
     type Error = ValueError;
 
     fn try_from(v: OwnedJsValue) -> Result<Self, Self::Error> {
         match &v {
-            OwnedJsValue::Undefined => Ok(JsValue::Undefined),
-            OwnedJsValue::Null => Ok(JsValue::Null),
-            OwnedJsValue::Exception => Ok(JsValue::Exception),
+            OwnedJsValue::Undefined => Ok(js::Value::Undefined),
+            OwnedJsValue::Null => Ok(js::Value::Null),
+            OwnedJsValue::Exception => Ok(js::Value::Exception),
             OwnedJsValue::Other { runtime, value } => {
-                let ctx = runtime
+                let engine = runtime
                     .upgrade()
-                    .ok_or(ValueError::Static("Runtime has been dropped"))?
-                    .ctx;
-                Ok(JsValue::new_cloned(ctx, *value))
+                    .ok_or(ValueError::Static("Runtime has been dropped"))?;
+                Ok(js::Value::new_cloned(&engine.ctx, *value))
             }
         }
     }
@@ -114,7 +113,7 @@ impl OwnedJsValue {
         unsafe { c::JS_IsUndefined(*self.value()) == 1 }
     }
 
-    pub fn to_js_value(&self) -> Option<JsValue> {
+    pub fn to_js_value(&self) -> Option<js::Value> {
         self.dup()?.try_into().ok()
     }
 }

@@ -3,14 +3,13 @@ use alloc::{
     collections::BTreeMap,
     rc::{Rc, Weak},
 };
-use core::{any::Any, cell::RefCell, ops::Deref, ptr::NonNull};
+use core::{any::Any, cell::RefCell, ops::Deref};
 use log::{debug, error, info};
 use std::future::Future;
 
 use crate::host_functions::setup_host_functions;
 use anyhow::Result;
-use qjs::ToNonNull;
-use qjs::{c, Error as ValueError, JsCode, ToArgs, Value as JsValue};
+use js::{c, Error as ValueError, JsCode, ToArgs};
 use tokio::sync::broadcast;
 
 mod resource;
@@ -44,11 +43,11 @@ impl ServiceWeakRef {
     }
 }
 
-impl TryFrom<NonNull<c::JSContext>> for ServiceRef {
+impl TryFrom<js::Context> for ServiceRef {
     type Error = anyhow::Error;
 
-    fn try_from(ctx: NonNull<c::JSContext>) -> Result<Self, Self::Error> {
-        let weak_srv = js_context_get_service(ctx)
+    fn try_from(ctx: js::Context) -> Result<Self, Self::Error> {
+        let weak_srv = js_context_get_service(&ctx)
             .ok_or(anyhow::anyhow!("Failed to get service from context"))?;
         weak_srv
             .upgrade()
@@ -57,18 +56,9 @@ impl TryFrom<NonNull<c::JSContext>> for ServiceRef {
 }
 
 pub struct JsEngine {
-    runtime: *mut c::JSRuntime,
-    pub ctx: NonNull<c::JSContext>,
+    pub ctx: js::Context,
+    runtime: js::Runtime,
     weak_self: Weak<JsEngine>,
-}
-
-impl Drop for JsEngine {
-    fn drop(&mut self) {
-        unsafe {
-            c::JS_FreeContext(self.ctx.as_ptr());
-            c::JS_FreeRuntime(self.runtime);
-        }
-    }
 }
 
 impl JsEngine {
@@ -81,29 +71,25 @@ impl JsEngine {
         OwnedJsValue::from_raw(value, self.weak_self.clone())
     }
 
-    pub fn to_js_value(&self, owned: &OwnedJsValue) -> JsValue {
-        JsValue::new_cloned(self.ctx, *owned.value())
+    pub fn to_js_value(&self, owned: &OwnedJsValue) -> js::Value {
+        js::Value::new_cloned(&self.ctx, *owned.value())
     }
 
-    pub fn to_owned_value(&self, js_value: &JsValue) -> OwnedJsValue {
+    pub fn to_owned_value(&self, js_value: &js::Value) -> OwnedJsValue {
         self.dup_value(*js_value.raw_value())
     }
 
     pub fn exec_pending_jobs(&self) {
-        let mut ctx: *mut c::JSContext = core::ptr::null_mut();
         loop {
-            let ret = unsafe { c::JS_ExecutePendingJob(self.runtime, &mut ctx) };
-            if ret == 0 {
-                break;
-            }
-            if ret < 0 {
-                if let Some(ctx) = NonNull::new(ctx) {
-                    error!(
-                        "Failed to execute pending job: {}",
-                        qjs::ctx_get_exception_str(ctx)
-                    );
-                } else {
-                    error!("Failed to execute pending job, no context returned");
+            match self.runtime.exec_pending_jobs() {
+                Ok(0) => break,
+                Ok(cnt) => {
+                    debug!("Executed {} pending jobs", cnt);
+                }
+                Err(err) => {
+                    // TODO.kevin: should we continue?
+                    error!("Failed to execute pending jobs: {err}");
+                    break;
                 }
             }
         }
@@ -141,7 +127,7 @@ impl Default for ServiceState {
     }
 }
 
-pub fn ctx_init(ctx: NonNull<c::JSContext>) {
+pub fn ctx_init(ctx: &js::Context) {
     unsafe {
         let ctx = ctx.as_ptr();
         #[cfg(feature = "stream")]
@@ -153,16 +139,14 @@ pub fn ctx_init(ctx: NonNull<c::JSContext>) {
 
 impl Service {
     pub(crate) fn new(weak_self: ServiceWeakRef) -> Self {
-        let runtime = unsafe { c::JS_NewRuntime() };
-        let ctx = unsafe { c::JS_NewContext(runtime) }
-            .to_non_null()
-            .expect("Failed to create context");
+        let runtime = js::Runtime::new();
+        let ctx = runtime.new_context();
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
-        ctx_init(ctx);
-        setup_host_functions(ctx).expect("Failed to setup host functions");
+        ctx_init(&ctx);
+        setup_host_functions(&ctx).expect("Failed to setup host functions");
         let bootcode = JsCode::Bytecode(bootcode::BOOT_CODE);
-        qjs::eval(ctx, &bootcode).expect("Failed to eval bootcode");
+        ctx.eval(&bootcode).expect("Failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {
             runtime: Rc::new_cyclic(|weak_self| JsEngine {
@@ -187,8 +171,9 @@ impl Service {
         }
     }
 
-    pub fn raw_ctx(&self) -> NonNull<c::JSContext> {
-        self.runtime.ctx
+    // TODO.kevin: rename to ctx
+    pub fn raw_ctx(&self) -> &js::Context {
+        &self.runtime.ctx
     }
 
     pub fn runtime(&self) -> Rc<JsEngine> {
@@ -204,13 +189,13 @@ impl Service {
     }
 
     pub fn eval(&self, code: JsCode) -> Result<OwnedJsValue, String> {
-        let result = qjs::eval(self.raw_ctx(), &code)
+        let result = js::eval(self.raw_ctx(), &code)
             .map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
         self.runtime.exec_pending_jobs();
         result
     }
 
-    pub fn call_function(&self, func: JsValue, args: impl ToArgs) -> Result<JsValue> {
+    pub fn call_function(&self, func: js::Value, args: impl ToArgs) -> Result<js::Value> {
         let ctx = self.raw_ctx();
         let mut args = args.to_raw_args(ctx)?;
         let func = *func.raw_value();
@@ -222,11 +207,11 @@ impl Service {
             c::JS_Call(ctx.as_ptr(), func, this, args_len, args)
         };
         if c::is_exception(ret) {
-            let err = qjs::ctx_get_exception_str(self.raw_ctx());
+            let err = self.raw_ctx().get_exception_str();
             anyhow::bail!("Failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
-        Ok(JsValue::new_moved(self.raw_ctx(), ret))
+        Ok(js::Value::new_moved(self.raw_ctx(), ret))
     }
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
@@ -236,7 +221,7 @@ impl Service {
         id
     }
 
-    pub fn get_resource_value(&self, id: u64) -> Option<JsValue> {
+    pub fn get_resource_value(&self, id: u64) -> Option<js::Value> {
         let state = self.state.borrow();
         Some(self.to_js_value(&state.recources.get(&id)?.js_value))
     }
@@ -306,11 +291,11 @@ impl Service {
         self.state.borrow().http_listener.as_ref()?.dup()
     }
 
-    pub fn to_js_value(&self, owned: &OwnedJsValue) -> JsValue {
+    pub fn to_js_value(&self, owned: &OwnedJsValue) -> js::Value {
         self.runtime.to_js_value(owned)
     }
 
-    pub fn to_owned_value(&self, js_value: &JsValue) -> OwnedJsValue {
+    pub fn to_owned_value(&self, js_value: &js::Value) -> OwnedJsValue {
         self.runtime.to_owned_value(js_value)
     }
 }
@@ -322,7 +307,7 @@ pub(crate) fn close(weak_service: ServiceWeakRef, id: u64) {
     _ = service.remove_resource(id);
 }
 
-pub(crate) fn js_context_get_service(ctx: NonNull<c::JSContext>) -> Option<ServiceWeakRef> {
+pub(crate) fn js_context_get_service(ctx: &js::Context) -> Option<ServiceWeakRef> {
     unsafe {
         let name = c::JS_GetContextOpaque(ctx.as_ptr()) as *mut ServiceWeakRef;
         if name.is_null() {
@@ -332,7 +317,7 @@ pub(crate) fn js_context_get_service(ctx: NonNull<c::JSContext>) -> Option<Servi
     }
 }
 
-pub fn js_context_get_runtime(ctx: NonNull<c::JSContext>) -> Option<Rc<JsEngine>> {
+pub fn js_context_get_runtime(ctx: &js::Context) -> Option<Rc<JsEngine>> {
     Some(js_context_get_service(ctx)?.upgrade()?.runtime())
 }
 

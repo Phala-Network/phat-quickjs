@@ -1,5 +1,5 @@
+use js::{AsBytes, FromJsValue, ToJsValue};
 use log::{info, warn};
-use qjs::{host_call, AsBytes, FromJsValue, ToJsValue, Value as JsValue};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc::Sender;
 
@@ -13,9 +13,9 @@ pub struct HttpRequest {
     method: String,
     url: String,
     headers: Headers,
-    opaque_response_tx: JsValue,
-    opaque_input_stream: JsValue,
-    opaque_output_stream: JsValue,
+    opaque_response_tx: js::Value,
+    opaque_input_stream: js::Value,
+    opaque_output_stream: js::Value,
 }
 
 #[derive(FromJsValue, Debug)]
@@ -28,7 +28,7 @@ struct HttpResponseHead {
 #[derive(FromJsValue)]
 struct WriteChunk {
     data: AsBytes<Vec<u8>>,
-    callback: JsValue,
+    callback: js::Value,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -37,7 +37,7 @@ struct Event<'a, Data> {
     data: Data,
 }
 
-pub fn setup(ns: &JsValue) -> Result<()> {
+pub fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("httpListen", http_listen)?;
     ns.define_property_fn("httpSendResponse", http_send_response)?;
     ns.define_property_fn("httpMakeWriter", http_make_writer)?;
@@ -47,8 +47,8 @@ pub fn setup(ns: &JsValue) -> Result<()> {
     Ok(())
 }
 
-#[host_call(with_context)]
-fn http_listen(service: ServiceRef, _this: JsValue, callback: OwnedJsValue) {
+#[js::host_call(with_context)]
+fn http_listen(service: ServiceRef, _this: js::Value, callback: OwnedJsValue) {
     service.set_http_listener(callback)
 }
 
@@ -64,9 +64,9 @@ pub(crate) fn try_accept_http_request(
         method: request.head.method.clone(),
         url: request.head.url.clone(),
         headers: request.head.headers.iter().cloned().collect(),
-        opaque_response_tx: JsValue::new_opaque_object(service.raw_ctx(), request.response_tx),
-        opaque_input_stream: JsValue::new_opaque_object(service.raw_ctx(), input_stream),
-        opaque_output_stream: JsValue::new_opaque_object(service.raw_ctx(), output_stream),
+        opaque_response_tx: js::Value::new_opaque_object(service.raw_ctx(), request.response_tx),
+        opaque_input_stream: js::Value::new_opaque_object(service.raw_ctx(), input_stream),
+        opaque_output_stream: js::Value::new_opaque_object(service.raw_ctx(), output_stream),
     };
     if let Err(err) = service.call_function(listener, (req,)) {
         anyhow::bail!("Failed to fire http request event: {err}");
@@ -82,11 +82,8 @@ where
     f2()
 }
 
-#[host_call]
-fn http_send_response(
-    tx: JsValue,
-    response: HttpResponseHead,
-) {
+#[js::host_call]
+fn http_send_response(tx: js::Value, response: HttpResponseHead) {
     let Some(response_tx) = use_2nd(
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),
@@ -102,11 +99,11 @@ fn http_send_response(
     }
 }
 
-#[host_call(with_context)]
+#[js::host_call(with_context)]
 fn http_receive_body(
     service: ServiceRef,
-    _this: JsValue,
-    input_stream: JsValue,
+    _this: js::Value,
+    input_stream: js::Value,
     callback: OwnedJsValue,
 ) -> Result<u64> {
     let Some(read_half) = use_2nd(
@@ -135,7 +132,7 @@ fn http_receive_body(
                 let result = match result {
                     Ok(0) => {
                         end = true;
-                        service.call_function(callback, ("end", JsValue::Null))
+                        service.call_function(callback, ("end", js::Value::Null))
                     }
                     Ok(n) => service.call_function(callback, ("data", AsBytes(&buf[..n]))),
                     Err(err) => service.call_function(callback, ("error", err.to_string())),
@@ -153,12 +150,12 @@ fn http_receive_body(
     Ok(id)
 }
 
-#[host_call(with_context)]
+#[js::host_call(with_context)]
 fn http_make_writer(
     service: ServiceRef,
-    _this: JsValue,
-    output_stream: JsValue,
-) -> anyhow::Result<JsValue> {
+    _this: js::Value,
+    output_stream: js::Value,
+) -> anyhow::Result<js::Value> {
     let Some(write_half) = use_2nd(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
@@ -178,7 +175,7 @@ fn http_make_writer(
                     break;
                 };
                 let result = match result {
-                    Ok(_) => service.call_function(chunk.callback, (true, JsValue::Null)),
+                    Ok(_) => service.call_function(chunk.callback, (true, js::Value::Null)),
                     Err(err) => service.call_function(chunk.callback, (false, err.to_string())),
                 };
                 if let Err(err) = result {
@@ -188,16 +185,16 @@ fn http_make_writer(
         },
         (),
     );
-    Ok(JsValue::new_opaque_object(service.raw_ctx(), tx))
+    Ok(js::Value::new_opaque_object(service.raw_ctx(), tx))
 }
 
-#[host_call(with_context)]
+#[js::host_call(with_context)]
 fn http_write_chunk(
     service: ServiceRef,
-    _this: JsValue,
-    writer: JsValue,
+    _this: js::Value,
+    writer: js::Value,
     chunk: AsBytes<Vec<u8>>,
-    callback: JsValue,
+    callback: js::Value,
 ) -> Result<()> {
     let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
         anyhow::bail!("Failed to get writer");
@@ -215,8 +212,8 @@ fn http_write_chunk(
     Ok(())
 }
 
-#[host_call]
-fn http_close_writer(writer: JsValue) {
+#[js::host_call]
+fn http_close_writer(writer: js::Value) {
     if writer
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()

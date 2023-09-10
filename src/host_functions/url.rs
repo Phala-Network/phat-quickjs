@@ -1,9 +1,9 @@
 use anyhow::Context;
-use qjs::ToJsValue;
+use js::ToJsValue;
 use std::collections::BTreeMap;
 use url::{form_urlencoded, Url};
 
-use super::{JsValue, Result};
+use super::Result;
 
 #[derive(ToJsValue, Debug)]
 struct URL {
@@ -20,7 +20,7 @@ struct URL {
     username: String,
 }
 
-#[qjs::host_call]
+#[js::host_call]
 fn parse_url(url: String, base_url: Option<String>) -> Result<URL> {
     let url = match base_url {
         Some(base_url) => {
@@ -45,14 +45,14 @@ fn parse_url(url: String, base_url: Option<String>) -> Result<URL> {
     })
 }
 
-#[qjs::host_call]
+#[js::host_call]
 fn parse_search_params(query_str: String) -> Result<BTreeMap<String, String>> {
     Ok(form_urlencoded::parse(query_str.as_bytes())
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect())
 }
 
-pub(crate) fn setup(ns: &JsValue) -> Result<()> {
+pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("parseURL", parse_url)?;
     ns.define_property_fn("parseURLParams", parse_search_params)?;
     Ok(())

@@ -1,8 +1,7 @@
 use super::*;
 use log::info;
-use qjs::{host_call, Value as JsValue};
 
-pub(crate) fn setup(ns: &JsValue) -> Result<()> {
+pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("marker", marker)?;
     Ok(())
 }
@@ -16,7 +15,7 @@ impl Drop for Marker {
     }
 }
 
-#[host_call(with_context)]
-fn marker(service: ServiceRef, _this: JsValue, tag: String) -> JsValue {
-    JsValue::new_opaque_object(service.raw_ctx(), Marker { tag })
+#[js::host_call(with_context)]
+fn marker(service: ServiceRef, _this: js::Value, tag: String) -> js::Value {
+    js::Value::new_opaque_object(service.raw_ctx(), Marker { tag })
 }

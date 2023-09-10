@@ -5,7 +5,7 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-qjs = { package = "qjsbind", path = "qjs-sys/qjsbind" }
+js = { package = "qjsbind", path = "qjs-sys/qjsbind" }
 qjs-extensions = { path = "qjs-sys/qjs-extensions" }
 tokio = { version = "1", features = ["sync", "macros", "io-util"] }
 hyper = { version = "0.14", features = ["client", "http1"] }
@@ -25,9 +25,9 @@ hyper-rustls = { version = "0.24.1", optional = true }
 
 [features]
 default = ["native"]
-sanitize-address = ["qjs/sanitize-address"]
+sanitize-address = ["js/sanitize-address"]
 
-stream = ["qjs/stream"]
+stream = ["js/stream"]
 
 native = [
     "tokio/full",

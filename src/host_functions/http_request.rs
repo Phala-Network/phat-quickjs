@@ -10,7 +10,7 @@ use crate::{
     runtime::{http_connector, time::timeout, HyperExecutor},
     service::OwnedJsValue,
 };
-use qjs::{host_call, AsBytes, Error as ValueError, FromJsValue, ToJsValue, Value as JsValue};
+use js::{AsBytes, Error as ValueError, FromJsValue, ToJsValue};
 
 use super::*;
 
@@ -20,7 +20,7 @@ pub struct Headers {
 }
 
 impl FromJsValue for Headers {
-    fn from_js_value(value: JsValue) -> Result<Self, ValueError> {
+    fn from_js_value(value: js::Value) -> Result<Self, ValueError> {
         Ok(if value.is_array() {
             Vec::<(String, String)>::from_js_value(value)?.into()
         } else {
@@ -30,7 +30,7 @@ impl FromJsValue for Headers {
 }
 
 impl ToJsValue for Headers {
-    fn to_js_value(&self, ctx: NonNull<c::JSContext>) -> Result<JsValue, ValueError> {
+    fn to_js_value(&self, ctx: &js::Context) -> Result<js::Value, ValueError> {
         self.pairs.to_js_value(ctx)
     }
 }
@@ -54,7 +54,6 @@ impl From<Headers> for Vec<(String, String)> {
         headers.pairs
     }
 }
-
 
 impl FromIterator<(String, String)> for Headers {
     fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
@@ -94,15 +93,15 @@ struct Event<'a, Data> {
     data: Data,
 }
 
-pub fn setup(ns: &JsValue) -> Result<()> {
+pub fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("httpRequest", http_request)?;
     Ok(())
 }
 
-#[host_call(with_context)]
+#[js::host_call(with_context)]
 fn http_request(
     service: ServiceRef,
-    _this: JsValue,
+    _this: js::Value,
     req: HttpRequest,
     callback: OwnedJsValue,
 ) -> Result<u64> {

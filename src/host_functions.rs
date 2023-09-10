@@ -1,8 +1,6 @@
 use alloc::rc::Weak;
 use anyhow::Result;
-use core::ptr::NonNull;
 use log::error;
-use qjs::{c, Value as JsValue};
 
 use crate::service::{Service, ServiceRef, ServiceWeakRef};
 use crate::traits::ResultExt;
@@ -16,8 +14,8 @@ mod print;
 mod timer;
 mod url;
 
-pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
-    let ns = JsValue::new_object(ctx);
+pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
+    let ns = js::Value::new_object(ctx);
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
     url::setup(&ns)?;
@@ -26,13 +24,13 @@ pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     http_listen::setup(&ns)?;
     debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
-    qjs::get_global(ctx).set_property("Sidevm", &ns)?;
+    js::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())
 }
 
-fn set_extensions(ns: &JsValue, ctx: NonNull<c::JSContext>) -> Result<()> {
+fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     use qjs_extensions as ext;
-    let scale = JsValue::new_object(ctx);
+    let scale = js::Value::new_object(ctx);
     ext::scale2::setup(&scale)?;
     ns.set_property("SCALE", &scale)?;
     Ok(())
@@ -44,7 +42,7 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
     crate::runtime::getrandom(buf).expect("Failed to get random bytes");
 }
 
-#[qjs::host_call(with_context)]
-fn close_res(service: ServiceRef, _this: JsValue, res_id: u64) {
+#[js::host_call(with_context)]
+fn close_res(service: ServiceRef, _this: js::Value, res_id: u64) {
     service.remove_resource(res_id);
 }

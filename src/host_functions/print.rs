@@ -1,11 +1,11 @@
 use super::*;
 
-pub(crate) fn setup(ns: &JsValue) -> Result<()> {
+pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("print", print)?;
     Ok(())
 }
 
-fn recursive_to_string(value: &JsValue, level: u8, escape: bool, buf: &mut String) {
+fn recursive_to_string(value: &js::Value, level: u8, escape: bool, buf: &mut String) {
     if value.is_generic_object() {
         if level == 0 {
             buf.push_str("[object Object]");
@@ -57,8 +57,8 @@ fn recursive_to_string(value: &JsValue, level: u8, escape: bool, buf: &mut Strin
     buf.push_str(&value.to_string());
 }
 
-#[qjs::host_call(with_context)]
-fn print(service: ServiceRef, _this: JsValue, level: u8, fd: u32, args: Vec<JsValue>) {
+#[js::host_call(with_context)]
+fn print(service: ServiceRef, _this: js::Value, level: u8, fd: u32, args: Vec<js::Value>) {
     let mut buf = String::new();
     for (i, arg) in args.iter().enumerate() {
         if i != 0 {
