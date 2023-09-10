@@ -18,6 +18,7 @@ mod url;
 
 pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     let ns = JsValue::new_object(ctx);
+    set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
     url::setup(&ns)?;
     timer::setup(&ns)?;
@@ -26,6 +27,14 @@ pub(crate) fn setup_host_functions(ctx: NonNull<c::JSContext>) -> Result<()> {
     debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
     qjs::get_global(ctx).set_property("Sidevm", &ns)?;
+    Ok(())
+}
+
+fn set_extensions(ns: &JsValue, ctx: NonNull<c::JSContext>) -> Result<()> {
+    use qjs_extensions as ext;
+    let scale = JsValue::new_object(ctx);
+    ext::scale2::setup(&scale)?;
+    ns.set_property("SCALE", &scale)?;
     Ok(())
 }
 

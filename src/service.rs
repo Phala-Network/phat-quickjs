@@ -1,7 +1,6 @@
 use alloc::{
     boxed::Box,
     collections::BTreeMap,
-    ffi::CString,
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref, ptr::NonNull};
@@ -197,8 +196,7 @@ impl Service {
     }
 
     pub fn exec_script(&self, script: &str) -> Result<OwnedJsValue, String> {
-        let script = CString::new(script).or(Err("Failed to convert source to CString"))?;
-        self.eval(JsCode::Source(script.as_c_str()))
+        self.eval(JsCode::Source(script))
     }
 
     pub fn exec_bytecode(&self, script: &[u8]) -> Result<OwnedJsValue, String> {
