@@ -2,14 +2,15 @@ const Runtime = globalThis.Pink || globalThis.Sidevm;
 const repr = Runtime.repr;
 const scl = Runtime.SCALE;
 console.log = Runtime.inspect;
+const isPink = !!globalThis.Pink;
 
 // Helper functions for colorizing console output
 function green(str) {
-    return `\x1b[32m${str}\x1b[0m`;
+    return isPink ? str : `\x1b[32m${str}\x1b[0m`;
 }
 
 function red(str) {
-    return `\x1b[31m${str}\x1b[0m`;
+    return isPink ? str : `\x1b[31m${str}\x1b[0m`;
 }
 
 const typeRegistry0 = `

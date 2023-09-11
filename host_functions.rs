@@ -57,7 +57,9 @@ pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     http_client::setup(&pink)?;
     derive_key::setup(&pink)?;
     setup_encoding_functions(&pink, ctx)?;
-    global_object.set_property("pink", &pink)
+    global_object.set_property("pink", &pink)?;
+    global_object.set_property("Pink", &pink)?;
+    Ok(())
 }
 
 fn setup_encoding_functions(pink: &js::Value, ctx: &js::Context) -> js::Result<()> {
