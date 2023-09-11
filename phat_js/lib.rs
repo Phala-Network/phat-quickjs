@@ -22,7 +22,7 @@ pub type Output = Value;
 fn js_delegate() -> Result<Hash, String> {
     let system = pink::system::SystemRef::instance();
     let delegate = system
-        .get_driver("JsDelegate".into())
+        .get_driver("JsDelegate2".into())
         .ok_or("No JS driver found")?;
     Ok(delegate.convert_to())
 }
