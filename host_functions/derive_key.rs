@@ -8,6 +8,7 @@ static mut CODE_LEN: usize = 0;
 
 pub fn setup(pink: &js::Value) -> js::Result<()> {
     pink.define_property_fn("deriveSecret", derive_secret)?;
+    pink.define_property_fn("jsCodeHash", get_js_code_hash)?;
     Ok(())
 }
 
@@ -56,4 +57,9 @@ fn derive_secret(salt: js::AsBytes<Vec<u8>>) -> js::AsBytes<Vec<u8>> {
     seed.extend_from_slice(&salt.0);
     let secret = pink::ext().derive_sr25519_key(hash(&seed)[..].into());
     js::AsBytes(secret)
+}
+
+#[js::host_call]
+fn get_js_code_hash() -> js::AsBytes<[u8; 32]> {
+    js_code_hash().into()
 }
