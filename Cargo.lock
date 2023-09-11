@@ -946,6 +946,7 @@ dependencies = [
  "md5",
  "parity-scale-codec",
  "qjsbind",
+ "qjsc",
  "sha1",
  "sha2",
  "sha3",
@@ -986,6 +987,16 @@ dependencies = [
  "proc-macro2",
  "syn 1.0.107",
  "template-quote",
+]
+
+[[package]]
+name = "qjsc"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "qjsbind",
+ "quote",
+ "syn 2.0.16",
 ]
 
 [[package]]
