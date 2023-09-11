@@ -1,6 +1,7 @@
-console.log = Sidevm.inspect;
-const scl = Sidevm.SCALE;
-
+const Runtime = globalThis.Pink || globalThis.Sidevm;
+const repr = Runtime.repr;
+const scl = Runtime.SCALE;
+console.log = Runtime.inspect;
 
 // Helper functions for colorizing console output
 function green(str) {
@@ -47,7 +48,6 @@ const registry1Tests = [
     { input: [1, 'foo', { name: "Tom", age: 10n }], type: ['u8', 'str', 'Person'], title: 'Encoding multiple types' }
 ];
 
-const repr = Sidevm.repr;
 function assertEqual(expected, actual, title) {
     const reprExpected = repr(expected);
     const reprActual = repr(actual);
