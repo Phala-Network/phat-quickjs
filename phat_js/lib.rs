@@ -19,7 +19,7 @@ pub type RefValue<'a> = GenericValue<&'a str, &'a [u8]>;
 pub type Value = GenericValue<String, Vec<u8>>;
 pub type Output = Value;
 
-fn js_delegate() -> Result<Hash, String> {
+pub fn default_delegate() -> Result<Hash, String> {
     let system = pink::system::SystemRef::instance();
     let delegate = system
         .get_driver("JsDelegate2".into())
@@ -29,17 +29,17 @@ fn js_delegate() -> Result<Hash, String> {
 
 /// Evaluate a script with the default delegate contract code
 pub fn eval(script: &str, args: &[String]) -> Result<Output, String> {
-    eval_with(js_delegate()?, script, args)
+    eval_with(default_delegate()?, script, args)
 }
 
 /// Evaluate a compiled bytecode with the default delegate contract code
 pub fn eval_bytecode(code: &[u8], args: &[String]) -> Result<Output, String> {
-    eval_bytecode_with(js_delegate()?, code, args)
+    eval_bytecode_with(default_delegate()?, code, args)
 }
 
 /// Evaluate multiple scripts with the default delegate contract code
 pub fn eval_all(codes: &[RefValue], args: &[String]) -> Result<Output, String> {
-    eval_all_with(js_delegate()?, codes, args)
+    eval_all_with(default_delegate()?, codes, args)
 }
 
 /// Evaluate a script with given delegate contract code
@@ -91,7 +91,7 @@ pub fn eval_all_with(
 
 /// Compile a script with the default delegate contract
 pub fn compile(script: &str) -> Result<Vec<u8>, String> {
-    compile_with(js_delegate()?, script)
+    compile_with(default_delegate()?, script)
 }
 
 /// Compile a script with given delegate contract
