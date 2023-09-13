@@ -166,13 +166,13 @@ impl Service {
 
     pub(crate) fn weak_self(&self) -> ServiceWeakRef {
         unsafe {
-            let ptr = c::JS_GetContextOpaque(self.raw_ctx().as_ptr()) as *mut ServiceWeakRef;
+            let ptr = c::JS_GetContextOpaque(self.context().as_ptr()) as *mut ServiceWeakRef;
             (*ptr).clone()
         }
     }
 
     // TODO.kevin: rename to ctx
-    pub fn raw_ctx(&self) -> &js::Context {
+    pub fn context(&self) -> &js::Context {
         &self.runtime.ctx
     }
 
@@ -189,14 +189,14 @@ impl Service {
     }
 
     pub fn eval(&self, code: Code) -> Result<OwnedJsValue, String> {
-        let result = js::eval(self.raw_ctx(), &code)
+        let result = js::eval(self.context(), &code)
             .map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
         self.runtime.exec_pending_jobs();
         result
     }
 
     pub fn call_function(&self, func: js::Value, args: impl ToArgs) -> Result<js::Value> {
-        let ctx = self.raw_ctx();
+        let ctx = self.context();
         let mut args = args.to_raw_args(ctx)?;
         let func = *func.raw_value();
         let this = c::JS_UNDEFINED;
@@ -207,11 +207,11 @@ impl Service {
             c::JS_Call(ctx.as_ptr(), func, this, args_len, args)
         };
         if c::is_exception(ret) {
-            let err = self.raw_ctx().get_exception_str();
+            let err = self.context().get_exception_str();
             anyhow::bail!("Failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
-        Ok(js::Value::new_moved(self.raw_ctx(), ret))
+        Ok(js::Value::new_moved(self.context(), ret))
     }
 
     pub fn push_resource(&self, resource: Resource) -> u64 {
@@ -326,7 +326,7 @@ impl Drop for Service {
         unsafe {
             // release all js resources before destroy the runtime
             *self.state.borrow_mut() = Default::default();
-            let pname = c::JS_GetContextOpaque(self.raw_ctx().as_ptr()) as *mut ServiceWeakRef;
+            let pname = c::JS_GetContextOpaque(self.context().as_ptr()) as *mut ServiceWeakRef;
             drop(Box::from_raw(pname));
         }
     }

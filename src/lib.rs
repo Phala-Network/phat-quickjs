@@ -13,8 +13,9 @@ mod traits;
 pub mod runtime {
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-    use tokio::io::DuplexStream;
+    use js::ToJsValue;
     pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
+    use tokio::io::DuplexStream;
 
     pub struct HttpRequest {
         /// The HTTP request head.
@@ -52,11 +53,26 @@ pub mod runtime {
         local.run_until(fut).await
     }
     pub async fn main_loop() {
-        let script_file = std::env::args()
-            .nth(1)
+        let args: Vec<_> = std::env::args().collect();
+        let script_file = args
+            .get(1)
             .expect("Please provide a script file as the first argument");
-        let script = std::fs::read_to_string(script_file).expect("Failed to read script file");
+        let source = if script_file.starts_with("#") {
+            script_file.trim_start_matches(|c| c != '\r' && c != '\n')
+        } else {
+            script_file
+        };
+        let script = std::fs::read_to_string(source).expect("Failed to read script file");
         let service = crate::Service::new_ref();
+        let script_args = &args[2..];
+        let js_ctx = service.context();
+        let js_args = script_args
+            .to_js_value(&js_ctx)
+            .expect("Failed to convert args to js value");
+        js_ctx
+            .get_global_object()
+            .set_property("scriptArgs", &js_args)
+            .expect("Failed to set scriptArgs");
         let output = service.exec_script(&script);
         match output {
             Ok(value) if value.is_undefined() => {}
@@ -74,12 +90,12 @@ pub mod runtime {
 #[cfg(not(feature = "native"))]
 pub mod runtime {
     use log::{error, info};
+    pub use sidevm::channel::HttpRequest;
+    pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
     pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
     };
-    pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
-    pub use sidevm::channel::HttpRequest;
 
     pub use sidevm::main;
 

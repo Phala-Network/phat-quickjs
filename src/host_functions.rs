@@ -32,7 +32,14 @@ fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     use qjs_extensions as ext;
     let scale = js::Value::new_object(ctx);
     ext::scale2::setup(&scale, ctx)?;
+    ext::repr::setup(ns)?;
     ns.set_property("SCALE", &scale)?;
+    ns.define_property_fn("hexDecode", ext::hex::decode)?;
+    ns.define_property_fn("hexEncode", ext::hex::encode)?;
+    ns.define_property_fn("utf8Decode", ext::utf8::decode)?;
+    ns.define_property_fn("utf8Encode", ext::utf8::encode)?;
+    ns.define_property_fn("base64Decode", ext::base64::decode)?;
+    ns.define_property_fn("base64Encode", ext::base64::encode)?;
     Ok(())
 }
 
