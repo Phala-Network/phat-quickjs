@@ -1,28 +1,15 @@
-use qjsbind as js;
 use alloc::vec::Vec;
-use alloc::string::{String, ToString};
+use qjs_extensions::repr;
+use qjsbind as js;
 
 pub fn setup(obj: &js::Value) -> js::Result<()> {
     obj.define_property_fn("print", print)?;
-    obj.define_property_fn("repr", to_debug_representation)?;
     Ok(())
 }
 
 #[js::host_call]
-fn print(depth: u8, level: u8, args: Vec<js::Value>) {
-    let mut buf = String::new();
-    for (i, arg) in args.iter().enumerate() {
-        if i != 0 {
-            buf.push(' ');
-        }
-        if depth == 0 {
-            buf.push_str(&arg.to_string());
-        } else {
-            let mut buf2 = String::new();
-            js::recursive_to_string(arg, depth, false, &mut buf2);
-            buf.push_str(&buf2);
-        }
-    }
+fn print(level: u8, args: Vec<js::Value>, config: Option<repr::ReprConfig>) {
+    let buf = repr::print(&args, &config.unwrap_or_default());
     let buf = buf.trim_end();
     if buf.is_empty() {
         log_str(level, "");
@@ -43,12 +30,4 @@ fn log_str(level: u8, msg: &str) {
             pink::error!("JS: {}", msg);
         }
     }
-}
-
-#[js::host_call]
-fn to_debug_representation(obj: js::Value, level: Option<u8>) -> String {
-    let level = level.unwrap_or(5);
-    let mut buf = String::new();
-    js::recursive_to_string(&obj, level, true, &mut buf);
-    buf
 }
