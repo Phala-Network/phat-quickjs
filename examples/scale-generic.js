@@ -11,8 +11,9 @@ function test(type, input, typeRegistry) {
 
 const typeRegistry = `
 Option<T> = <None|Some:T>;
+BuiltinOption<T> = <_None|_Some:T>;
 JsError<T>      = <Ok:T|Err:str>;
-OptionalString = Option<str>;
+OptionalString = BuiltinOption<str>;
 Info<A>   = {
     title: OptionalString,
     foo: JsError<()>,
@@ -24,7 +25,7 @@ Info<A>   = {
 `
 test('Info<u32>',
     {
-        title: { Some: 'U32 name' },
+        title: 'U32 name',
         foo: { Ok: null },
         bar: { name: 123 }
     },
@@ -32,7 +33,15 @@ test('Info<u32>',
 );
 test('Info<str>',
     {
-        title: { Some: 'str name' },
+        title: 'str name',
+        foo: { Err: "Bug me" },
+        bar: { name: "Tom" }
+    },
+    typeRegistry
+);
+
+test('Info<str>',
+    {
         foo: { Err: "Bug me" },
         bar: { name: "Tom" }
     },
