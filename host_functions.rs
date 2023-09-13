@@ -72,6 +72,7 @@ fn setup_encoding_functions(pink: &js::Value, ctx: &js::Context) -> js::Result<(
     pink.define_property_fn("hexDecode", ext::hex::decode)?;
     let scale = ctx.new_object();
     ext::scale2::setup(&scale, ctx)?;
+    ext::repr::setup(pink)?;
     pink.set_property("SCALE", &scale)?;
     Ok(())
 }
