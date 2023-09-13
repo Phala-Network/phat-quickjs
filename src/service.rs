@@ -4,12 +4,12 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::future::Future;
 
 use crate::host_functions::setup_host_functions;
 use anyhow::Result;
-use js::{c, Error as ValueError, Code, ToArgs};
+use js::{c, Code, Error as ValueError, ToArgs};
 use tokio::sync::broadcast;
 
 mod resource;
@@ -263,11 +263,12 @@ impl Service {
         });
         id
     }
-    pub fn js_log(&self, fd: u32, msg: &str) {
-        if fd == 1 {
-            info!("JS:[{fd}]|  {}", msg);
-        } else if fd == 2 {
-            error!("JS:[{fd}]|  {}", msg);
+    pub fn js_log(&self, level: u32, msg: &str) {
+        match level {
+            1 => debug!("JS:[{level}]|  {}", msg),
+            2 => info!("JS:[{level}]|  {}", msg),
+            3 => warn!("JS:[{level}]|  {}", msg),
+            _ => error!("JS:[{level}]|  {}", msg),
         }
     }
 
