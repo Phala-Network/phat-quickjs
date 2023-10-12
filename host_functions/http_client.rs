@@ -100,7 +100,7 @@ fn host_batch_http_request(
     let responses = pink::ext()
         .batch_http_request(
             requests.into_iter().map(Into::into).collect(),
-            timeout_ms.unwrap_or(10),
+            timeout_ms.unwrap_or(1000*60),
         )
         .map_err(|err| alloc::format!("Failed to call batch_http_request: {err:?}"))?;
 
