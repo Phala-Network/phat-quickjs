@@ -49,13 +49,19 @@ fn js_code_hash() -> [u8; 32] {
     }
 }
 
+/// Derive a secret key from the given salt.
+///
+/// The key would be derived with the formula: `derive_sr25519_key("JavaScript:" + js_code_hash + salt)`,
+/// where `js_code_hash` is the hash of the JS code being evaluated. The js hash is calculated by:
+/// js_code_hash = blake2x256(blake2x256(code1) + blake2x256(code2) + ... + blake2x256(codeN)).
 #[js::host_call]
 fn derive_secret(salt: js::AsBytes<Vec<u8>>) -> js::AsBytes<Vec<u8>> {
-    let mut seed = Vec::new();
-    seed.extend_from_slice(b"JavaScript:");
+    let prefix = b"JavaScript:";
+    let mut seed = Vec::with_capacity(prefix.len().saturating_add(32).saturating_add(salt.0.len()));
+    seed.extend_from_slice(prefix);
     seed.extend_from_slice(&js_code_hash());
     seed.extend_from_slice(&salt.0);
-    let secret = pink::ext().derive_sr25519_key(hash(&seed)[..].into());
+    let secret = pink::ext().derive_sr25519_key(seed.into());
     js::AsBytes(secret)
 }
 
