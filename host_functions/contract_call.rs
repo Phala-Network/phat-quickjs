@@ -1,7 +1,64 @@
 use alloc::vec::Vec;
 use ink::env::{call, Result};
-use pink_extension::PinkEnvironment;
+use pink::PinkEnvironment;
+use qjsbind as js;
 use scale::{Decode, Encode};
+
+pub fn setup(pink: &js::Value) -> js::Result<()> {
+    pink.define_property_fn("invokeContract", contract_call)?;
+    pink.define_property_fn("invokeContractDelegate", delegate_call)?;
+    Ok(())
+}
+
+#[derive(Debug, js::FromJsValue)]
+#[qjsbind(rename_all = "camelCase")]
+struct ContractCall {
+    #[qjsbind(bytes_or_hex)]
+    callee: [u8; 32],
+    #[qjsbind(default)]
+    gas_limit: u64,
+    #[qjsbind(default)]
+    value: u128,
+    selector: u32,
+    #[qjsbind(default, bytes_or_hex)]
+    input: Vec<u8>,
+    #[qjsbind(default)]
+    allow_reentry: bool,
+}
+
+#[js::host_call]
+fn contract_call(call: ContractCall) -> Result<Vec<u8>> {
+    invoke_contract(
+        call.callee.into(),
+        call.gas_limit,
+        call.value,
+        call.selector,
+        &call.input,
+        call.allow_reentry,
+    )
+}
+
+#[derive(Debug, js::FromJsValue)]
+#[qjsbind(rename_all = "camelCase")]
+struct DelegateCall {
+    #[qjsbind(bytes_or_hex)]
+    code_hash: [u8; 32],
+    selector: u32,
+    #[qjsbind(default, bytes_or_hex)]
+    input: Vec<u8>,
+    #[qjsbind(default)]
+    allow_reentry: bool,
+}
+
+#[js::host_call]
+fn delegate_call(call: DelegateCall) -> Result<Vec<u8>> {
+    invoke_contract_delegate(
+        call.code_hash.into(),
+        call.selector,
+        &call.input,
+        call.allow_reentry,
+    )
+}
 
 struct RawBytes<T>(T);
 
@@ -46,7 +103,7 @@ pub(crate) fn invoke_contract_delegate(
         )
         .returns::<RawBytes<Vec<u8>>>()
         .try_invoke()
-        .map(|x| x.0)
+        .map(|x| x.encode())
 }
 
 pub(crate) fn invoke_contract(

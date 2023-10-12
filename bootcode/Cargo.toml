@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 
 [build-dependencies]
-qjs-sys = { path = "../qjs-sys", features = ["with-polyfills"] }
+qjsbind = { path = "../qjs-sys/qjsbind", features = ["with-polyfills"] }
