@@ -160,4 +160,32 @@ declare global {
     version: string;
   };
 }
-export {};
+
+/**
+ * Generates 64 bytes of verifiable random bytes.
+ *
+ * When called in the same contract and same js code with the same salt, the same random bytes
+ * will be generated. Different contracts or different js code with the same salt will generate
+ * different random bytes.
+ *
+ * @param {Uint8Array | string} salt - The salt used for generating verifiable random bytes or hex representation.
+ * @returns {Uint8Array} - The generated random bytes.
+ */
+function vrf(salt: Uint8Array | string): Uint8Array {
+  function prefixedWith(prefix: string, salt: Uint8Array | string): string {
+    if (typeof salt === 'string') {
+      if (salt.startsWith("0x")) {
+        salt = salt.slice(2);
+      }
+    } else {
+      salt = Array.from(salt).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    return prefix + salt;
+  }
+  const vrfPrefix = '0x7672663a'; // hex of 'vrf:'
+  return pink.deriveSecret(prefixedWith(vrfPrefix, salt));
+}
+
+export {
+  vrf
+};
