@@ -19,5 +19,24 @@
             indent: '  ',
         });
     };
-}(globalThis))
+}(globalThis));
+
+(function(g){
+    // Polyfill for TextEncoder/TextDecoder
+    function TextEncoder() {
+    }
+    TextEncoder.prototype.encode = function (s) {
+        return Pink.utf8Encode(s);
+    };
+    TextEncoder.prototype.encodeInto = function (s, u8a) {
+        return Pink.utf8EncodeInto(s, u8a);
+    };
+    function TextDecoder() {
+    }
+    TextDecoder.prototype.decode = function (octets) {
+        return Pink.utf8Decode(octets);
+    };
+    g.TextDecoder = TextDecoder;
+    g.TextEncoder = TextEncoder;
+}(globalThis));
 export default {};

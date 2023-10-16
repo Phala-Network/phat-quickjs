@@ -66,6 +66,7 @@ fn setup_encoding_functions(pink: &js::Value, ctx: &js::Context) -> js::Result<(
     use qjs_extensions as ext;
     pink.define_property_fn("utf8Encode", ext::utf8::encode)?;
     pink.define_property_fn("utf8Decode", ext::utf8::decode)?;
+    pink.define_property_fn("utf8EncodeInto", ext::utf8::encode_into)?;
     pink.define_property_fn("base64Encode", ext::base64::encode)?;
     pink.define_property_fn("base64Decode", ext::base64::decode)?;
     pink.define_property_fn("hexEncode", ext::hex::encode)?;
