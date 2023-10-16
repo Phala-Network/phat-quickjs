@@ -918,23 +918,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qjs"
-version = "2.0.0"
-dependencies = [
- "bootcode",
- "ink",
- "parity-scale-codec",
- "phat_js",
- "pink-extension",
- "qjs-extensions",
- "qjsbind",
- "scale-info",
- "serde",
- "serde_json",
- "this-crate",
-]
-
-[[package]]
 name = "qjs-extensions"
 version = "0.1.0"
 dependencies = [
@@ -965,6 +948,23 @@ dependencies = [
  "scopeguard",
  "serde",
  "tinyvec",
+]
+
+[[package]]
+name = "qjs2"
+version = "2.0.0"
+dependencies = [
+ "bootcode",
+ "ink",
+ "parity-scale-codec",
+ "phat_js",
+ "pink-extension",
+ "qjs-extensions",
+ "qjsbind",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "this-crate",
 ]
 
 [[package]]

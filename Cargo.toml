@@ -2,7 +2,7 @@
 members = ["phat_js"]
 
 [package]
-name = "qjs"
+name = "qjs2"
 version = "2.0.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
@@ -25,7 +25,7 @@ phat_js = { path = "phat_js", default-features = false }
 this-crate = "0.1"
 
 [lib]
-name = "qjs"
+name = "qjs2"
 path = "lib.rs"
 
 [features]
