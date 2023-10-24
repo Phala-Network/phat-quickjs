@@ -57,7 +57,10 @@ impl ServiceKeeper {
         }
     }
 
-    pub fn handle_query(_from: Option<AccountId>, _query: &[u8]) -> Vec<u8> {
+    pub fn handle_query(_from: Option<AccountId>, query: &[u8]) -> Vec<u8> {
+        if String::from_utf8_lossy(query) == "ping" {
+            return "pong".into();
+        }
         Vec::new()
     }
 
@@ -92,12 +95,13 @@ impl ServiceKeeper {
             .next()
             .ok_or(anyhow!("Failed to get service name from path"))?;
         let Some(service) = KEEPER.with(|keeper| keeper.borrow_mut().get_service(name)) else {
-            connection.response_tx.send(crate::runtime::HttpResponseHead {
-                status: 404,
-                headers: vec![
-                    ("Content-Length".into(), "0".into()),
-                ],
-            }).map_err(|err| anyhow!("Failed to send response: {err:?}"))?;
+            connection
+                .response_tx
+                .send(crate::runtime::HttpResponseHead {
+                    status: 404,
+                    headers: vec![("Content-Length".into(), "0".into())],
+                })
+                .map_err(|err| anyhow!("Failed to send response: {err:?}"))?;
             bail!("Service [{name}] not found");
         };
         crate::host_functions::try_accept_http_request(service, connection)?;

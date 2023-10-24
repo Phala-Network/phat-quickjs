@@ -90,8 +90,10 @@ pub mod runtime {
 #[cfg(not(feature = "native"))]
 pub mod runtime {
     use log::{error, info};
+    use scale::Decode;
     pub use sidevm::channel::HttpRequest;
     pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
+    use sidevm::local_contract::query_pink;
     pub use sidevm::{
         env::messages::AccountId, exec::HyperExecutor, net::HttpConnector, ocall::getrandom, spawn,
         time,
@@ -102,7 +104,39 @@ pub mod runtime {
     pub fn http_connector() -> HttpConnector {
         HttpConnector::new()
     }
+
+    async fn get_init_script() -> Option<String> {
+        type LangError = u8;
+        let myid = sidevm::ocall::vmid().ok()?;
+        let selector = ink_macro::selector_bytes!("sidevm_init_script");
+        let result = query_pink(myid, selector.to_vec()).await;
+        let result = match result {
+            Ok(response) => Result::<String, LangError>::decode(&mut &response[..]).ok()?,
+            Err(err) => {
+                error!("Failed to query init script: {err:?}");
+                return None;
+            }
+        };
+        match result {
+            Ok(script) => Some(script),
+            Err(err) => {
+                error!("Failed to get init script, error code: {err}");
+                None
+            }
+        }
+    }
+
     pub async fn main_loop() {
+        info!("Getting init script...");
+        match get_init_script().await {
+            None => {
+                info!("No init script found, starting the service keeper...");
+            }
+            Some(script) => {
+                info!("Executing init script...");
+                crate::ServiceKeeper::exec_script("_main", &script);
+            }
+        }
         info!("Listening for incoming queries...");
         loop {
             tokio::select! {

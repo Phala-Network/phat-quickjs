@@ -12,11 +12,13 @@ hyper = { version = "0.14", features = ["client", "http1"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 bootcode = { path = "bootcode" }
-sidevm = "0.2.0-alpha.2"
+sidevm = "0.2.0-alpha.3"
 log = "0.4"
 anyhow = "1.0"
 scopeguard = "1.2.0"
 url = "2.4.0"
+ink_macro = "4.3"
+scale = { package = "parity-scale-codec", version = "3" }
 
 # Crates for native testing
 tracing-subscriber = { version = "0.3", optional = true }
