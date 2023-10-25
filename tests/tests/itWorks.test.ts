@@ -128,11 +128,11 @@ describe("Run tests", () => {
         contract: control.address.toU8a(),
         code,
       })
-      await sleep(500);
       await checkUntil(async () => {
         const info = await pruntime.getContractInfo({ contracts: [control.address.toHex()] });
         return info.contracts[0].sidevm?.state === "running";
       }, 1000 * 10);
+      await sleep(500);
     });
 
     it("can query to sidevm from pink", async function () {
