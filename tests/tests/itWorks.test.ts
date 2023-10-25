@@ -65,7 +65,6 @@ describe("Run tests", () => {
 
     alice = this.devPhase.accounts.alice;
     certAlice = await PhalaSdk.signCertificate({
-      api,
       pair: alice,
     });
     console.log("Signer:", alice.address.toString());

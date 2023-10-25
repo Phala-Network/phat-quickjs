@@ -8,7 +8,6 @@
     "test": "devphase contract test",
     "bind": "ts-node bind.ts"
   },
-  "dependencies": {},
   "devDependencies": {
     "@devphase/cli": "^0.6.1",
     "@devphase/service": "^0.6.1",
