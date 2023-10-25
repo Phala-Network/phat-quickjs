@@ -32,7 +32,7 @@ async function checkUntil(async_fn, timeout) {
   }
 }
 
-describe("Run lego actions", () => {
+describe("Run tests", () => {
   let system: System.Contract;
   let deployerFactory: SidevmDeployer.Factory;
   let deployer: SidevmDeployer.Contract;
