@@ -29,6 +29,7 @@ export type Codec = {
 export interface ScaleCodec {
   /**
    * Parses a multi-line string representing types and returns a TypeRegistry.
+   *
    * @function parseTypes
    * @param {string} types - A string representing types.
    * @returns {TypeRegistry} - A TypeRegistry containing the parsed types.
@@ -45,12 +46,44 @@ export interface ScaleCodec {
 
   /**
    * Creates a SCALE codec object for a specific type ID.
-   * @function createEncoderForTypeId
+   *
+   * @function codec
    * @param {number|number[]} typeId - The type ID for which to create the encoder.
    * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
    * @returns {Codec} - A ScaleEncoder for encoding values of the specified type ID.
    */
   codec(typeId: number | number[], typeRegistry: TypeRegistry): Codec;
+
+  /**
+   * Creates a SCALE codec object for a specific type ID. JsDelegate2 only.
+   *
+   * @function codec
+   * @param {string} typeName - The type name for which to create the encoder.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be encoded.
+   * @returns {Codec} - A ScaleEncoder for encoding values of the specified type ID.
+   */
+  codec(typeName: string, typeRegistry: TypeRegistry): Codec;
+
+  /**
+   * SCALE encode an object to bytes. JsDelegate2 only.
+   *
+   * @function encode
+   * @param {string} type - The type name or literal type definition.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be referenced by type.
+   * @returns {Uint8Array} - The encoded value.
+   */
+  encode(data: any, type: string, typeRegistry?: TypeRegistry): Uint8Array;
+
+  /**
+   * Decodes a SCALE encoded value. JsDelegate2 only.
+   *
+   * @function decode
+   * @param {Uint8Array} data - The SCALE encoded value.
+   * @param {string} type - The type name or literal type definition.
+   * @param {TypeRegistry} typeRegistry - A TypeRegistry containing the types to be referenced by type.
+   * @returns {any} - The decoded value.
+   */
+  decode(data: Uint8Array, type: string, typeRegistry?: TypeRegistry): any;
 }
 
 declare global {
