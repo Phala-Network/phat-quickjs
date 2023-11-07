@@ -8,7 +8,7 @@ use ink::env::call;
 use ink::primitives::Hash;
 use scale::{Decode, Encode};
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum GenericValue<S, B> {
     String(S),
