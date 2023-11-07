@@ -107,13 +107,45 @@
 //!
 //! Type expression can be one of the following:
 //!
-//! | Type Expression          | Description                               | Example          |
-//! |-------------------------|-------------------------------------------|------------------|
-//! | `#`-prefixed | Primitive types. | `#bool`, `#u8`, `#u16`, `#u32`, `#u64`, `#u128`, `#i8`, `#i16`, `#i32`, `#i64`, `#i128`, `#str`  |
-//! | `[type;size]`           | Array type with element type `type` and size `size`. | `[#u8; 32]` |
-//! | `(type1, type2, ...)`   | Tuple type with elements of type `type1`, `type2`, ... | `(#u8, #str)` |
-//! | `{field1:type1, field2:type2, ...}` | Struct type with fields and types. | `{age:#u32, name:#str}` |
-//! | `<variant1:type1, variant2:type2, ...>` | Enum type with variants and types. if the variant is a unit variant, then the type expression can be omitted.| `<Success:#i32, Error:#str>`, `<Some:#u32,None>` |
+//! | Type Expression          | Description                               | Example          | JS type |
+//! |-------------------------|-------------------------------------------|------------------|--------------------|
+//! | `bool` | Primitive type bool |  | `true`, `false` |
+//! | `u8`, `u16`, `u32`, `u64`, `u128`, `i8`, `i16`, `i32`, `i64`, `i128` | Primitive number types |   | number or bigint |
+//! | `str` | Primitive type str |   | string |
+//! | `[type;size]`           | Array type with element type `type` and size `size`. | `[u8; 32]` | Uint8Array or `0x` prefixed string |
+//! | `[type]`                | Sequence type with element type `type`. | `[u8]` | Uint8Array or `0x` prefixed string |
+//! | `(type1, type2, ...)`   | Tuple type with elements of type `type1`, `type2`, ... | `(u8, str)` | Array of value for inner type. (e.g. `[42, 'foobar']`) |
+//! | `{field1:type1, field2:type2, ...}` | Struct type with fields and types. | `{age:u32, name:str}` | Object with field name as key |
+//! | `<variant1:type1, variant2:type2, ...>` | Enum type with variants and types. if the variant is a unit variant, then the type expression can be omitted.| `<Success:i32, Error:str>`, `<Some:u32,None>` | Object with variant name as key. (e.g. `{Some: 42}`)|
+//! | `@type` | Compact number types. Only unsigned number types is supported | `@u64` | number or bigint |
+//!
+//! ### Generic type support
+//!
+//! Generic parameters can be added to the type definition, for example:
+//!
+//! ```text
+//! Vec<T>=[T]
+//! ```
+//!
+//! ### Option type
+//! The Option type is not a special type, but a vanilla enum type. It is needed to be defined by the user explicitly. Same for the Result type.
+//!
+//! ```
+//! Option<T>=<None,Some:T>
+//! Result<T,E>=<Ok:T,Err:E>
+//! ```
+//!
+//! There is one special syntax for the Option type:
+//! ```
+//! Option<T>=<_None,_Some:T>
+//! ```
+//! If the Option type is defined in this way, then the `None` variant would be decoded as `null` instead of `{None: null}` and the `Some` variant would be decoded as the inner value directly instead of `{Some: innerValue}`.
+//! For example:
+//! ```js
+//! const encoded = pink.SCALE.encode(42, "<_None,_Some:u32>");
+//! const decoded = pink.SCALE.decode(encoded, "<_None,_Some:u32>");
+//! console.log(decoded); // 42
+//! ```
 //!
 //! ### Nested type definition
 //!
@@ -123,22 +155,14 @@
 //! Block={header:{hash:[u8;32],size:u32}}
 //! ```
 //!
-//! ### Generic type support
-//!
-//! Generic parameters can be added to the type definition, for example:
-//!
-//! ```text
-//! Result<T,E>=<Ok:T,Err:E>
-//! ```
-//!
 //! ### Direct encode/decode API
 //!
 //! The encode/decode api also support literal type definition as well as a typename or id, for example:
 //!
 //! ```js
 //! const data = { name: "Alice", age: 18 };
-//! const encoded = pink.SCALE.encode(data, "{ name: #str, age: u8 }");
-//! const decoded = pink.SCALE.decode(encoded, "{ name: #str, age: u8 }");
+//! const encoded = pink.SCALE.encode(data, "{ name: str, age: u8 }");
+//! const decoded = pink.SCALE.decode(encoded, "{ name: str, age: u8 }");
 //! ```
 //!
 //! ## Error handling
