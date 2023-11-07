@@ -1,3 +1,144 @@
+//! A library for interacting with the contract phat-quickjs
+//!
+//! The available JS APIs can be found [here](https://github.com/Phala-Network/phat-quickjs/blob/master/npm_package/pink-env/src/index.ts).
+//!
+//! # JS API examples
+//!
+//! ## Cross-contract call
+//!
+//! ```js
+//! // Delegate calling
+//! const delegateOutput = pink.invokeContractDelegate({
+//!     codeHash:
+//!       "0x0000000000000000000000000000000000000000000000000000000000000000",
+//!     selector: 0xdeadbeef,
+//!     input: "0x00",
+//!   });
+//!   
+//!   // Instance calling
+//!  const contractOutput = pink.invokeContract({
+//!    callee: "0x0000000000000000000000000000000000000000000000000000000000000000",
+//!    input: "0x00",
+//!    selector: 0xdeadbeef,
+//!    gasLimit: 0n,
+//!    value: 0n,
+//!  });
+//! ```
+//!
+//! ## HTTP request
+//!
+//! HTTP request is supported in the JS environment. However, the API is sync rather than async.
+//! This is different from other JavaScript engines. For example:
+//! ```js
+//! const response = pink.httpReqeust({
+//!   url: "https://httpbin.org/ip",
+//!   method: "GET",
+//!   returnTextBody: true,
+//! });
+//! console.log(response.body);
+//! ```
+//!
+//! ## SCALE codec
+//!
+//! Let's introduce the details of the SCALE codec API which is not documented in the above link.
+//!
+//! The SCALE codec API is mounted on the global object `pink.SCALE` which contains the following functions:
+//!
+//! - `pink.SCALE.parseTypes(types: string): TypeRegistry`
+//! - `pink.SCALE.codec(type: string | number | number[], typeRegistry?: TypeRegistry): Codec`
+//!
+//! Let's make a basice example to show how to use the SCALE codec API:
+//!
+//! ```js
+//! const types = `
+//!   Hash=[u8;32]
+//!   Info={hash:Hash,size:u32}
+//! `;
+//! const typeRegistry = pink.SCALE.parseTypes(types);
+//! const infoCodec = pink.SCALE.codec(`Info`, typeRegistry);
+//! const encoded = infoCodec.encode({
+//!  hash: "0x1234567890123456789012345678901234567890123456789012345678901234",
+//!  size: 1234,
+//! });
+//! console.log("encoded:", encoded);
+//! const decoded = infoCodec.decode(encoded);
+//! pink.inspect("decoded:", decoded);
+//! ```
+//!
+//! The above code will output:
+//! ```text
+//! JS: encoded: 18,52,86,120,144,18,52,86,120,144,18,52,86,120,144,18,52,86,120,144,18,52,86,120,144,18,52,86,120,144,18,52,210,4,0,0
+//! JS: decoded: {
+//! JS: hash: 0x1234567890123456789012345678901234567890123456789012345678901234,
+//! JS: size: 1234
+//! JS: }
+//! ```
+//!
+//! ## Grammar of the type definition
+//! ### Basic grammar
+//! In the above example, we use the following type definition:
+//! ```text
+//! Hash=[u8;32]
+//! Info={hash:Hash,size:u32}
+//! ```
+//! where we define a type `Hash` which is an array of 32 bytes, and a type `Info` which is a struct containing a `Hash` and a `u32`.
+//!
+//! The grammar is defined as follows:
+//!
+//! Each entry is type definition, which is of the form `name=type`. Then name must be a valid identifier,
+//! and type is a valid type expression described below.
+//!
+//! Type expression can be one of the following:
+//!
+//! | Type Expression          | Description                               | Example          |
+//! |-------------------------|-------------------------------------------|------------------|
+//! | `#`-prefixed | Primitive types. | `#bool`, `#u8`, `#u16`, `#u32`, `#u64`, `#u128`, `#i8`, `#i16`, `#i32`, `#i64`, `#i128`, `#str`  |
+//! | `[type;size]`           | Array type with element type `type` and size `size`. | `[#u8; 32]` |
+//! | `(type1, type2, ...)`   | Tuple type with elements of type `type1`, `type2`, ... | `(#u8, #str)` |
+//! | `{field1:type1, field2:type2, ...}` | Struct type with fields and types. | `{age:#u32, name:#str}` |
+//! | `<variant1:type1, variant2:type2, ...>` | Enum type with variants and types. if the variant is a unit variant, then the type expression can be omitted.| `<Success:#i32, Error:#str>`, `<Some:#u32,None>` |
+//!
+//! ### Nested type definition
+//!
+//! Type definition can be nested, for example:
+//!
+//! ```text
+//! Block={header:{hash:[u8;32],size:u32}}
+//! ```
+//!
+//! ### Generic type support
+//!
+//! Generic parameters can be added to the type definition, for example:
+//!
+//! ```
+//! Result<T,E>=<Ok:T,Err:E>
+//! ```
+//!
+//! ### Direct encode/decode API
+//!
+//! The encode/decode api also support literal type definition as well as a typename or id, for example:
+//!
+//! ```js
+//! const data = { name: "Alice", age: 18 };
+//! const encoded = pink.SCALE.encode(data, "{ name: #str, age: u8 }");
+//! const decoded = pink.SCALE.decode(encoded, "{ name: #str, age: u8 }");
+//! ```
+//!
+//! ## Error handling
+//! Host calls would throw an exception if any error is encountered. For example, if we pass an invalid method to the API:
+//! ```js
+//!  try {
+//!    const response = pink.httpReqeust({
+//!      url: "https://httpbin.org/ip",
+//!      method: 42,
+//!      returnTextBody: true,
+//!    });
+//!    console.log(response.body);
+//!  } catch (err) {
+//!    console.log("Some error ocurred:", err);
+//!  }
+//! ```
+//!
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
