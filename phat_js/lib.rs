@@ -2,6 +2,23 @@
 //!
 //! The available JS APIs can be found [here](https://github.com/Phala-Network/phat-quickjs/blob/master/npm_package/pink-env/src/index.ts).
 //!
+//! # Script args and return value
+//!
+//! The `eval_*` functions take a script as source code and args as input. It eval the source by delegate call to the code pointed to by
+//! driver JsDelegate2 and return the value of the js expresson. The return value only lost-less supports string or Uint8Array. Ojbects
+//! of other types will be casted to string.
+//!
+//! Example:
+//! ```no_run
+//! let src = r#"
+//! (function () {
+//!     return scriptArgs[0] + scriptArgs[1];
+//! })()
+//! "#;
+//! let output = phat_js::eval(src, &["foo".into(), "bar".into()]);
+//! assert_eq!(output, Ok(phat_js::Output::String("foobar".into())));
+//! ```
+//!
 //! # JS API examples
 //!
 //! ## Cross-contract call
@@ -110,7 +127,7 @@
 //!
 //! Generic parameters can be added to the type definition, for example:
 //!
-//! ```
+//! ```text
 //! Result<T,E>=<Ok:T,Err:E>
 //! ```
 //!
