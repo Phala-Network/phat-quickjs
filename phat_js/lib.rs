@@ -5,7 +5,7 @@
 //! # Script args and return value
 //!
 //! The `eval_*` functions take a script as source code and args as input. It eval the source by delegate call to the code pointed to by
-//! driver JsDelegate2 and return the value of the js expresson. The return value only lost-less supports string or Uint8Array. Ojbects
+//! driver `JsDelegate2` and return the value of the js expression. The return value only lost-less supports string or Uint8Array. Ojbects
 //! of other types will be casted to string.
 //!
 //! Example:
@@ -40,6 +40,43 @@
 //!    gasLimit: 0n,
 //!    value: 0n,
 //!  });
+//! ```
+//!
+//! This is the low-level API for cross-contract call.
+//! If you have the contract metadata file, there is a [script](https://github.com/Phala-Network/phat-quickjs/blob/master/scripts/meta2js.py) helps
+//! to generate the high-level API for cross-contract call. For example run the following command:
+//!
+//! ```shell
+//! python meta2js.py --keep System::version /path/to/system.contract
+//! ```
+//! would generate the following code:
+//! ```js
+//! function invokeContract(callee, selector, args, metadata, registry) {
+//!     const inputCodec = pink.SCALE.codec(metadata.inputs, registry);
+//!     const outputCodec = pink.SCALE.codec(metadata.output, registry);
+//!     const input = inputCodec.encode(args ?? []);
+//!     const output = pink.invokeContract({ callee, selector, input });
+//!     return outputCodec.decode(output);
+//! }
+//! class System {
+//!     constructor(address) {
+//!         this.typeRegistryRaw = '#u16\n(0,0,0)\n<CouldNotReadInput::1>\n<Ok:1,Err:2>'
+//!         this.typeRegistry = pink.SCALE.parseTypes(this.typeRegistryRaw);
+//!         this.address = address;
+//!     }
+//!   
+//!     system$Version() {
+//!         const io = {"inputs": [], "output": 3};
+//!         return invokeContract(this.address, 2278132365, [], io, this.typeRegistry);
+//!     }
+//! }
+//! ```
+//!
+//! Then you can use the high-level API to call the contract:
+//! ```js
+//! const system = new System(systemAddress);
+//! const version = system.system$Version();
+//! console.log("version:", version);
 //! ```
 //!
 //! ## HTTP request
@@ -91,6 +128,14 @@
 //! JS: }
 //! ```
 //!
+//! Or using the direct encode/decode api which support literal type definition as well as a typename or id, for example:
+//!
+//! ```js
+//! const data = { name: "Alice", age: 18 };
+//! const encoded = pink.SCALE.encode(data, "{ name: str, age: u8 }");
+//! const decoded = pink.SCALE.decode(encoded, "{ name: str, age: u8 }");
+//! ```
+//!
 //! ## Grammar of the type definition
 //! ### Basic grammar
 //! In the above example, we use the following type definition:
@@ -102,7 +147,7 @@
 //!
 //! The grammar is defined as follows:
 //!
-//! Each entry is type definition, which is of the form `name=type`. Then name must be a valid identifier,
+//! Each entry is type definition, which is of the form `name=type`. Where name must be a valid identifier,
 //! and type is a valid type expression described below.
 //!
 //! Type expression can be one of the following:
@@ -112,11 +157,11 @@
 //! | `bool` | Primitive type bool |  | `true`, `false` |
 //! | `u8`, `u16`, `u32`, `u64`, `u128`, `i8`, `i16`, `i32`, `i64`, `i128` | Primitive number types |   | number or bigint |
 //! | `str` | Primitive type str |   | string |
-//! | `[type;size]`           | Array type with element type `type` and size `size`. | `[u8; 32]` | Uint8Array or `0x` prefixed string |
-//! | `[type]`                | Sequence type with element type `type`. | `[u8]` | Uint8Array or `0x` prefixed string |
+//! | `[type;size]`           | Array type with element type `type` and size `size`. | `[u8; 32]` | Array of elements. (Uint8Array or `0x` prefixed hex string is allowed for [u8; N]) |
+//! | `[type]`                | Sequence type with element type `type`. | `[u8]` | Array of elements. (Uint8Array or `0x` prefixed hex string is allowed for [u8]) |
 //! | `(type1, type2, ...)`   | Tuple type with elements of type `type1`, `type2`, ... | `(u8, str)` | Array of value for inner type. (e.g. `[42, 'foobar']`) |
 //! | `{field1:type1, field2:type2, ...}` | Struct type with fields and types. | `{age:u32, name:str}` | Object with field name as key |
-//! | `<variant1:type1, variant2:type2, ...>` | Enum type with variants and types. if the variant is a unit variant, then the type expression can be omitted.| `<Success:i32, Error:str>`, `<Some:u32,None>` | Object with variant name as key. (e.g. `{Some: 42}`)|
+//! | `<variant1:type1, variant2:type2, ...>` | Enum type with variants and types. if the variant is a unit variant, then the type expression can be omitted.| `<Success:i32, Error:str>`, `<None,Some:u32>` | Object with variant name as key. (e.g. `{Some: 42}`)|
 //! | `@type` | Compact number types. Only unsigned number types is supported | `@u64` | number or bigint |
 //!
 //! ### Generic type support
@@ -130,13 +175,13 @@
 //! ### Option type
 //! The Option type is not a special type, but a vanilla enum type. It is needed to be defined by the user explicitly. Same for the Result type.
 //!
-//! ```
+//! ```text
 //! Option<T>=<None,Some:T>
 //! Result<T,E>=<Ok:T,Err:E>
 //! ```
 //!
 //! There is one special syntax for the Option type:
-//! ```
+//! ```text
 //! Option<T>=<_None,_Some:T>
 //! ```
 //! If the Option type is defined in this way, then the `None` variant would be decoded as `null` instead of `{None: null}` and the `Some` variant would be decoded as the inner value directly instead of `{Some: innerValue}`.
@@ -153,16 +198,6 @@
 //!
 //! ```text
 //! Block={header:{hash:[u8;32],size:u32}}
-//! ```
-//!
-//! ### Direct encode/decode API
-//!
-//! The encode/decode api also support literal type definition as well as a typename or id, for example:
-//!
-//! ```js
-//! const data = { name: "Alice", age: 18 };
-//! const encoded = pink.SCALE.encode(data, "{ name: str, age: u8 }");
-//! const decoded = pink.SCALE.decode(encoded, "{ name: str, age: u8 }");
 //! ```
 //!
 //! ## Error handling
