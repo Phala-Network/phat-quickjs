@@ -1,6 +1,6 @@
 {
   "name": "@phala/pink-env",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "The js environment accessing of Phala's Phat contract.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
