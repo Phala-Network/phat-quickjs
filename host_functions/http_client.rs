@@ -36,8 +36,10 @@ struct HttpRequest {
     method: String,
     #[qjsbind(default)]
     headers: Headers,
-    #[qjsbind(default, as_bytes)]
-    body: Vec<u8>,
+    #[qjsbind(default)]
+    body: js::BytesOrHex<Vec<u8>>,
+    #[qjsbind(default)]
+    text_body: String,
     #[qjsbind(default)]
     return_text_body: bool,
 }
@@ -51,7 +53,11 @@ impl From<HttpRequest> for pink::chain_extension::HttpRequest {
             url: req.url,
             method: req.method,
             headers: req.headers.pairs,
-            body: req.body,
+            body: if !req.body.0.is_empty() {
+                req.body.0
+            } else {
+                req.text_body.into_bytes()
+            },
         }
     }
 }
@@ -100,7 +106,7 @@ fn host_batch_http_request(
     let responses = pink::ext()
         .batch_http_request(
             requests.into_iter().map(Into::into).collect(),
-            timeout_ms.unwrap_or(1000*60),
+            timeout_ms.unwrap_or(1000 * 60),
         )
         .map_err(|err| alloc::format!("Failed to call batch_http_request: {err:?}"))?;
 
