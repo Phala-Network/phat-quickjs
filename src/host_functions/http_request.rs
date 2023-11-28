@@ -73,7 +73,7 @@ pub struct HttpRequest {
     headers: Headers,
     #[qjsbind(default, as_bytes)]
     body: Vec<u8>,
-    body_text: Option<String>,
+    text_body: Option<String>,
     #[qjsbind(default = "default_timeout")]
     timeout_ms: u64,
 }
@@ -138,8 +138,8 @@ async fn do_http_request_inner(
     let mut builder = hyper::Request::builder()
         .method(req.method.as_str())
         .uri(&uri);
-    let body: Vec<u8> = if let Some(body_text) = req.body_text {
-        body_text.into_bytes()
+    let body: Vec<u8> = if let Some(text_body) = req.text_body {
+        text_body.into_bytes()
     } else {
         req.body
     };
@@ -155,7 +155,7 @@ async fn do_http_request_inner(
         builder = builder.header("Content-Length", body.len());
     }
     if !headers.contains("User-Agent") {
-        builder = builder.header("User-Agent", "sidevm-quickjs/0.1.0");
+        builder = builder.header("User-Agent", "PhatContract/0.1.0");
     }
     let request = builder
         .body(Body::from(body))

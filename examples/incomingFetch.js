@@ -84,7 +84,7 @@ function addEventListener(type, callback) {
                         request,
                         async respondWith(response) {
                             response = await response;
-                            Sidevm.httpSendResponse(req.opaqueResponseTx, {
+                            Sidevm.httpSendResponseHead(req.opaqueResponseTx, {
                                 status: response.status,
                                 headers: response.headers,
                             });

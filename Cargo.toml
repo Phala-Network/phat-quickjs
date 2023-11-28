@@ -15,7 +15,6 @@ bootcode = { path = "bootcode" }
 sidevm = "0.2.0-alpha.3"
 log = "0.4"
 anyhow = "1.0"
-scopeguard = "1.2.0"
 url = "2.4.0"
 ink_macro = "4.3"
 scale = { package = "parity-scale-codec", version = "3" }

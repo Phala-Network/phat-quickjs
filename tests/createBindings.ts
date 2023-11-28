@@ -1,7 +1,7 @@
 import { RuntimeContext, RunMode, AbiTypeBindingProcessor, TypeBinder } from "@devphase/service";
 import * as fs from 'fs';
 
-function bind(contract: string, name: string) {
+function createBinding(contract: string, name: string) {
     const abi = JSON.parse(fs.readFileSync(contract, 'utf-8'));
     const output = `typings/${name}.ts`;
     AbiTypeBindingProcessor.createTypeBindingFile(output, name, abi);
@@ -16,8 +16,8 @@ async function prepareStack(): Promise<string> {
 
 async function main() {
     const stackDir = await prepareStack();
-    bind(`${stackDir}/system.contract`, 'System');
-    bind(`${stackDir}/sidevm_deployer.contract`, 'SidevmDeployer');
+    createBinding(`${stackDir}/system.contract`, 'System');
+    createBinding(`${stackDir}/sidevm_deployer.contract`, 'SidevmDeployer');
 }
 
-main().catch(console.error);
+main().then(() => process.exit(0)).catch(console.error).finally(() => process.exit(-1));

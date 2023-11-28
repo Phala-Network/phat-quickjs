@@ -58,7 +58,7 @@ impl ServiceKeeper {
     }
 
     pub fn handle_query(_from: Option<AccountId>, query: &[u8]) -> Vec<u8> {
-        if String::from_utf8_lossy(query) == "ping" {
+        if query == b"ping" {
             return "pong".into();
         }
         Vec::new()
@@ -87,6 +87,10 @@ impl ServiceKeeper {
         }
     }
 
+    /// Handle an incoming HTTP request.
+    ///
+    /// The path pattern is `/<service_name>/<path...>` where the `service_name` is used to identify the js instance.
+    /// The entire path is passed to js code as the `path` parameter.
     pub fn handle_connection(connection: crate::runtime::HttpRequest) -> Result<()> {
         let url: url::Url = connection.head.url.parse()?;
         let name = url

@@ -10,7 +10,7 @@ Sidevm.httpListen(async req => {
     }
 
     console.log('Received body of length:', body.length);
-    Sidevm.httpSendResponse(req.opaqueResponseTx, {
+    Sidevm.httpSendResponseHead(req.opaqueResponseTx, {
         status: 200,
         headers: {
             'Content-Type': 'text/plain',

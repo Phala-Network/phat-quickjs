@@ -2,6 +2,7 @@ use super::*;
 use crate::{runtime::time::sleep, service::OwnedJsValue};
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
+    // `clearTimeout` and `clearInterval` are implemented by `close` on the guest side
     ns.define_property_fn("setTimeout", set_timeout)?;
     ns.define_property_fn("setInterval", set_interval)?;
     Ok(())
