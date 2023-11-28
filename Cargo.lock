@@ -1035,6 +1035,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pink-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cbfce16d3b505cfe560e1278836e16f400274d04395773ceb7879029b409429"
+dependencies = [
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1573,9 +1582,9 @@ checksum = "a7cee0529a6d40f580e7a5e6c495c8fbfe21b7b52795ed4bb5e62cdf92bc6380"
 
 [[package]]
 name = "sidevm"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7ee5ed8d13e45372d26f6586ab3296afae3750069048b3659cb5d9b6fb0632d"
+checksum = "2aa49c142a26334aeb64317ed47707d58117d5af66d74e35ea88e115d6ddb412"
 dependencies = [
  "derive_more",
  "futures",
@@ -1592,9 +1601,9 @@ dependencies = [
 
 [[package]]
 name = "sidevm-env"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d9e32fe92ee1870ddfcee9cf5114d0ae7d89b02dac83434846e4ecc01d3eaf5"
+checksum = "f1ae50fa49a3af1f878fb21accb8b457aff644689b355764120055672b1dec85"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1634,11 +1643,13 @@ version = "1.1.0"
 dependencies = [
  "anyhow",
  "bootcode",
+ "hex",
  "hyper",
  "hyper-rustls",
  "ink_macro",
  "log",
  "parity-scale-codec",
+ "pink-types",
  "qjs-extensions",
  "qjsbind",
  "rand",

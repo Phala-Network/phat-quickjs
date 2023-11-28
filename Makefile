@@ -1,18 +1,14 @@
-.PHONY: all clean opt deep-clean
+.PHONY: all clean opt deep-clean install run test
+
 PREFIX=~/bin
-BUILD_OUTOUT=target/wasm32-wasi/release/sidevm-quickjs.wasm
+BUILD_OUTPUT_DIR=target/wasm32-wasi/release
+BUILD_OUTPUT=sidejs.wasm phatjs.wasm
 
-qjs.wasm: $(BUILD_OUTOUT)
-	cp $(BUILD_OUTOUT) qjs.wasm
+all: $(BUILD_OUTPUT)
 
-opt: qjs-opt.wasm
-
-qjs-opt.wasm: qjs.wasm
-	wasm-opt -Oz -o qjs-opt.wasm qjs.wasm
-	wasm-strip qjs-opt.wasm
-
-$(BUILD_OUTOUT):
+%.wasm:
 	cargo build --release --target wasm32-wasi --no-default-features
+	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 native:
 	cargo build --release
@@ -21,15 +17,15 @@ install: native
 	cp target/release/sidevm-quickjs $(PREFIX)/
 
 run: all
-	RUST_LOG=info sidevm-host $(BUILD_OUTOUT)
+	RUST_LOG=info sidevm-host $(BUILD_OUTPUT_SIDEJS)
 
 clean:
-	rm -rf $(BUILD_OUTOUT)
+	rm -rf $(BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
 
 deep-clean: clean
 	cargo clean
 	make clean -C qjs-sys/qjs-sys
 
-test: qjs.wasm
+test:
 	cd tests && yarn && yarn build && yarn bind && yarn test

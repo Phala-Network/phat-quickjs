@@ -85,6 +85,7 @@ pub mod runtime {
         }
     }
     pub use tracing_subscriber::fmt::init as init_logger;
+    pub fn set_output(_output: Vec<u8>) {}
 }
 
 #[cfg(not(feature = "native"))]
@@ -166,5 +167,8 @@ pub mod runtime {
     }
     pub fn init_logger() {
         sidevm::logger::Logger::with_max_level(log::LevelFilter::Debug).init();
+    }
+    pub fn set_output(output: Vec<u8>) {
+        sidevm::ocall::emit_program_output(&output).expect("Failed to emit program output")
     }
 }

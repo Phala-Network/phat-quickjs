@@ -17,7 +17,7 @@ mod resource;
 pub(crate) use resource::{OwnedJsValue, Resource};
 
 #[derive(Clone)]
-pub(crate) struct ServiceRef(Rc<Service>);
+pub struct ServiceRef(Rc<Service>);
 #[derive(Clone)]
 pub(crate) struct ServiceWeakRef(Weak<Service>);
 
@@ -157,7 +157,7 @@ impl Service {
         }
     }
 
-    pub(crate) fn new_ref() -> ServiceRef {
+    pub fn new_ref() -> ServiceRef {
         ServiceRef(Rc::new_cyclic(|weak_self| {
             Service::new(ServiceWeakRef(weak_self.clone()))
         }))
