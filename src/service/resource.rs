@@ -21,8 +21,7 @@ impl TryFrom<js::Value> for OwnedJsValue {
             js::Value::Null => Ok(OwnedJsValue::Null),
             js::Value::Exception => Ok(OwnedJsValue::Exception),
             js::Value::Other { ctx, value } => {
-                let runtime =
-                    js_context_get_runtime(&ctx).ok_or(ValueError::Static("service gone"))?;
+                let runtime = js_context_get_runtime(&ctx).ok_or(ValueError::RuntimeDropped)?;
                 let v = unsafe { c::JS_DupValue(ctx.as_ptr(), *value) };
                 Ok(OwnedJsValue::from_raw(v, Rc::downgrade(&runtime)))
             }
@@ -45,9 +44,7 @@ impl TryFrom<OwnedJsValue> for js::Value {
             OwnedJsValue::Null => Ok(js::Value::Null),
             OwnedJsValue::Exception => Ok(js::Value::Exception),
             OwnedJsValue::Other { runtime, value } => {
-                let engine = runtime
-                    .upgrade()
-                    .ok_or(ValueError::Static("Runtime has been dropped"))?;
+                let engine = runtime.upgrade().ok_or(ValueError::RuntimeDropped)?;
                 Ok(js::Value::new_cloned(&engine.ctx, *value))
             }
         }

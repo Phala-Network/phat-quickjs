@@ -44,14 +44,13 @@ impl ServiceWeakRef {
 }
 
 impl TryFrom<js::Context> for ServiceRef {
-    type Error = anyhow::Error;
+    type Error = ValueError;
 
     fn try_from(ctx: js::Context) -> Result<Self, Self::Error> {
-        let weak_srv = js_context_get_service(&ctx)
-            .ok_or(anyhow::anyhow!("Failed to get service from context"))?;
-        weak_srv
+        js_context_get_service(&ctx)
+            .ok_or(ValueError::Static("Service not found"))?
             .upgrade()
-            .ok_or(anyhow::anyhow!("Service has been dropped"))
+            .ok_or(ValueError::RuntimeDropped)
     }
 }
 
