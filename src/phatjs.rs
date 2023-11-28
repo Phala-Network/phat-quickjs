@@ -54,11 +54,12 @@ fn parse_args() -> Result<Args> {
 }
 
 fn print_usage() {
-    println!("Usage: phat-js [options] [script..] [-- [args]]");
+    println!("Usage: phatjs [options] [script..] [-- [args]]");
+    println!("");
     println!("Options:");
-    println!("  -c <code>  Execute code");
+    println!("  -c <code>        Execute code");
     println!("  -b <hexed code>  Execute bytecode");
-    println!("  --         Stop processing options");
+    println!("  --               Stop processing options");
 }
 
 async fn run() -> Result<JsValue> {

@@ -1,8 +1,11 @@
-.PHONY: all clean opt deep-clean install run test
+TARGETS=sidejs phatjs
 
 PREFIX=~/bin
 BUILD_OUTPUT_DIR=target/wasm32-wasi/release
-BUILD_OUTPUT=sidejs.wasm phatjs.wasm
+BUILD_OUTPUT=$(addsuffix .wasm, $(TARGETS))
+OPTIMIZED_OUTPUT=$(addsuffix -opt.wasm, $(TARGETS))
+
+.PHONY: all clean opt deep-clean install run test opt
 
 all: $(BUILD_OUTPUT)
 
@@ -10,14 +13,17 @@ all: $(BUILD_OUTPUT)
 	cargo build --release --target wasm32-wasi --no-default-features
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
+opt: $(OPTIMIZED_OUTPUT)
+
+%-opt.wasm: %.wasm
+	wasm-opt $< -Os -o $@
+	wasm-strip $@
+
 native:
 	cargo build --release
 
 install: native
-	cp target/release/sidevm-quickjs $(PREFIX)/
-
-run: all
-	RUST_LOG=info sidevm-host $(BUILD_OUTPUT_SIDEJS)
+	$(foreach bin,$(TARGETS),cp target/release/$(bin) $(PREFIX)/;)
 
 clean:
 	rm -rf $(BUILD_OUTPUT_DIR)/*.wasm
