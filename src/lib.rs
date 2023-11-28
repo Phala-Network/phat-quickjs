@@ -89,7 +89,8 @@ pub mod runtime {
 
 #[cfg(not(feature = "native"))]
 pub mod runtime {
-    use log::{error, info};
+    use anyhow::{anyhow, Context, Result};
+    use log::{error, info, warn};
     use scale::Decode;
     pub use sidevm::channel::HttpRequest;
     pub use sidevm::env::messages::{HttpHead, HttpResponseHead};
@@ -105,34 +106,27 @@ pub mod runtime {
         HttpConnector::new()
     }
 
-    async fn get_init_script() -> Option<String> {
+    async fn get_init_script() -> Result<String> {
         type LangError = u8;
-        let myid = sidevm::ocall::vmid().ok()?;
+        let myid = sidevm::ocall::vmid()?;
         let selector = ink_macro::selector_bytes!("sidevm_init_script");
-        let result = query_pink(myid, selector.to_vec()).await;
-        let result = match result {
-            Ok(response) => Result::<String, LangError>::decode(&mut &response[..]).ok()?,
-            Err(err) => {
-                error!("Failed to query init script: {err:?}");
-                return None;
-            }
-        };
-        match result {
-            Ok(script) => Some(script),
-            Err(err) => {
-                error!("Failed to get init script, error code: {err}");
-                None
-            }
-        }
+        let response = query_pink(myid, selector.to_vec())
+            .await
+            .map_err(|err| anyhow!("Failed to query init script: {err:?}"))?;
+        let script = Result::<String, LangError>::decode(&mut &response[..])
+            .context("Failed to decode Result::<String, LangError>")?
+            .map_err(|err| anyhow!("LangError({err})"))?;
+        Ok(script)
     }
 
     pub async fn main_loop() {
         info!("Getting init script...");
         match get_init_script().await {
-            None => {
+            Err(err) => {
+                warn!("Failed to get init script: {err}");
                 info!("No init script found, starting the service keeper...");
             }
-            Some(script) => {
+            Ok(script) => {
                 info!("Executing init script...");
                 crate::ServiceKeeper::exec_script("_main", &script);
             }
