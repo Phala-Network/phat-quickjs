@@ -15,9 +15,8 @@ struct Args {
 }
 
 fn parse_args() -> Result<Args> {
-    let args: Vec<_> = std::env::args().collect();
     let mut codes = vec![];
-    let mut iter = args.into_iter();
+    let mut iter = std::env::args();
     iter.next();
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
