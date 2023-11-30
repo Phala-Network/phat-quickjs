@@ -73,22 +73,32 @@ async fn run() -> Result<JsValue> {
         .get_global_object()
         .set_property("scriptArgs", &js_args)
         .context("Failed to set scriptArgs")?;
+    let mut expr_val = None;
     for code in args.codes.into_iter() {
-        let output = match code {
+        let result = match code {
             JsCode::Source(src) => service.exec_script(&src),
             JsCode::Bytecode(bytes) => service.exec_bytecode(&bytes),
         };
-        if let Err(err) = output {
-            bail!("Error: {err}");
+        match result {
+            Ok(value) => expr_val = value.to_js_value(),
+            Err(err) => {
+                bail!("Failed to execute script: {err}");
+            }
         }
     }
     if service.number_of_tasks() > 0 {
         service.wait_for_tasks().await;
     }
+    // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
     let output = js_ctx
         .get_global_object()
         .get_property("scriptOutput")
         .unwrap_or_default();
+    let output = if output.is_undefined() {
+        expr_val.unwrap_or_default()
+    } else {
+        output
+    };
     convert(output).context("Failed to convert output")
 }
 
