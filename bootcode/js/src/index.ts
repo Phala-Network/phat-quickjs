@@ -1,8 +1,9 @@
-import "./pink";
-import "./polyfills";
-import { parseTypes, codec } from "./scale";
+import "./polyfill-textencoding";
+import "./polyfill-streams";
+import "./polyfill-fetch";
+import "./polyfill-url";
+import "./polyfill-xhr";
+import "./sidevm";
 
-// TODO: lazy load the SCALE module
-(function (g) {
-  g.pink.SCALE = { parseTypes, codec };
-})(globalThis as any);
+import { Headers } from "headers-polyfill";
+globalThis.Headers = Headers;

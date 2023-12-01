@@ -1,38 +1,40 @@
 [package]
-name = "qjs"
+name = "sidevm-quickjs"
 version = "1.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
-[profile.release]
-debug-assertions = false
-overflow-checks = false
-
 [dependencies]
-ink = { version = "4", default-features = false, features = ["static-buffer-1M256K"]}
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
+js = { package = "qjsbind", path = "qjs-sys/qjsbind" }
+qjs-extensions = { path = "qjs-sys/qjs-extensions", features = ['std']}
+tokio = { version = "1", features = ["sync", "macros", "io-util"] }
+hyper = { version = "0.14", features = ["client", "http1"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-qjs-sys = { path = "qjs-sys" }
-pink-extension = { version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
+sidevm = "0.2.0-alpha.3"
+log = "0.4"
+anyhow = "1.0"
+url = "2.4.0"
+ink_macro = "4.3"
+scale = { package = "parity-scale-codec", version = "3" }
 
-[lib]
-name = "qjs"
-path = "lib.rs"
+# Crates for native testing
+tracing-subscriber = { version = "0.3", optional = true }
+rand = { version = "0.8.5", optional = true }
+hyper-rustls = { version = "0.24.1", optional = true }
 
 [features]
-default = ["std"]
-std = [
-    "ink/std",
-    "scale/std",
-    "scale-info/std",
-    "serde/std",
-    "serde_json/std",
-    "pink-extension/std",
-]
-ink-as-dependency = []
+default = ["native"]
+sanitize-address = ["js/sanitize-address"]
 
-[patch.crates-io]
-ink = { git = "https://github.com/kvinwang/ink.git", branch = "config-buffer" }
+stream = ["js/stream"]
+
+native = [
+    "tokio/full",
+    "tracing-subscriber",
+    "rand",
+    "hyper/runtime",
+    "hyper/tcp",
+    "hyper-rustls/webpki-roots",
+]

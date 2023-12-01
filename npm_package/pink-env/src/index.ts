@@ -60,37 +60,7 @@ declare global {
    * The extension object for pink contract.
    * @typedef pink
    */
-  var pink: {
-    /**
-     * Call into a contract.
-     * @param {Bytes} args.callee - The address of the contract to be called.
-     * @param {(number|bigint)} args.gasLimit - The gas limit for the contract call. Defaults to 0;
-     * @param {(number|bigint)} args.value - The amount of balance to transfer to the contract. Defaults to 0;
-     * @param {number} args.selector - The selector of the ink message to be called.
-     * @param {Bytes} args.input - The input arguments for the contract call, encoded in scale.
-     * @param {boolean} args.allowReentry - A flag indicating whether reentry to this contract is allowed. Defaults to false.
-     * @return {Uint8Array} - The result of the contract call.
-     */
-    invokeContract(args: {
-      callee: Bytes;
-      gasLimit?: number | bigint;
-      value?: number | bigint;
-      selector: number;
-      input: Bytes;
-      allowReentry?: boolean;
-    }): Uint8Array;
-    /**
-     * Invokes a delegate call on a contract code by a code hash.
-     * @param {Bytes} args.codeHash - The code hash of the contract to delegate to.
-     * @param {number} args.selector - The selector of the ink message to be called.
-     * @param {Bytes} args.input - The input arguments for the delegate call, encoded in scale.
-     * @return {Uint8Array} - The result of the delegate call.
-     */
-    invokeContractDelegate(args: {
-      codeHash: Bytes;
-      selector: number;
-      input: Bytes;
-    }): Uint8Array;
+  var sidevm: {
     /**
      * This function sends an HTTP request and returns the response as either a Uint8Array or a string.
      * @param {string} args.url - The URL to send the request to.
@@ -116,35 +86,6 @@ declare global {
       headers: Headers;
       body: Uint8Array | string;
     };
-
-    batchHttpRequest(
-      args: {
-        url: string;
-        method?: string;
-        headers?: Headers;
-        body?: Uint8Array | string;
-        returnTextBody?: boolean;
-      }[],
-      timeout_ms?: number
-    ): {
-      statusCode: number;
-      reasonPhrase: string;
-      headers: Headers;
-      body: Uint8Array | string;
-    }[];
-
-    /**
-     * Derives a secret key from a salt.
-     */
-    deriveSecret(salt: Uint8Array | string): Uint8Array;
-
-    /**
-     * Hashes a message using the specified algorithm.
-     * @param {string} algrithm - The name of the hash algorithm to use.
-     *    Supported values are "blake2b128", "blake2b256", "sha256", "keccak256".
-     * @param {(Uint8Array|string)} message - The message to hash, either as a Uint8Array or a string.
-     */
-    hash(algrithm: string, message: Uint8Array | string): Uint8Array;
 
     /**
      * The SCALE codec object for encoding and decoding data.

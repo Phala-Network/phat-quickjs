@@ -1,16 +1,15 @@
 {
-  "name": "bootcode",
+  "name": "openai-api-demo",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "test": "test",
-    "build": "webpack"
+    "build": "webpack",
+    "test": "webpack && sidevm-quickjs dist/index.js"
   },
   "license": "Apache-2.0",
   "dependencies": {
     "array.prototype.flatmap": "^1.3.1",
-    "core-js": "^3.33.3",
-    "headers-polyfill": "^3.1.2"
+    "openai": "^3.3.0"
   },
   "devDependencies": {
     "@swc/cli": "^0.1.62",
