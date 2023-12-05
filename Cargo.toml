@@ -35,8 +35,10 @@ rand = { version = "0.8.5", optional = true }
 hyper-rustls = { version = "0.24.1", optional = true }
 
 [features]
-default = ["native"]
+default = ["native", "js-url", "js-http-listen"]
 sanitize-address = ["js/sanitize-address"]
+js-url = []
+js-http-listen = []
 
 stream = ["js/stream"]
 

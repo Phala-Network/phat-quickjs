@@ -119,7 +119,7 @@ fn default_timeout() -> u64 {
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
     let result = do_http_request_inner(weak_service.clone(), id, req).await;
     if let Err(err) = result {
-        invoke_callback(&weak_service, id, "error", err.to_string());
+        invoke_callback(&weak_service, id, "error", &err.to_string());
     }
 }
 async fn do_http_request_inner(
@@ -188,18 +188,18 @@ async fn do_http_request_inner(
                 headers,
             }
         };
-        invoke_callback(&weak_service, id, "head", head);
+        invoke_callback(&weak_service, id, "head", &head);
     }
     tokio::pin!(response);
     while let Some(chunk) = response.data().await {
         let chunk = chunk.context("Failed to read response body")?;
-        invoke_callback(&weak_service, id, "data", AsBytes(chunk));
+        invoke_callback(&weak_service, id, "data", &AsBytes(chunk));
     }
-    invoke_callback(&weak_service, id, "end", ());
+    invoke_callback(&weak_service, id, "end", &());
     Ok(())
 }
 
-fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: impl ToJsValue) {
+fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: &dyn ToJsValue) {
     let Some(service) = weak_service.upgrade() else {
         info!("http_request {id} exited because the service has been dropped");
         return;

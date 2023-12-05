@@ -18,9 +18,11 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = js::Value::new_object(ctx);
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
+    #[cfg(feature = "js-url")]
     url::setup(&ns)?;
     timer::setup(&ns)?;
     http_request::setup(&ns)?;
+    #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
     debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
