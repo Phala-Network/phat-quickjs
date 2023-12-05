@@ -3,13 +3,15 @@ description: "Install toolchains"
 runs:
   using: "composite"
   steps:
-    - name: Install latest nightly
+    - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: 1.74
         override: true
         target: wasm32-unknown-unknown
         components: rustfmt
+    - run: cargo install wasm-tools
+      shell: bash
     - run: sudo apt update
       shell: bash
     - run: sudo apt -y install build-essential make cmake pkg-config libssl-dev git llvm clang libclang-dev protobuf-compiler

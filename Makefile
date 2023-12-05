@@ -17,7 +17,7 @@ opt: $(OPTIMIZED_OUTPUT)
 
 %-stripped.wasm: %.wasm
 	wasm-opt $< -Os -o $@
-	wasm-strip $@
+	wasm-tools strip $@ -o $@
 
 native:
 	cargo build --release
