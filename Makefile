@@ -3,9 +3,9 @@ TARGETS=sidejs phatjs
 PREFIX=~/bin
 BUILD_OUTPUT_DIR=target/wasm32-wasi/release
 BUILD_OUTPUT=$(addsuffix .wasm, $(TARGETS))
-OPTIMIZED_OUTPUT=$(addsuffix -opt.wasm, $(TARGETS))
+OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 
-.PHONY: all clean opt deep-clean install run test opt
+.PHONY: all clean opt deep-clean install run test
 
 all: $(BUILD_OUTPUT)
 
@@ -15,7 +15,7 @@ all: $(BUILD_OUTPUT)
 
 opt: $(OPTIMIZED_OUTPUT)
 
-%-opt.wasm: %.wasm
+%-stripped.wasm: %.wasm
 	wasm-opt $< -Os -o $@
 	wasm-strip $@
 

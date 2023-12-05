@@ -17,9 +17,21 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - uses: ./.github/actions/build-contracts
-
+      - uses: ./.github/actions/install_toolchain
+      - name: Install Binaryen
+        run: |
+          wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
+          tar -xzvf binaryen-version_116-x86_64-linux.tar.gz -C $RUNNER_TEMP/
+          echo "$RUNNER_TEMP/binaryen-version_116/bin" >> $GITHUB_PATH
+      - name: Install deps
+        run: sudo bash scripts/install-requirements.sh
+        shell: bash
+      - name: Install rust components
+        run: rustup component add rust-src && rustup target add wasm32-wasi
+        shell: bash
+      - name: Build
+        run: make opt
+        shell: bash
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
@@ -27,6 +39,4 @@ jobs:
           prerelease: true
           body: Nightly build
           files: |
-            ./target/ink/qjs.contract
-            ./target/ink/qjs.wasm
-            ./target/ink/qjs.json
+            *.wasm
