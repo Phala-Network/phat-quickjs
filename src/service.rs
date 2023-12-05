@@ -264,10 +264,10 @@ impl Service {
     }
     pub fn js_log(&self, level: u32, msg: &str) {
         match level {
-            1 => debug!("JS:[{level}]|  {}", msg),
-            2 => info!("JS:[{level}]|  {}", msg),
-            3 => warn!("JS:[{level}]|  {}", msg),
-            _ => error!("JS:[{level}]|  {}", msg),
+            1 => debug!("JS: {}", msg),
+            2 => info!("JS: {}", msg),
+            3 => warn!("JS: {}", msg),
+            _ => error!("JS: {}", msg),
         }
     }
 
@@ -283,11 +283,11 @@ impl Service {
         self.state.borrow().recources.len()
     }
 
-    pub(crate) fn set_http_listener(&self, listener: OwnedJsValue) {
+    pub fn set_http_listener(&self, listener: OwnedJsValue) {
         self.state.borrow_mut().http_listener = Some(listener);
     }
 
-    pub(crate) fn http_listener(&self) -> Option<OwnedJsValue> {
+    pub fn http_listener(&self) -> Option<OwnedJsValue> {
         self.state.borrow().http_listener.as_ref()?.dup()
     }
 

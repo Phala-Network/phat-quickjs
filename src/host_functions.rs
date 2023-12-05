@@ -5,13 +5,23 @@ use log::error;
 use crate::service::{Service, ServiceRef, ServiceWeakRef};
 use crate::traits::ResultExt;
 
+#[cfg(feature = "js-http-listen")]
 pub(crate) use http_listen::try_accept_http_request;
+#[cfg(not(feature = "js-http-listen"))]
+pub(crate) fn try_accept_http_request(
+    _service: ServiceRef,
+    _request: crate::runtime::HttpRequest,
+) -> Result<()> {
+    Ok(())
+}
 
 mod debug;
+#[cfg(feature = "js-http-listen")]
 mod http_listen;
 mod http_request;
 mod print;
 mod timer;
+#[cfg(feature = "js-url")]
 mod url;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
