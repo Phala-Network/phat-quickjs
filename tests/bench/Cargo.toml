@@ -1,0 +1,20 @@
+[package]
+name = "testing"
+version = "0.1.0"
+authors = ["[your_name] <[your_email]>"]
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+hex = "0.4"
+ink = "4.3"
+drink = "0.8"
+drink-pink-runtime = "1.2.8"
+tracing-subscriber = "0.3"
+
+control = { path = "../contracts/control", features = ["ink-as-dependency"] }
+
+[patch.crates-io]
+ink = { git = "https://github.com/kvinwang/ink.git", branch = "config-buffer-4.3.0" }
+ink_env = { git = "https://github.com/kvinwang/ink.git", branch = "config-buffer-4.3.0" }
