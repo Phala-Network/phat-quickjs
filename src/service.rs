@@ -5,7 +5,7 @@ use alloc::{
 };
 use core::{any::Any, cell::RefCell, ops::Deref};
 use log::{debug, error, info, warn};
-use std::future::Future;
+use std::{future::Future, sync::Mutex};
 
 use crate::host_functions::setup_host_functions;
 use anyhow::Result;
@@ -58,6 +58,7 @@ pub struct JsEngine {
     pub ctx: js::Context,
     runtime: js::Runtime,
     weak_self: Weak<JsEngine>,
+    last_error: Mutex<Option<String>>,
 }
 
 impl JsEngine {
@@ -78,7 +79,12 @@ impl JsEngine {
         self.dup_value(*js_value.raw_value())
     }
 
+    pub fn take_last_error(&self) -> Option<String> {
+        self.last_error.lock().unwrap().take()
+    }
+
     pub fn exec_pending_jobs(&self) {
+        let _ = self.take_last_error();
         loop {
             match self.runtime.exec_pending_jobs() {
                 Ok(0) => break,
@@ -88,6 +94,7 @@ impl JsEngine {
                 Err(err) => {
                     // TODO.kevin: should we continue?
                     error!("Failed to execute pending jobs: {err}");
+                    *self.last_error.lock().unwrap() = Some(err);
                     break;
                 }
             }
@@ -152,6 +159,7 @@ impl Service {
                 runtime,
                 ctx,
                 weak_self: weak_self.clone(),
+                last_error: Default::default(),
             }),
             state,
         }
