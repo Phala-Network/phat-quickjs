@@ -1,6 +1,6 @@
 {
   "name": "@phala/sidevm-env",
-  "version": "1.0.10",
+  "version": "1.0.0",
   "description": "The js environment accessing of sidevm.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

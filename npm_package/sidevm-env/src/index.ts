@@ -1,8 +1,3 @@
-/** Bytes represented in Uint8Array or hex string */
-type Bytes = Uint8Array | string;
-
-type Headers = { [key: string]: string };
-
 declare const _opaqueBrand: unique symbol;
 
 /**
@@ -56,48 +51,18 @@ export interface ScaleCodec {
 declare global {
   /** The input arguments passed to the contract eval */
   var scriptArgs: string[];
+  /** The return value of the JS eval. It would override the value last expression of the script. */
+  var scriptOutput: any;
   /**
-   * The extension object for pink contract.
-   * @typedef pink
+   * The runtime extension object for sidevm env.
    */
-  var sidevm: {
-    /**
-     * This function sends an HTTP request and returns the response as either a Uint8Array or a string.
-     * @param {string} args.url - The URL to send the request to.
-     * @param {string} args.method - The HTTP method to use for the request (e.g. GET, POST, PUT). Defaults to GET.
-     * @param {Headers} args.headers - An map-like object containing the headers to send with the request.
-     * @param {(Uint8Array|string)} args.body - The body of the request, either as a Uint8Array or a string.
-     * @param {boolean} args.returnTextBody - A flag indicating whether the response body should be returned as a string (true) or a Uint8Array (false).
-     * @return {Object} - The response from the HTTP request containing the following fields:
-     *  - {number} statusCode - The HTTP status code of the response.
-     *  - {string} reasonPhrase - The reason phrase of the response.
-     *  - {Headers} headers - An object containing the headers of the response.
-     *  - {(Uint8Array|string)} body - The response body, either as a Uint8Array or a string depending on the value of args.returnTextBody.
-     */
-    httpRequest(args: {
-      url: string;
-      method?: string;
-      headers?: Headers;
-      body?: Uint8Array | string;
-      returnTextBody?: boolean;
-    }): {
-      statusCode: number;
-      reasonPhrase: string;
-      headers: Headers;
-      body: Uint8Array | string;
-    };
-
+  var Sidevm: {
     /**
      * The SCALE codec object for encoding and decoding data.
      * @typedef SCALE
      * @type {ScaleCodec}
      */
     SCALE: ScaleCodec;
-
-    /**
-     * The version of the pink qjs engine.
-     */
-    version: string;
   };
 }
 export {};
