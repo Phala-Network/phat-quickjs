@@ -64,7 +64,7 @@ $ ./target/release/phatjs examples/scale-bench.js
 2023-12-05T07:10:38.774607Z  INFO sidevm_quickjs::service: JS:[2]|  Sidevm qjs: enc/dec 10000 iterations in 240ms, 41666.666666666664 ops/sec   
 ```
 
-| Operation| Engine | Ops/sec | Ratio | Ratio2 |
+| Operation| Engine | iter/sec | Ratio | Ratio2 |
 | --- | --- | --- | --- | --- |
 | Parse | phat-quickjs v1 | 133.7 | 1x | 0.2x |
 | Parse | phat-quickjs v2 | 657.9 | 5x | 1x |
