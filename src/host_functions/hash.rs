@@ -1,7 +1,7 @@
 use super::Result;
 use anyhow::bail;
 use blake2::{
-    digest::typenum::{U16, U32},
+    digest::typenum::{U16, U32, U64},
     Blake2b, Digest,
 };
 use js::AsBytes;
@@ -24,6 +24,7 @@ fn hash(algorithm: js::JsString, message: AsBytes<Vec<u8>>) -> Result<AsBytes<Ve
         "keccak256" => do_hash::<sha3::Keccak256>(message.0),
         "blake2b128" => do_hash::<Blake2b<U16>>(message.0),
         "blake2b256" => do_hash::<Blake2b<U32>>(message.0),
+        "blake2b512" => do_hash::<Blake2b<U64>>(message.0),
         _ => bail!("Unsupported hash algorithm: {}", algorithm.as_str()),
     };
     Ok(hash.into())

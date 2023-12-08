@@ -13,3 +13,4 @@ bench("sha256", iterations);
 bench("keccak256", iterations);
 bench("blake2b128", iterations);
 bench("blake2b256", iterations);
+bench("blake2b512", iterations);
