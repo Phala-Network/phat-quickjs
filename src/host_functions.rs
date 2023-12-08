@@ -24,6 +24,8 @@ mod timer;
 #[cfg(feature = "js-url")]
 mod url;
 
+mod hash;
+
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = js::Value::new_object(ctx);
     set_extensions(&ns, ctx)?;
@@ -35,6 +37,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
     debug::setup(&ns)?;
+    hash::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
     js::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())
