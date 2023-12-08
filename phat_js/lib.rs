@@ -225,6 +225,8 @@ use ink::env::call;
 use ink::primitives::Hash;
 use scale::{Decode, Encode};
 
+pub use pink::chain_extension::{JsCode, JsValue};
+
 #[derive(Debug, Encode, Decode, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum GenericValue<S, B> {
@@ -235,6 +237,16 @@ pub enum GenericValue<S, B> {
 pub type RefValue<'a> = GenericValue<&'a str, &'a [u8]>;
 pub type Value = GenericValue<String, Vec<u8>>;
 pub type Output = Value;
+
+impl From<Value> for JsValue {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Undefined => Self::Undefined,
+            Value::String(v) => Self::String(v),
+            Value::Bytes(v) => Self::Bytes(v),
+        }
+    }
+}
 
 pub fn default_delegate() -> Result<Hash, String> {
     let system = pink::system::SystemRef::instance();
@@ -304,6 +316,62 @@ pub fn eval_all_with(
         )
         .returns::<Result<Output, String>>()
         .invoke()
+}
+
+/// Evaluate async JavaScript with SideVM QuickJS.
+///
+/// This function is similar to [`eval`], but it uses SideVM QuickJS to evaluate the script.
+/// This function would polyfill `pink.SCALE`, `pink.hash`, `pink.deriveSecret` which are not
+/// available in SideVM QuickJS.
+///
+/// # Parameters
+///
+/// * `code`: A JavaScript code that can be either a source code or bytecode.
+/// * `args`: A vector of strings that contain arguments passed to the JavaScript code.
+///
+/// # Returns
+///
+/// * a `JsValue` object which represents the evaluated result of the JavaScript code.
+///
+/// # Examples
+///
+/// ```ignore
+/// let js_code = phat_js::JsCode::Source("setTimeout(() => { scriptOutput = '42'; }, 100);".into());
+/// let res = phat_js::eval_async_js(js_code, Vec::new());
+/// assert_eq!(res, JsValue::String("42".into()));
+/// ```
+pub fn eval_async_js(code: JsCode, args: Vec<String>) -> JsValue {
+    let code_bytes = match &code {
+        JsCode::Source(source) => source.as_bytes(),
+        JsCode::Bytecode(bytecode) => bytecode.as_slice(),
+    };
+    let mut code_hash = Default::default();
+    ink::env::hash_bytes::<ink::env::hash::Blake2x256>(code_bytes, &mut code_hash);
+    let polyfill = polyfill_script(pink::vrf(&code_hash));
+    let codes = alloc::vec![JsCode::Source(polyfill), code];
+    pink::ext().js_eval(codes, args)
+}
+
+fn polyfill_script(seed: impl AsRef<[u8]>) -> String {
+    let seed = hex_fmt::HexFmt(seed);
+    format!(
+        r#"
+        (function(g) {{
+            const seed = "{seed}";
+            const {{ SCALE, hash, hexEncode }} = Sidevm;
+            g.pink = g.Pink = {{
+                SCALE,
+                hash,
+                deriveSecret(salt) {{
+                    return hash('blake2b512', seed + hexEncode(salt));
+                }},
+                vrf(salt) {{
+                    return hash('blake2b512', 'vrf:' + seed + hexEncode(salt));
+                }}
+            }};
+        }})(globalThis);
+    "#
+    )
 }
 
 /// Compile a script with the default delegate contract

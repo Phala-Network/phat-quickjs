@@ -15,8 +15,6 @@ overflow-checks = false
 ink = { version = "4.3", default-features = false, features = ["static-buffer-1M256K"] }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
-serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = { version = "1", default-features = false, features = ["alloc"] }
 qjsbind = { path = "qjs-sys/qjsbind", default-features = false }
 qjs-extensions = { path = "qjs-sys/qjs-extensions", default-features = false, features = ["base64", "hex", "scale2"] }
 pink = { package = "pink-extension", version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
@@ -34,8 +32,6 @@ std = [
     "ink/std",
     "scale/std",
     "scale-info/std",
-    "serde/std",
-    "serde_json/std",
     "pink/std",
     "qjsbind/std",
     "qjs-extensions/std",

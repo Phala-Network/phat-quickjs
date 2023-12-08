@@ -23,6 +23,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
+
+[[package]]
 name = "array-init"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -152,11 +158,12 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chumsky"
-version = "1.0.0-alpha.4"
+version = "1.0.0-alpha.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc3172a80699de358070dd99f80ea8badc6cdf8ac2417cb5a96e6d81bf5fe06d"
+checksum = "b9c28d4e5dd9a9262a38b231153591da6ce1471b818233f4727985d3dd0ed93c"
 dependencies = [
- "hashbrown 0.13.2",
+ "hashbrown",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -168,16 +175,6 @@ dependencies = [
  "glob",
  "libc",
  "libloading",
-]
-
-[[package]]
-name = "concat-idents"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
-dependencies = [
- "quote",
- "syn 2.0.39",
 ]
 
 [[package]]
@@ -351,18 +348,13 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "hashbrown"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
-dependencies = [
- "ahash",
-]
-
-[[package]]
-name = "hashbrown"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c6201b9ff9fd90a5a3bac2e56a830d0caa509576f0e503818ee82c181b3437a"
+dependencies = [
+ "ahash",
+ "allocator-api2",
+]
 
 [[package]]
 name = "heck"
@@ -427,7 +419,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5477fe2230a79769d8dc68e0eabf5437907c0457a5614a9e8dddb67f65eb65d"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.0",
+ "hashbrown",
 ]
 
 [[package]]
@@ -702,12 +694,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "md5"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
-
-[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -805,11 +791,12 @@ checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 
 [[package]]
 name = "phat_js"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
+ "hex_fmt",
  "ink",
  "parity-scale-codec",
- "pink-extension 0.5.0",
+ "pink-extension 0.5.1",
  "scale-info",
 ]
 
@@ -831,16 +818,19 @@ dependencies = [
 
 [[package]]
 name = "pink-extension"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe261c26b4018364320cf86615b6c82c068b3aa00ada4de3147842f97a20c548"
+checksum = "0f00d09691bd1922017d47eeb9a6d4bcd5aa35b163a00dc1e730ce8859ab1f05"
 dependencies = [
+ "hex",
  "ink",
  "log",
  "num_enum",
  "parity-scale-codec",
  "pink-extension-macro",
+ "pink-types",
  "scale-info",
+ "serde",
  "this-crate",
 ]
 
@@ -857,6 +847,16 @@ dependencies = [
  "quote",
  "syn 2.0.39",
  "unzip3",
+]
+
+[[package]]
+name = "pink-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cbfce16d3b505cfe560e1278836e16f400274d04395773ceb7879029b409429"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
@@ -941,7 +941,6 @@ dependencies = [
  "chumsky",
  "hex",
  "hex_fmt",
- "md5",
  "parity-scale-codec",
  "qjsbind",
  "qjsc",
@@ -957,12 +956,6 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "cc",
- "concat-idents",
- "cstr",
- "hex",
- "scopeguard",
- "serde",
- "tinyvec",
 ]
 
 [[package]]
@@ -977,8 +970,6 @@ dependencies = [
  "qjs-extensions",
  "qjsbind",
  "scale-info",
- "serde",
- "serde_json",
  "this-crate",
 ]
 
@@ -1420,9 +1411,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.6"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84a22b9f218b40614adcb3f4ff08b703773ad44fa9423e4e0d346d5db86e4ebc"
+checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 
 [[package]]
 name = "unicode-xid"

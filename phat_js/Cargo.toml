@@ -1,6 +1,6 @@
 [package]
 name = "phat_js"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 description = "Provide a function to call the JSDelegate in a phat contract cluster"
 license = "MIT"
@@ -16,7 +16,8 @@ ink = { version = "4.3", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
-pink = { package = "pink-extension", version = "0.5", default-features = false }
+pink = { package = "pink-extension", version = "0.5.1", default-features = false }
+hex_fmt = "0.3"
 
 [features]
 default = ["std"]
