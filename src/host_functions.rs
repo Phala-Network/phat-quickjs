@@ -28,6 +28,9 @@ mod hash;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = js::Value::new_object(ctx);
+    let version = env!("CARGO_PKG_VERSION");
+    let version = ctx.new_string(version);
+    ns.set_property("version", &version)?;
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
     #[cfg(feature = "js-url")]

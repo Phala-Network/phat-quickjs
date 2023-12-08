@@ -1,6 +1,6 @@
 [package]
 name = "sidevm-quickjs"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
@@ -29,6 +29,10 @@ scale = { package = "parity-scale-codec", version = "3" }
 hex = "0.4.3"
 pink-types = "0.1"
 
+sha2 = { version = "0.10", optional = true, default-features = false }
+sha3 = { version = "0.10", optional = true, default-features = false }
+blake2 = { version = "0.10", optional = true, default-features = false }
+
 # Crates for native testing
 tracing-subscriber = { version = "0.3", optional = true }
 rand = { version = "0.8.5", optional = true }
@@ -49,4 +53,7 @@ native = [
     "hyper/runtime",
     "hyper/tcp",
     "hyper-rustls/webpki-roots",
+    "sha2",
+    "sha3",
+    "blake2",
 ]
