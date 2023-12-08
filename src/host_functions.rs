@@ -24,6 +24,7 @@ mod timer;
 #[cfg(feature = "js-url")]
 mod url;
 
+#[cfg(feature = "js-hash")]
 mod hash;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
@@ -39,8 +40,9 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     http_request::setup(&ns)?;
     #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
-    debug::setup(&ns)?;
+    #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
+    debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
     js::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())

@@ -1582,9 +1582,9 @@ checksum = "a7cee0529a6d40f580e7a5e6c495c8fbfe21b7b52795ed4bb5e62cdf92bc6380"
 
 [[package]]
 name = "sidevm"
-version = "0.2.0-alpha.6"
+version = "0.2.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39ffd68719aba7e9e7b7deac6fd5bac4283705f6b8c55fccdfc749906052d62c"
+checksum = "c332fae24664d4162a1f4a9a68bbda5d26515360203b7f5a7f671a5f26fa833d"
 dependencies = [
  "derive_more",
  "futures",
