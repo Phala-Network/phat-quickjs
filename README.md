@@ -26,9 +26,9 @@ Notably, several APIs available in phat-quickjs are not present in sidevm-quickj
 | pink.invokeContractDelegate | ✅ | ❌ |
 | pink.httpRequest | ✅ | ❌ |
 | pink.batchHttpRequest | ✅ | ❌ |
-| pink.deriveSecret | ✅ | ❌ (may simulate in user land) |
-| pink.hash | ✅ | ✅ |
-| pink.vrf | ✅ | ❌ (may simulate in user land) |
+| pink.deriveSecret | ✅ | ❌ (polyfilled in [phat_js](https://docs.rs/phat_js/0.2.7/phat_js/fn.eval_async_js.html)) |
+| pink.hash | ✅ | Sidevm.hash (polyfilled in [phat_js](https://docs.rs/phat_js/0.2.7/phat_js/fn.eval_async_js.html))|
+| pink.vrf | ✅ | ❌ (polyfilled in [phat_js](https://docs.rs/phat_js/0.2.7/phat_js/fn.eval_async_js.html))|
 
 And notable APIs available in sidevm-quickjs are not present in phat-quickjs:
 
