@@ -354,7 +354,7 @@ pub fn eval_async_js(code: JsCode, args: Vec<String>) -> JsValue {
 
 fn polyfill_script(seed: impl AsRef<[u8]>) -> String {
     let seed = hex_fmt::HexFmt(seed);
-    format!(
+    alloc::format!(
         r#"
         (function(g) {{
             const seed = "{seed}";
