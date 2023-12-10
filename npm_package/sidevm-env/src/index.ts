@@ -71,6 +71,11 @@ declare global {
      * @param {(Uint8Array|string)} message - The message to hash, either as a Uint8Array or a string.
      */
     hash(algrithm: string, message: Uint8Array | string): Uint8Array;
+
+    /**
+     * Terminates the script execution.
+     */
+    exit(): void;
   };
 }
 export {};

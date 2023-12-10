@@ -44,7 +44,16 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     hash::setup(&ns)?;
     debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
+    ns.define_property_fn("exit", exit)?;
     js::get_global(ctx).set_property("Sidevm", &ns)?;
+    setup_process_object(ctx)?;
+    Ok(())
+}
+
+pub(crate) fn setup_process_object(ctx: &js::Context) -> Result<()> {
+    let process = js::Value::new_object(ctx);
+    process.define_property_fn("exit", exit)?;
+    js::get_global(ctx).set_property("process", &process)?;
     Ok(())
 }
 
@@ -72,4 +81,9 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
 #[js::host_call(with_context)]
 fn close_res(service: ServiceRef, _this: js::Value, res_id: u64) {
     service.remove_resource(res_id);
+}
+
+#[js::host_call(with_context)]
+fn exit(service: ServiceRef, _this: js::Value) {
+    service.close_all();
 }

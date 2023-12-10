@@ -233,8 +233,18 @@ impl Service {
         Some(self.to_js_value(&state.recources.get(&id)?.js_value))
     }
 
+    pub fn close_all(&self) {
+        debug!("Destroying all resources");
+        let mut state = self.state.borrow_mut();
+        if state.recources.is_empty() {
+            return;
+        }
+        state.recources.clear();
+        let _ = state.done_tx.send(());
+    }
+
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
-        debug!("Removing resource {id}");
+        debug!("Destroying resource {id}");
         let mut state = self.state.borrow_mut();
         let was_empty = state.recources.is_empty();
         let res = state.recources.remove(&id);
