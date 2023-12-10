@@ -89,13 +89,12 @@ impl JsEngine {
             match self.runtime.exec_pending_jobs() {
                 Ok(0) => break,
                 Ok(cnt) => {
-                    debug!("Executed {} pending jobs", cnt);
+                    debug!("Executed {cnt} pending jobs");
                 }
                 Err(err) => {
-                    // TODO.kevin: should we continue?
-                    error!("Failed to execute pending jobs: {err}");
+                    error!("Uncatched error: {err}");
                     *self.last_error.lock().unwrap() = Some(err);
-                    break;
+                    continue;
                 }
             }
         }
@@ -225,6 +224,7 @@ impl Service {
         let mut state = self.state.borrow_mut();
         let id = state.take_next_resource_id();
         state.recources.insert(id, resource);
+        debug!("Created resource {id}");
         id
     }
 
@@ -276,6 +276,7 @@ impl Service {
                 _ = cancel_rx => {
                 }
             }
+            debug!("Task {id} finished");
             close(weak_service, id);
         });
         id
