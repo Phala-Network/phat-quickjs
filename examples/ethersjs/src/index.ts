@@ -1,4 +1,16 @@
-import { ethers } from "ethers";
+import { Provider, SigningKey, ethers } from "ethers";
+
+async function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createWallet(key: string | SigningKey, provider: Provider): Promise<ethers.Wallet> {
+    await sleep(0);
+    const wallet = new ethers.Wallet(key);
+    await sleep(0);
+    return wallet;
+
+}
 
 async function main() {
     const provider = new ethers.JsonRpcProvider("https://rpc-mumbai.maticvigil.com");
