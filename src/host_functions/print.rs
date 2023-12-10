@@ -20,8 +20,12 @@ fn print(
     if buf.is_empty() {
         service.js_log(level, "");
     } else {
+        let buf = &buf[..2048.min(buf.len())];
         for line in buf.lines() {
             service.js_log(level, line);
         }
+    }
+    if buf.len() > 2048 {
+        service.js_log(level, "<...>");
     }
 }
