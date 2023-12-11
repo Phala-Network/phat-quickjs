@@ -47,16 +47,7 @@ reqwest = { version = "0.11.22", optional = true }
 [dependencies.web-sys]
 version = "0.3.4"
 optional = true
-features = [
-  'Headers',
-  'Request',
-  'RequestInit',
-  'RequestMode',
-  'Response',
-  'ReadableStream',
-  'Window',
-  'console',
-]
+features = ['Window', 'console']
 
 [features]
 default = ["native", "js-url", "js-http-listen", "js-hash"]
@@ -67,19 +58,13 @@ js-hash = ["sha2", "sha3", "blake2"]
 
 stream = ["js/stream"]
 sidevm = []
-web = [
-  "js-sys",
-  "web-sys",
-  "wasm-bindgen",
-  "wasm-bindgen-futures",
-  "reqwest",
-]
+web = ["js-sys", "web-sys", "wasm-bindgen", "wasm-bindgen-futures", "reqwest"]
 
 native = [
-    "tokio/full",
-    "tracing-subscriber",
-    "rand",
-    "hyper/runtime",
-    "hyper/tcp",
-    "hyper-rustls/webpki-roots",
+  "tokio/full",
+  "tracing-subscriber",
+  "rand",
+  "hyper/runtime",
+  "hyper/tcp",
+  "hyper-rustls/webpki-roots",
 ]
