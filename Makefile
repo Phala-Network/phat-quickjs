@@ -11,7 +11,7 @@ WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 all: wasi web
 wasi: $(BUILD_OUTPUT)
 web: phatjs-web.wasm
-	-wasm-bindgen phatjs-web.wasm  --out-dir l --typescript --target web --out-name index
+	-wasm-bindgen phatjs-web.wasm  --out-dir web --typescript --target web --out-name index
 
 %.wasm:
 	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm

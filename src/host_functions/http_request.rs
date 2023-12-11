@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use log::info;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -137,7 +137,6 @@ async fn do_http_request_inner(
     req: HttpRequest,
 ) -> Result<()> {
     use crate::runtime::{http_connector, HyperExecutor};
-    use anyhow::Context;
     use core::pin::pin;
     use hyper::{body::HttpBody, Body};
     let connector = http_connector();
@@ -212,84 +211,46 @@ async fn do_http_request_inner(
     id: u64,
     req: HttpRequest,
 ) -> Result<()> {
-    web_do_http_request_inner(weak_service, id, req)
-        .await
-        .map_err(|err| match err.as_string() {
-            Some(err) => anyhow!("{err}"),
-            None => anyhow!("Unknown exception: failed to convert error to string"),
-        })
-}
-
-#[cfg(feature = "web")]
-async fn web_do_http_request_inner(
-    weak_service: ServiceWeakRef,
-    id: u64,
-    req: HttpRequest,
-) -> Result<(), wasm_bindgen::JsValue> {
-    use futures_util::stream::StreamExt;
-    use wasm_bindgen::JsCast;
-    use wasm_bindgen_futures::JsFuture;
-    use wasm_streams::ReadableStream;
-    use web_sys::{Request, RequestInit, Response};
-
-    let mut opts = RequestInit::new();
-    opts.method(&req.method);
+    use reqwest::{Client, Method};
+    let method = Method::from_bytes(req.method.as_bytes()).context("Invalid method")?;
+    let mut builder = Client::new().request(method, req.url);
+    for (k, v) in req.headers.pairs.iter() {
+        builder = builder.header(k, v);
+    }
+    let headers: BTreeSet<&str> = req.headers.pairs.iter().map(|(k, _v)| k.as_str()).collect();
+    // Append User-Agent if not present
+    if !headers.contains("User-Agent") {
+        builder = builder.header("User-Agent", "PhatContract/0.1.0");
+    }
     let body: Vec<u8> = if let Some(text_body) = req.text_body {
         text_body.into_bytes()
     } else {
         req.body
     };
-    if body.len() > 0 {
-        opts.body(Some(&js_sys::Uint8Array::from(body.as_slice()).into()));
-    }
-
-    let url = req.url;
-    let request = Request::new_with_str_and_init(&url, &opts)?;
-
-    for (k, v) in req.headers.pairs.iter() {
-        request.headers().set(k, v)?;
-    }
-    let headers: BTreeSet<&str> = req.headers.pairs.iter().map(|(k, _v)| k.as_str()).collect();
-    // Append Host, Content-Length and Content-Length if not present
-    if !headers.contains("User-Agent") {
-        request.headers().set("User-Agent", "PhatContract/0.1.0")?;
-    }
-
-    let window = web_sys::window().unwrap();
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-
-    // `resp_value` is a `Response` object.
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
-
+    builder = builder.body(body);
+    let response = builder.send().await?;
     let head = {
-        // TODO: fill headers
-        // let headers = resp
-        //     .headers()
-        //     .iter()
-        //     .map(|(k, v)| (k.into(), v.into()))
-        //     .collect();
-        let status = resp.status();
-        let status_text = resp.status_text();
+        let headers = response
+            .headers()
+            .iter()
+            .map(|(k, v)| (k.as_str().into(), v.to_str().unwrap_or_default().into()))
+            .collect();
+        let status = response.status().as_u16();
+        let status_text = response
+            .status()
+            .canonical_reason()
+            .unwrap_or_default()
+            .into();
         HttpResponseHead {
             status,
             status_text,
             version: "HTTP/1.1".into(),
-            headers: Headers::default(),
+            headers,
         }
     };
     invoke_callback(&weak_service, id, "head", &head);
-
-    // Convert this other `Promise` into a rust `Future`.
-    if let Some(body) = resp.body() {
-        let body = ReadableStream::from_raw(body);
-        // Convert the JS ReadableStream to a Rust stream
-        let mut stream = body.into_stream();
-        while let Some(chunk) = stream.next().await {
-            let chunk = js_sys::Uint8Array::new(&chunk?).to_vec();
-            invoke_callback(&weak_service, id, "data", &AsBytes(chunk));
-        }
-    }
+    let body = response.bytes().await?;
+    invoke_callback(&weak_service, id, "data", &AsBytes(body));
     invoke_callback(&weak_service, id, "end", &());
     Ok(())
 }
