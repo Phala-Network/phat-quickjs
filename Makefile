@@ -10,7 +10,7 @@ OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 all: $(BUILD_OUTPUT)
 
 %.wasm:
-	cargo build --release --target wasm32-wasi --no-default-features
+	cargo build --release --target wasm32-wasi --no-default-features --features js-hash
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 opt: $(OPTIMIZED_OUTPUT)

@@ -45,6 +45,8 @@
         }
     }
     g.print = g.console.log;
+    g.global = g;
+    g.window = g;
 }(globalThis))
 
 export default {};

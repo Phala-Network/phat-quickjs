@@ -89,9 +89,6 @@ async fn run() -> Result<JsValue> {
     if service.number_of_tasks() > 0 {
         service.wait_for_tasks().await;
     }
-    if let Some(error) = service.runtime().take_last_error() {
-        return Err(anyhow!("{error}"));
-    }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
     let output = js_ctx
         .get_global_object()

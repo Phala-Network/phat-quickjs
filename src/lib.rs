@@ -166,7 +166,7 @@ pub mod runtime {
         fut.await
     }
     pub fn init_logger() {
-        sidevm::logger::Logger::with_max_level(log::LevelFilter::Debug).init();
+        sidevm::logger::Logger::with_max_level(log::LevelFilter::Info).init();
     }
     pub fn set_output(output: Vec<u8>) {
         sidevm::ocall::emit_program_output(&output).expect("Failed to emit program output")

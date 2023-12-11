@@ -24,8 +24,14 @@ mod timer;
 #[cfg(feature = "js-url")]
 mod url;
 
+#[cfg(feature = "js-hash")]
+mod hash;
+
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = js::Value::new_object(ctx);
+    let version = env!("CARGO_PKG_VERSION");
+    let version = ctx.new_string(version);
+    ns.set_property("version", &version)?;
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
     #[cfg(feature = "js-url")]
@@ -34,9 +40,20 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     http_request::setup(&ns)?;
     #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
+    #[cfg(feature = "js-hash")]
+    hash::setup(&ns)?;
     debug::setup(&ns)?;
     ns.define_property_fn("close", close_res)?;
+    ns.define_property_fn("exit", exit)?;
     js::get_global(ctx).set_property("Sidevm", &ns)?;
+    setup_process_object(ctx)?;
+    Ok(())
+}
+
+pub(crate) fn setup_process_object(ctx: &js::Context) -> Result<()> {
+    let process = js::Value::new_object(ctx);
+    process.define_property_fn("exit", exit)?;
+    js::get_global(ctx).set_property("process", &process)?;
     Ok(())
 }
 
@@ -64,4 +81,9 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
 #[js::host_call(with_context)]
 fn close_res(service: ServiceRef, _this: js::Value, res_id: u64) {
     service.remove_resource(res_id);
+}
+
+#[js::host_call(with_context)]
+fn exit(service: ServiceRef, _this: js::Value) {
+    service.close_all();
 }

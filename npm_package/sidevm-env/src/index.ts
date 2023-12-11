@@ -63,6 +63,19 @@ declare global {
      * @type {ScaleCodec}
      */
     SCALE: ScaleCodec;
+
+    /**
+     * Hashes a message using the specified algorithm.
+     * @param {string} algrithm - The name of the hash algorithm to use.
+     *    Supported values are "blake2b128", "blake2b256", "blake2b512", "sha256", "keccak256".
+     * @param {(Uint8Array|string)} message - The message to hash, either as a Uint8Array or a string.
+     */
+    hash(algrithm: string, message: Uint8Array | string): Uint8Array;
+
+    /**
+     * Terminates the script execution.
+     */
+    exit(): void;
   };
 }
 export {};

@@ -89,13 +89,12 @@ impl JsEngine {
             match self.runtime.exec_pending_jobs() {
                 Ok(0) => break,
                 Ok(cnt) => {
-                    debug!("Executed {} pending jobs", cnt);
+                    debug!("Executed {cnt} pending jobs");
                 }
                 Err(err) => {
-                    // TODO.kevin: should we continue?
-                    error!("Failed to execute pending jobs: {err}");
+                    error!("Uncatched error: {err}");
                     *self.last_error.lock().unwrap() = Some(err);
-                    break;
+                    continue;
                 }
             }
         }
@@ -225,6 +224,7 @@ impl Service {
         let mut state = self.state.borrow_mut();
         let id = state.take_next_resource_id();
         state.recources.insert(id, resource);
+        debug!("Created resource {id}");
         id
     }
 
@@ -233,8 +233,18 @@ impl Service {
         Some(self.to_js_value(&state.recources.get(&id)?.js_value))
     }
 
+    pub fn close_all(&self) {
+        debug!("Destroying all resources");
+        let mut state = self.state.borrow_mut();
+        if state.recources.is_empty() {
+            return;
+        }
+        state.recources.clear();
+        let _ = state.done_tx.send(());
+    }
+
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
-        debug!("Removing resource {id}");
+        debug!("Destroying resource {id}");
         let mut state = self.state.borrow_mut();
         let was_empty = state.recources.is_empty();
         let res = state.recources.remove(&id);
@@ -266,6 +276,7 @@ impl Service {
                 _ = cancel_rx => {
                 }
             }
+            debug!("Task {id} finished");
             close(weak_service, id);
         });
         id

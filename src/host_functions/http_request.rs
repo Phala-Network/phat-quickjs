@@ -117,9 +117,10 @@ fn default_timeout() -> u64 {
 }
 
 async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
+    let url = req.url.clone();
     let result = do_http_request_inner(weak_service.clone(), id, req).await;
     if let Err(err) = result {
-        invoke_callback(&weak_service, id, "error", &err.to_string());
+        invoke_callback(&weak_service, id, "error", &format!("Failed to request `{url}`: {err:?}"));
     }
 }
 async fn do_http_request_inner(
@@ -165,8 +166,7 @@ async fn do_http_request_inner(
         client.request(request),
     )
     .await
-    .context("Failed to send request: Timed out")?
-    .context("Failed to send request")?;
+    .context("Timed out")??;
     {
         let head = {
             let headers = response
