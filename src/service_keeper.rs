@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::BTreeMap};
@@ -87,10 +87,16 @@ impl ServiceKeeper {
         }
     }
 
+    #[cfg(not(feature = "js-http-listen"))]
+    pub fn handle_connection(_connection: crate::runtime::HttpRequest) -> Result<()> {
+        Err(anyhow!("js-http-listen feature is not enabled"))
+    }
+
     /// Handle an incoming HTTP request.
     ///
     /// The path pattern is `/<service_name>/<path...>` where the `service_name` is used to identify the js instance.
     /// The entire path is passed to js code as the `path` parameter.
+    #[cfg(feature = "js-http-listen")]
     pub fn handle_connection(connection: crate::runtime::HttpRequest) -> Result<()> {
         let url: url::Url = connection.head.url.parse()?;
         let name = url
@@ -106,7 +112,7 @@ impl ServiceKeeper {
                     headers: vec![("Content-Length".into(), "0".into())],
                 })
                 .map_err(|err| anyhow!("Failed to send response: {err:?}"))?;
-            bail!("Service [{name}] not found");
+            anyhow::bail!("Service [{name}] not found");
         };
         crate::host_functions::try_accept_http_request(service, connection)?;
         Ok(())

@@ -7,6 +7,7 @@ mod host_functions;
 mod service;
 mod service_keeper;
 
+pub mod js_eval;
 mod traits;
 
 #[cfg(feature = "native")]
@@ -88,7 +89,7 @@ pub mod runtime {
     pub fn set_output(_output: Vec<u8>) {}
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(feature = "sidevm")]
 pub mod runtime {
     use anyhow::{anyhow, Context, Result};
     use log::{error, info, warn};
@@ -166,9 +167,107 @@ pub mod runtime {
         fut.await
     }
     pub fn init_logger() {
-        sidevm::logger::Logger::with_max_level(log::LevelFilter::Info).init();
+        use sidevm::logger::Logger;
+        static LOGGER: Logger = Logger::with_max_level(log::LevelFilter::Info);
+        LOGGER.init();
     }
     pub fn set_output(output: Vec<u8>) {
         sidevm::ocall::emit_program_output(&output).expect("Failed to emit program output")
+    }
+}
+
+#[cfg(feature = "web")]
+pub mod runtime {
+    pub struct HttpRequest;
+    pub use sidevm::env::messages::{AccountId, HttpHead, HttpResponseHead};
+    pub use wasm_bindgen_futures::spawn_local as spawn;
+
+    use log::{LevelFilter, Log, Metadata};
+    use wasm_bindgen::JsValue as WebJsValue;
+    use web_sys::console;
+
+    struct Logger {
+        max_level: LevelFilter,
+    }
+
+    impl Logger {
+        /// Create a new logger with the given maximum level.
+        pub const fn with_max_level(max_level: LevelFilter) -> Self {
+            Self { max_level }
+        }
+
+        /// Install the logger as the global logger.
+        pub fn init(&'static self) {
+            log::set_max_level(self.max_level);
+            log::set_logger(self).unwrap();
+        }
+    }
+
+    impl Log for Logger {
+        fn enabled(&self, metadata: &Metadata) -> bool {
+            metadata.level() <= self.max_level
+        }
+
+        fn log(&self, record: &log::Record) {
+            if self.enabled(record.metadata()) {
+                let message = WebJsValue::from_str(&format!("{}", record.args()));
+                match record.level() {
+                    log::Level::Error => console::error_1(&message),
+                    log::Level::Warn => console::warn_1(&message),
+                    log::Level::Info => console::info_1(&message),
+                    log::Level::Debug => console::debug_1(&message),
+                    log::Level::Trace => console::trace_1(&message),
+                }
+            }
+        }
+
+        fn flush(&self) {}
+    }
+
+    pub fn init_logger() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        static LOGGER: Logger = Logger::with_max_level(log::LevelFilter::Debug);
+        ONCE.call_once(|| {
+            LOGGER.init();
+        });
+    }
+
+    pub fn getrandom(buf: &mut [u8]) -> Result<(), WebJsValue> {
+        buf.iter_mut().for_each(|byte| {
+            *byte = (js_sys::Math::random() * 256.0) as u8;
+        });
+        Ok(())
+    }
+
+    pub mod time {
+        pub async fn sleep(duration: std::time::Duration) {
+            use wasm_bindgen_futures::JsFuture;
+            JsFuture::from(js_sleep(duration.as_millis() as i32))
+                .await
+                .unwrap();
+        }
+
+        fn js_sleep(ms: i32) -> js_sys::Promise {
+            js_sys::Promise::new(&mut |resolve, _| {
+                web_sys::window()
+                    .unwrap()
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, ms)
+                    .unwrap();
+            })
+        }
+    }
+
+    #[no_mangle]
+    extern "C" fn __pink_clock_time_get(_id: u32, _precision: u64, _retptr0: *mut u64) -> u16 {
+        0
+    }
+
+    #[no_mangle]
+    extern "C" fn __pink_fd_write(
+        _fd: core::ffi::c_int,
+        _buf: *const core::ffi::c_uchar,
+        _len: usize,
+    ) -> usize {
+        unimplemented!()
     }
 }
