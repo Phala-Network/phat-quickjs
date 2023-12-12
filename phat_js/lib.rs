@@ -340,7 +340,7 @@ pub fn eval_all_with(
 /// let res = phat_js::eval_async_js(js_code, Vec::new());
 /// assert_eq!(res, JsValue::String("42".into()));
 /// ```
-pub fn eval_async_js(code: JsCode, args: Vec<String>) -> JsValue {
+pub fn eval_async_code(code: JsCode, args: Vec<String>) -> JsValue {
     let code_bytes = match &code {
         JsCode::Source(source) => source.as_bytes(),
         JsCode::Bytecode(bytecode) => bytecode.as_slice(),
@@ -350,6 +350,13 @@ pub fn eval_async_js(code: JsCode, args: Vec<String>) -> JsValue {
     let polyfill = polyfill_script(pink::vrf(&code_hash));
     let codes = alloc::vec![JsCode::Source(polyfill), code];
     pink::ext().js_eval(codes, args)
+}
+
+/// Evaluate async JavaScript with SideVM QuickJS.
+///
+/// Same as [`eval_async_code`], but takes a string as the JavaScript code.
+pub fn eval_async_js(src: &str, args: &[String]) -> JsValue {
+    eval_async_code(JsCode::Source(src.into()), args.to_vec())
 }
 
 fn polyfill_script(seed: impl AsRef<[u8]>) -> String {
