@@ -10,7 +10,7 @@ runs:
         override: true
         target: wasm32-unknown-unknown
         components: rustfmt
-    - run: cargo install wasm-tools
+    - run: cargo install wasm-tools blake2_bin
       shell: bash
     - run: sudo apt update
       shell: bash
