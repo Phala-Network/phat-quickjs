@@ -1,33 +1,30 @@
 #![cfg_attr(not(feature = "native"), no_main)]
 
 extern crate alloc;
+use sidevm_quickjs::{js_eval, runtime};
 
 #[cfg(not(feature = "web"))]
-mod cli {
-    use sidevm_quickjs::{js_eval::run, runtime};
-
-    #[runtime::main]
-    async fn main() {
-        use pink_types::js::JsValue;
-        runtime::init_logger();
-        runtime::run_local(async {
-            let output = match run(std::env::args()).await {
-                Ok(value) => value,
-                Err(err) => JsValue::Exception(err.to_string()),
-            };
-            #[cfg(feature = "native")]
-            log::info!("Script output: {:?}", output);
-            #[cfg(not(feature = "native"))]
-            sidevm::ocall::emit_program_output(&scale::Encode::encode(&output))
-                .expect("Failed to emit program output");
-        })
-        .await;
-    }
+#[runtime::main]
+async fn main() {
+    use pink_types::js::JsValue;
+    runtime::init_logger();
+    runtime::run_local(async {
+        let output = match js_eval::run(std::env::args()).await {
+            Ok(value) => value,
+            Err(err) => JsValue::Exception(err.to_string()),
+        };
+        #[cfg(feature = "native")]
+        log::info!("Script output: {:?}", output);
+        #[cfg(not(feature = "native"))]
+        sidevm::ocall::emit_program_output(&scale::Encode::encode(&output))
+            .expect("Failed to emit program output");
+    })
+    .await;
 }
+
 #[cfg(feature = "web")]
 mod web {
-    use sidevm_quickjs::{js_eval, runtime::init_logger};
-
+    use super::*;
     use pink_types::js::JsValue as QjsValue;
     use wasm_bindgen::JsValue as WebJsValue;
 
@@ -38,7 +35,7 @@ mod web {
 
     #[wasm_bindgen::prelude::wasm_bindgen]
     pub async fn run(args: Vec<String>) -> Result<WebJsValue, WebJsValue> {
-        init_logger();
+        runtime::init_logger();
         let result = js_eval::run(args.into_iter()).await;
         match result {
             Ok(value) => Ok({

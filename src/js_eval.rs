@@ -49,6 +49,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
 }
 
 fn print_usage() {
+    println!("phatjs v{}", env!("CARGO_PKG_VERSION"));
     println!("Usage: phatjs [options] [script..] [-- [args]]");
     println!("");
     println!("Options:");

@@ -40,3 +40,4 @@ jobs:
           body: Nightly build
           files: |
             *.wasm
+            phatjs-*

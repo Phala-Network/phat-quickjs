@@ -8,7 +8,7 @@ WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 
 .PHONY: all clean opt deep-clean install run test web phatjs-web.wasm wasi
 
-all: wasi web
+all: wasi web native
 wasi: $(BUILD_OUTPUT)
 web: phatjs-web.wasm
 	-wasm-bindgen phatjs-web.wasm  --out-dir web --typescript --target web --out-name index
@@ -28,7 +28,8 @@ opt: all $(OPTIMIZED_OUTPUT)
 	wasm-tools strip $@ -o $@
 
 native:
-	cargo build --release
+	cargo build --release --target x86_64-unknown-linux-musl
+	cp target/x86_64-unknown-linux-musl/release/phatjs phatjs-x86_64-unknown-linux-musl
 
 install: native
 	$(foreach bin,$(TARGETS),cp target/release/$(bin) $(PREFIX)/;)
@@ -37,6 +38,7 @@ clean:
 	rm -rf $(BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf $(WEB_BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
+	rm -rf phatjs-*
 
 deep-clean: clean
 	cargo clean
