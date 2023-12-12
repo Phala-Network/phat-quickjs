@@ -22,7 +22,7 @@ phatjs-web.wasm:
 	cp $(WEB_BUILD_OUTPUT_DIR)/phatjs.wasm $@
 
 opt: all $(OPTIMIZED_OUTPUT)
-	blake2 -b --length 32 *.wasm phatjs-x86_64-unknown-linux-musl | tee -a hash.txt
+	blake2 -b --length 32 *.wasm phatjs-x86_64-unknown-linux-musl | tee hash.txt
 
 %-stripped.wasm: %.wasm
 	wasm-opt $< -Os -o $@
