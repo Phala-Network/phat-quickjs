@@ -40,4 +40,4 @@ jobs:
           body: Nightly build
           files: |
             *.wasm
-            phatjs-*
+            phatjs-x86_64-unknown-linux-musl
