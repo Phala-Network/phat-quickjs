@@ -14,6 +14,6 @@ runs:
       shell: bash
     - run: sudo apt update
       shell: bash
-    - run: sudo apt -y install build-essential make cmake pkg-config libssl-dev git llvm clang libclang-dev protobuf-compiler
+    - run: sudo apt -y install build-essential make cmake pkg-config libssl-dev git llvm clang libclang-dev protobuf-compiler musl-tools
       shell: bash
 
