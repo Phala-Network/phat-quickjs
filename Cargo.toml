@@ -1,6 +1,6 @@
 [package]
 name = "sidevm-quickjs"
-version = "0.9.3"
+version = "0.9.4"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
