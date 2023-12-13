@@ -121,7 +121,7 @@
                     method: options.method || "GET",
                     headers: options.headers || {},
                     timeout: options.timeout || 10000,
-                    body: options.body || "0x",
+                    body: options.body || "",
                 },
                 (cmd, data) => receiver.recv(cmd, data),
             );
