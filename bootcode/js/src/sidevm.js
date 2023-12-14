@@ -47,6 +47,7 @@
     g.print = g.console.log;
     g.global = g;
     g.window = g;
+    g.SCALE = Sidevm.SCALE;
 }(globalThis))
 
 export default {};
