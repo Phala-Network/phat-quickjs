@@ -18,7 +18,7 @@ web: phatjs-web.wasm
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 phatjs-web.wasm:
-	cargo build --bin phatjs --release --target wasm32-unknown-unknown --no-default-features --features js-hash,web
+	cargo build --bin phatjs --release --target wasm32-unknown-unknown --no-default-features --features js-hash,web,mem-stats
 	cp $(WEB_BUILD_OUTPUT_DIR)/phatjs.wasm $@
 
 opt: all $(OPTIMIZED_OUTPUT)
@@ -29,7 +29,7 @@ opt: all $(OPTIMIZED_OUTPUT)
 	wasm-tools strip $@ -o $@
 
 native:
-	cargo build --release --target x86_64-unknown-linux-musl
+	cargo build --release --target x86_64-unknown-linux-musl --features mem-stats
 	cp target/x86_64-unknown-linux-musl/release/phatjs phatjs-x86_64-unknown-linux-musl
 
 install: native

@@ -12,6 +12,8 @@ mod debug;
 #[cfg(feature = "js-http-listen")]
 mod http_listen;
 mod http_request;
+#[cfg(feature = "mem-stats")]
+mod mem_stats;
 mod print;
 mod timer;
 #[cfg(feature = "js-url")]
@@ -27,17 +29,21 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     ns.set_property("version", &version)?;
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
-    #[cfg(feature = "js-url")]
-    url::setup(&ns)?;
     timer::setup(&ns)?;
     http_request::setup(&ns)?;
+    debug::setup(&ns)?;
+    ns.define_property_fn("close", close_res)?;
+    ns.define_property_fn("exit", exit)?;
+
+    #[cfg(feature = "js-url")]
+    url::setup(&ns)?;
     #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
     #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
-    debug::setup(&ns)?;
-    ns.define_property_fn("close", close_res)?;
-    ns.define_property_fn("exit", exit)?;
+    #[cfg(feature = "mem-stats")]
+    mem_stats::setup(&ns)?;
+
     js::get_global(ctx).set_property("Sidevm", &ns)?;
     setup_process_object(ctx)?;
     Ok(())
