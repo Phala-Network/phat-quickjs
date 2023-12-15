@@ -28,7 +28,7 @@ jobs:
         run: cargo install cargo-contract --version=^4.0.0-alpha --locked
         shell: bash
       - name: Build pink-quickjs
-        run: make opt -C pink-quickjs
+        run: make -C pink-quickjs
         shell: bash
       - name: Publish
         uses: softprops/action-gh-release@v1
