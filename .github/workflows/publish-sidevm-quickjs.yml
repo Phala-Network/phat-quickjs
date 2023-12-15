@@ -32,9 +32,6 @@ jobs:
       - name: Build sidevm-quickjs
         run: make opt -C sidevm-quickjs
         shell: bash
-      - name: Build pink-quickjs
-        run: make opt -C pink-quickjs
-        shell: bash
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
