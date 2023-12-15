@@ -2,13 +2,13 @@
 
 The JS Runtime that powers the [`pink::ext().js_eval()`](https://docs.rs/pink-extension/latest/pink_extension/chain_extension/trait.PinkExtBackend.html#tymethod.js_eval) of pink-extension.
 
-## Difference from phat-quickjs
+## Difference from pink-quickjs
 
-We have developed the phat-quickjs contract, allowing any contract to execute JavaScript code. While effective, phat-quickjs has several constraints, such as limited asynchronous IO capabilities, difficulties in handling concurrent HTTP requests, and restricted memory, as it operates within the ink runtime as a standard ink contract.
+We have developed the pink-quickjs contract, allowing any contract to execute JavaScript code. While effective, pink-quickjs has several constraints, such as limited asynchronous IO capabilities, difficulties in handling concurrent HTTP requests, and restricted memory, as it operates within the ink runtime as a standard ink contract.
 
 In contrast, sidevm-quickjs enhances the capabilities of executing JavaScript code, pushing the boundaries further. However, it also has its limitations. Below is a comparison of the two:
 
-| Feature | phat-quickjs | sidevm-quickjs |
+| Feature | pink-quickjs | sidevm-quickjs |
 |---------|--------------|----------------|
 | VM Memory | 4MB | 16MB |
 | Maximum Execution Time | 10 seconds | 10 seconds |
@@ -18,9 +18,9 @@ In contrast, sidevm-quickjs enhances the capabilities of executing JavaScript co
 | Blocking APIs | ✅ | ❌ |
 | SCALE codec API | pink.SCALE | Sidevm.SCALE |
 
-Notably, several APIs available in phat-quickjs are not present in sidevm-quickjs:
+Notably, several APIs available in pink-quickjs are not present in sidevm-quickjs:
 
-| API | phat-quickjs | sidevm-quickjs |
+| API | pink-quickjs | sidevm-quickjs |
 |---------|--------------|----------------|
 | pink.invokeContract | ✅ | ❌ |
 | pink.invokeContractDelegate | ✅ | ❌ |
@@ -30,9 +30,9 @@ Notably, several APIs available in phat-quickjs are not present in sidevm-quickj
 | pink.hash | ✅ | Sidevm.hash (polyfilled in [phat_js](https://docs.rs/phat_js/0.2.7/phat_js/fn.eval_async_js.html))|
 | pink.vrf | ✅ | ❌ (polyfilled in [phat_js](https://docs.rs/phat_js/0.2.7/phat_js/fn.eval_async_js.html))|
 
-And notable APIs available in sidevm-quickjs are not present in phat-quickjs:
+And notable APIs available in sidevm-quickjs are not present in pink-quickjs:
 
-| API | phat-quickjs | sidevm-quickjs |
+| API | pink-quickjs | sidevm-quickjs |
 |---------|--------------|----------------|
 | setTimeout/setInterval | ❌ | ✅ |
 | fetch | ❌ | ✅ |
@@ -66,16 +66,16 @@ $ ./target/release/phatjs examples/scale-bench.js
 
 | Operation| Engine | iter/sec | Ratio | Ratio2 |
 | --- | --- | --- | --- | --- |
-| Parse | phat-quickjs v1 | 133.7 | 1x | 0.2x |
-| Parse | phat-quickjs v2 | 657.9 | 5x | 1x |
+| Parse | pink-quickjs v1 | 133.7 | 1x | 0.2x |
+| Parse | pink-quickjs v2 | 657.9 | 5x | 1x |
 | Parse | sidevm-quickjs | 8613.3 | 64x | 13x |
 | Parse | quickjs-x86_64 | 64516 | 482x | 98x |
-| Enc/Dec | phat-quickjs v1 | 70.2 | 1x | 0.2x |
-| Enc/Dec | phat-quickjs v2 | 359.7 | 5x | 1x |
+| Enc/Dec | pink-quickjs v1 | 70.2 | 1x | 0.2x |
+| Enc/Dec | pink-quickjs v2 | 359.7 | 5x | 1x |
 | Enc/Dec | sidevm-quickjs | 5851.4 | 83x | 16x |
 | Enc/Dec | quickjs-x86_64 | 41666 | 593x | 115x |
 
-Where phat-quickjs v1 uses pure JS SCALE codec library and others uses SCALE codec implemented in Rust in the JS Runtime.
+Where pink-quickjs v1 uses pure JS SCALE codec library and others uses SCALE codec implemented in Rust in the JS Runtime.
 
 ## Build (Ubuntu 20.04)
 
@@ -90,8 +90,8 @@ Where phat-quickjs v1 uses pure JS SCALE codec library and others uses SCALE cod
 ### Build commands
 
 ```bash
-git clone https://github.com/Phala-Network/sidevm-quickjs.git --recursive
-cd sidevm-quickjs
+git clone https://github.com/Phala-Network/phat-quickjs.git --recursive
+cd phat-quickjs/sidevm-quickjs
 make opt
 ```
 

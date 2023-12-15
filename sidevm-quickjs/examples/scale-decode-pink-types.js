@@ -1,4 +1,4 @@
-#!/usr/bin/env sidevm-quickjs
+#!/usr/bin/env phatjs
 const R = globalThis.Sidevm || globalThis.Pink;
 const { repr, inspect, hexDecode, SCALE: scl } = R;
 console.log = inspect;

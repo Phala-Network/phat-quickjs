@@ -13,8 +13,8 @@ name = "phatjs"
 path = "src/phatjs.rs"
 
 [dependencies]
-js = { package = "qjsbind", path = "qjs-sys/qjsbind" }
-qjs-extensions = { path = "qjs-sys/qjs-extensions", features = ['std'] }
+js = { package = "qjsbind", path = "../qjs-sys/qjsbind" }
+qjs-extensions = { path = "../qjs-sys/qjs-extensions", features = ['std'] }
 tokio = { version = "1", features = ["sync", "macros", "io-util"] }
 hyper = { version = "0.14", features = ["client", "http1"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
