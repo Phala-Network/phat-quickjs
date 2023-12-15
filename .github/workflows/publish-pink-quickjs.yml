@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*.*.*"
+      - "pink-quickjs-v*.*.*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,27 +18,25 @@ jobs:
         with:
           submodules: recursive
       - uses: ./.github/actions/install_toolchain
-      - name: Install Binaryen
-        run: |
-          wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
-          tar -xzvf binaryen-version_116-x86_64-linux.tar.gz -C $RUNNER_TEMP/
-          echo "$RUNNER_TEMP/binaryen-version_116/bin" >> $GITHUB_PATH
       - name: Install deps
         run: sudo bash scripts/install-requirements.sh
         shell: bash
       - name: Install rust components
-        run: rustup component add rust-src && rustup target add wasm32-wasi
+        run: rustup component add rust-src
         shell: bash
-      - name: Build
-        run: make opt -C sidevm-quickjs
+      - name: Install cargo-contract
+        run: cargo install cargo-contract --version=^4.0.0-alpha --locked
+        shell: bash
+      - name: Build pink-quickjs
+        run: make opt -C pink-quickjs
         shell: bash
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: true
-          body: SideVM QuickJS nightly build
+          generate_release_notes: true
           files: |
-            sidevm-quickjs/*.wasm
-            sidevm-quickjs/phatjs-x86_64-unknown-linux-musl
-            sidevm-quickjs/hash.txt
+            pink-quickjs/target/ink/*.contract
+            pink-quickjs/target/ink/*.json
+            pink-quickjs/target/ink/*.wasm
