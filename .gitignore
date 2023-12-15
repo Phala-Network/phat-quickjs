@@ -11,3 +11,5 @@ Cargo.lock
 /*.wasm
 /phatjs-x86_64-unknown-linux-musl
 /hash.txt
+node_modules
+yarn.lock
