@@ -1,6 +1,6 @@
 [package]
-name = "pink-quickjs"
-version = "2.0.0"
+name = "pink_quickjs"
+version = "2.0.1"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
@@ -14,13 +14,13 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 qjsbind = { path = "../qjs-sys/qjsbind", default-features = false }
 qjs-extensions = { path = "../qjs-sys/qjs-extensions", default-features = false, features = ["base64", "hex", "scale2"] }
-pink = { package = "pink-extension", version = "0.4.4-dev.2", default-features = false, features = ["dlmalloc"] }
+pink = { package = "pink-extension", version = "0.5.1", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
 phat_js = { path = "../phat_js", default-features = false }
 this-crate = "0.1"
 
 [lib]
-name = "qjs2"
+name = "pink_quickjs"
 path = "lib.rs"
 
 [features]
