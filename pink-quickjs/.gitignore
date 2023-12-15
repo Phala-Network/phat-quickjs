@@ -13,5 +13,3 @@ Cargo.lock
 /hash.txt
 node_modules
 yarn.lock
-.yarn
-.pnp.cjs

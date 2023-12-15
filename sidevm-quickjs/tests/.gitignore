@@ -1,0 +1,6 @@
+node_modules
+.devphase
+/stacks
+/logs
+/artifacts
+/typings

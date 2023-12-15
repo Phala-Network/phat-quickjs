@@ -1,0 +1,22 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "devphase contract compile",
+    "test": "devphase contract test",
+    "bind": "ts-node bind.ts"
+  },
+  "devDependencies": {
+    "@devphase/cli": "^0.6.7",
+    "@devphase/service": "^0.6.7",
+    "@phala/sdk": "^0.5.2",
+    "@polkadot/util-crypto": "^12.5.1",
+    "axios": "^1.5.1",
+    "dotenv": "^16.0.3",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
+    "typescript": "^4.8.4"
+  }
+}

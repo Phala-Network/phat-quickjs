@@ -1,0 +1,29 @@
+{
+  "name": "@phala/sidevm-env",
+  "version": "1.0.1",
+  "description": "The js environment accessing of sidevm.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "test",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phala-Network/phat-quickjs.git"
+  },
+  "keywords": [
+    "phat",
+    "contract",
+    "sidevm"
+  ],
+  "author": "Phala Network",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Phala-Network/phat-quickjs/issues"
+  },
+  "homepage": "https://github.com/Phala-Network/phat-quickjs",
+  "devDependencies": {
+    "typescript": "^4.9.4"
+  }
+}

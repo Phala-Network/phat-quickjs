@@ -7,11 +7,3 @@
 # Remove Cargo.lock when creating an executable, leave it for libraries
 # More information here http://doc.crates.io/guide.html#cargotoml-vs-cargolock
 Cargo.lock
-.vscode
-/*.wasm
-/phatjs-x86_64-unknown-linux-musl
-/hash.txt
-node_modules
-yarn.lock
-.yarn
-.pnp.cjs
