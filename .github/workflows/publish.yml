@@ -30,15 +30,15 @@ jobs:
         run: rustup component add rust-src && rustup target add wasm32-wasi
         shell: bash
       - name: Build
-        run: make opt
+        run: make opt -C sidevm-quickjs
         shell: bash
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: true
-          body: Nightly build
+          body: SideVM QuickJS nightly build
           files: |
-            *.wasm
-            phatjs-x86_64-unknown-linux-musl
-            hash.txt
+            sidevm-quickjs/*.wasm
+            sidevm-quickjs/phatjs-x86_64-unknown-linux-musl
+            sidevm-quickjs/hash.txt
