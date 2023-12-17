@@ -138,7 +138,6 @@ pub fn ctx_init(ctx: &js::Context) {
         #[cfg(feature = "stream")]
         c::js_stream_init(ctx);
         c::js_blob_init(ctx);
-        c::js_opaque_class_init(ctx)
     };
 }
 

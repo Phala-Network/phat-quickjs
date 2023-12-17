@@ -23,7 +23,7 @@ impl From<phala_allocator::Stats> for Stats {
     }
 }
 
-pub(crate) fn setup(ns: &js::Value) -> anyhow::Result<()> {
+pub(crate) fn setup(ns: &js::Value) -> js::Result<()> {
     ns.define_property_fn("memoryStats", mem_stats)?;
     Ok(())
 }
