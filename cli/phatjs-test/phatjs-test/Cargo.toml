@@ -1,0 +1,20 @@
+[package]
+name = "phatjs-test"
+version = "0.1.0"
+edition = "2021"
+description = "An interperter to test JavaScript for Phat Contracts"
+license = "MIT"
+repository = "https://github.com/Phala-Network/phatjs-test"
+
+[dependencies]
+ink = { version = "4.3.0" }
+scale = { package = "parity-scale-codec", version = "3", features = ["derive"] }
+phat_js = { version = "0.2.8", default-features = false }
+
+drink = "0.8.5"
+drink-pink-runtime = "1.2.13"
+tracing = "0.1.27"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.68"
+hex_fmt = "0.3.0"
