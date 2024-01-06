@@ -13,3 +13,5 @@ Cargo.lock
 /hash.txt
 node_modules
 yarn.lock
+/web/dist
+web.tar.gz

@@ -264,10 +264,18 @@ pub mod runtime {
 
     #[no_mangle]
     extern "C" fn __pink_fd_write(
-        _fd: core::ffi::c_int,
-        _buf: *const core::ffi::c_uchar,
-        _len: usize,
+        fd: core::ffi::c_int,
+        buf: *const core::ffi::c_uchar,
+        len: usize,
     ) -> usize {
-        unimplemented!()
+        // Bridge the fd to the console.
+        let buf = unsafe { std::slice::from_raw_parts(buf, len) };
+        let buf = String::from_utf8_lossy(buf).into_owned();
+        match fd {
+            1 => console::log_2(&"JS:".to_string().into(), &buf.into()),
+            2 => console::error_2(&"JS:".to_string().into(), &buf.into()),
+            _ => unimplemented!("Unsupported fd: {fd}"),
+        }
+        len
     }
 }
