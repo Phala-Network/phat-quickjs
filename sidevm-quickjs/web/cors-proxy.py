@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""A simple HTTP server that forwards all requests to another server, adding CORS headers.
+
+Don't use this in production as it is not optimized for performance!
+"""
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib import request
