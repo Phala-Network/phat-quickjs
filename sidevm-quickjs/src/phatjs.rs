@@ -26,16 +26,32 @@ async fn main() {
 mod web {
     use super::*;
     use pink_types::js::JsValue as QjsValue;
-    use wasm_bindgen::JsValue as WebJsValue;
+    use wasm_bindgen::{prelude::*, JsValue as WebJsValue};
 
-    #[wasm_bindgen::prelude::wasm_bindgen]
+    #[wasm_bindgen(start)]
+    pub fn start() {
+        runtime::init_logger();
+    }
+
+    /// Get the version of the runtime.
+    #[wasm_bindgen]
     pub async fn version() -> String {
         env!("CARGO_PKG_VERSION").to_string()
     }
 
-    #[wasm_bindgen::prelude::wasm_bindgen]
+    /// Run a script.
+    ///
+    /// # Arguments
+    /// - `args` - a list of arguments to pass to the runtime, including the script name and arguments.
+    ///
+    /// # Example
+    ///
+    /// ```js
+    /// const result = await run(["phatjs", "-c", "console.log(scriptArgs)", "--", "Hello, world!"]);
+    /// console.log(result);
+    /// ```
+    #[wasm_bindgen]
     pub async fn run(args: Vec<String>) -> Result<WebJsValue, WebJsValue> {
-        runtime::init_logger();
         let result = js_eval::run(args.into_iter()).await;
         match result {
             Ok(value) => Ok({
@@ -50,6 +66,22 @@ mod web {
             }),
             Err(err) => Err(err.to_string().into()),
         }
+    }
+
+    /// Set a hook for the runtime.
+    ///
+    /// # Available hooks
+    /// - `fetch` - a function that takes a `Request` object and returns a `Response` object.
+    #[wasm_bindgen(js_name = "setHook")]
+    pub fn set_hook(hook_name: String, hook_value: WebJsValue) -> Result<(), String> {
+        match hook_name.as_str() {
+            "fetch" => {
+                js_sys::Reflect::set(&js_sys::global(), &"phatjsFetch".into(), &hook_value)
+                    .expect("Failed to set phatjsFetch");
+            }
+            _ => return Err(format!("Unknown hook name: {}", hook_name)),
+        }
+        Ok(())
     }
 }
 

@@ -4,6 +4,9 @@ version = "0.9.5"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
+[profile.release]
+lto = true
+
 [[bin]]
 name = "sidejs"
 path = "src/sidejs.rs"

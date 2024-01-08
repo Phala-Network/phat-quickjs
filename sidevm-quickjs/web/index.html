@@ -4,28 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <title>Play with QuickJS</title>
+    <style>
+        textarea {
+            font-family: monospace;
+            font-size: 14px;
+            width: 600px;
+            height: 300px;
+        }
+    </style>
 </head>
 
 <body>
     <div class="result" id="result">
-        <textarea id="input-code" style="width: 500px; height: 200px;">
-        async function main() {
-            const url = "https://httpbin.org/get";
-            console.log("Getting: ", url);
-            const response = await fetch(url);
-            console.log("Response: ", response.status);
-            const body = await response.text();
-            Sidevm.inspect("Body: ", body);
-            return body;
-        }
-        main()
-            .then(result => scriptOutput = result)
-            .catch(err => scriptOutput = err)
-            .finally(() => Sidevm.exit());
+        <textarea id="input-code">
+async function main() {
+    const url = "https://httpbin.org/get";
+    console.log("Getting: ", url);
+    const response = await fetch(url);
+    console.log("Response: ", response.status);
+    const body = await response.text();
+    console.log("Body: ", body);
+    return body;
+}
+main()
+    .then(result => scriptOutput = result)
+    .catch(err => scriptOutput = err)
+    .finally(() => process.exit());
         </textarea>
         <br>
         <button id="btn-run" disabled="true">Run</button>
-        <p>Output: <span id="output"></span></p>
+        <p>Output:</p>
+        <textarea id="output"></textarea>
     </div>
 </body>
 

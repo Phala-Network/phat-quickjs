@@ -46,4 +46,4 @@ jobs:
             sidevm-quickjs/*.wasm
             sidevm-quickjs/phatjs-x86_64-unknown-linux-musl
             sidevm-quickjs/hash.txt
-            sidevm-quickjs/web.tar.gz
+            sidevm-quickjs/phatjs-web.tar.gz

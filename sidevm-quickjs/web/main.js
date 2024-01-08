@@ -1,27 +1,41 @@
-import init, { run } from "./dist/phatjs.js";
+import init, { run, setHook } from "./dist/phatjs.js";
 
-// Provide custom fetch implementation for phatjs
-window.phatjsFetch = (resource, options) => {
-    console.log("Fetch: ", resource, options);
-    return fetch(resource, options);
+function setRunable(enabled, runner) {
+    document.getElementById("btn-run").disabled = !enabled;
+    if (runner) {
+        document.getElementById("btn-run").onclick = runner;
+    }
+}
+
+function setOutput(text) {
+    document.getElementById("output").value = text;
 }
 
 async function runScript() {
     const script = document.getElementById("input-code").value;
-    document.getElementById("btn-run").disabled = true;
     const args = ["42"];
     try {
+        setRunable(false);
+        setOutput("Running...");
         const output = await run(["phatjs", "-c", script, "--", ...args]);
-        document.getElementById("output").innerText = output;
-    } finally {
-        document.getElementById("btn-run").disabled = false;
+        setOutput(output);
+    } catch (error) {
+        setOutput(error);
+    }
+    finally {
+        setRunable(true);
     }
 }
 
 async function main() {
     await init();
-    document.getElementById("btn-run").onclick = runScript;
-    document.getElementById("btn-run").disabled = false;
+
+    // Provide custom fetch implementation for phatjs
+    setHook("fetch", (req) => {
+        // req = new Request("http://localhost:3000/" + req.url, req);
+        return fetch(req);
+    });
+    setRunable(true, runScript);
 }
 
 main().catch(console.error)

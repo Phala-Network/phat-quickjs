@@ -5,14 +5,19 @@ BUILD_OUTPUT_DIR=target/wasm32-wasi/release
 BUILD_OUTPUT=$(addsuffix .wasm, $(TARGETS))
 OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
+OPT?=0
 
 .PHONY: all clean opt deep-clean install run test web phatjs-web.wasm wasi
 
 all: wasi web native
 wasi: $(BUILD_OUTPUT)
 web: phatjs-web.wasm
-	-wasm-bindgen phatjs-web.wasm  --out-dir web/dist --typescript --target web --out-name phatjs
-	tar czvf web.tar.gz web/
+	wasm-bindgen phatjs-web.wasm --out-dir web/dist --typescript --target web --out-name phatjs
+ifeq ($(OPT),1)
+	wasm-opt web/dist/phatjs_bg.wasm -Os -o web/dist/phatjs_bg.wasm
+	wasm-tools strip web/dist/phatjs_bg.wasm -o web/dist/phatjs_bg.wasm
+endif
+	tar czvf phatjs-web.tar.gz web/
 
 %.wasm:
 	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm
