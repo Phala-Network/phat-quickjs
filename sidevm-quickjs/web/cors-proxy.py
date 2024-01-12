@@ -8,6 +8,7 @@ Don't use this in production as it is not optimized for performance!
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib import request
+from urllib.error import HTTPError
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -45,9 +46,28 @@ class CORSProxyHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(response.read())
         except Exception as e:
-            self.send_response(500)
+            if isinstance(e, HTTPError):
+                # Make sure to send the original status code from the upstream server
+                self.send_response(e.code)
+                # Copy headers from the HTTPError object
+                for header, value in e.headers.items():
+                    if header.lower() != 'access-control-allow-origin':
+                        self.send_header(header, value)
+            else:
+                self.send_response(500)
+
+            # Include Access-Control-Allow-Origin in case of an exception too
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(str(e).encode())
+
+            if isinstance(e, HTTPError):
+                # Copy the response body from the HTTPError object
+                self.wfile.write(e.read())
+            else:
+                # Sending a text response containing the error message
+                response_text = str(e) if isinstance(e, HTTPError) else 'Internal Server Error'
+                self.wfile.write(response_text.encode())
+
 
     def do_HEAD(self):
         self.do_REQUEST('HEAD')

@@ -21,8 +21,7 @@ async function runScript() {
         setOutput(output);
     } catch (error) {
         setOutput(error);
-    }
-    finally {
+    } finally {
         setRunable(true);
     }
 }
@@ -30,11 +29,26 @@ async function runScript() {
 async function main() {
     await init();
 
+    const useProxyCheckbox = document.getElementById('use-proxy');
+    const proxyUrlInput = document.getElementById('proxy-url');
+
+    useProxyCheckbox.addEventListener('change', (event) => {
+        proxyUrlInput.disabled = !event.target.checked;
+    });
+
     // Provide custom fetch implementation for phatjs
     setHook("fetch", (req) => {
-        // req = new Request("http://localhost:3000/" + req.url, req);
+        if (useProxyCheckbox.checked) {
+            const proxyUrl = proxyUrlInput.value.trim();
+            if (proxyUrl) {
+                let url = new URL(proxyUrl);
+                url.pathname += req.url;
+                req = new Request(url, req);
+            }
+        }
         return fetch(req);
     });
+
     setRunable(true, runScript);
 }
 
