@@ -14,4 +14,4 @@ Cargo.lock
 node_modules
 yarn.lock
 /web/dist
-web.tar.gz
+phatjs-web.tar.gz

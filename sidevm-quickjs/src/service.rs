@@ -132,22 +132,12 @@ impl Default for ServiceState {
     }
 }
 
-pub fn ctx_init(ctx: &js::Context) {
-    unsafe {
-        let ctx = ctx.as_ptr();
-        #[cfg(feature = "stream")]
-        c::js_stream_init(ctx);
-        c::js_blob_init(ctx);
-    };
-}
-
 impl Service {
     pub(crate) fn new(weak_self: ServiceWeakRef) -> Self {
         let runtime = js::Runtime::new();
         let ctx = runtime.new_context();
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
-        ctx_init(&ctx);
         setup_host_functions(&ctx).expect("Failed to setup host functions");
         let bootcode = Code::Bytecode(bootcode::BOOT_CODE);
         ctx.eval(&bootcode).expect("Failed to eval bootcode");

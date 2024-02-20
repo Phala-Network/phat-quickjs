@@ -1,6 +1,6 @@
 [package]
 name = "sidevm-quickjs"
-version = "0.9.6"
+version = "0.10.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
@@ -60,7 +60,6 @@ js-url = []
 js-http-listen = []
 js-hash = ["sha2", "sha3", "blake2"]
 
-stream = ["js/stream"]
 sidevm = []
 web = ["js-sys", "web-sys", "wasm-bindgen", "wasm-bindgen-futures", "reqwest"]
 mem-stats = ["phala-allocator", "js/pink-allocator"]
