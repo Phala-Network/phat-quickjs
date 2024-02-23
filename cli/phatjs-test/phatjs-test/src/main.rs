@@ -1,5 +1,5 @@
 use drink::session::Session;
-use drink_pink_runtime::PinkRuntime;
+use pink_drink::PinkRuntime;
 use phat_js as js;
 use scale::{Decode, Encode};
 
@@ -147,7 +147,7 @@ struct Output {
 }
 
 fn main() {
-    use drink_pink_runtime::{Callable, DeployBundle};
+    use pink_drink::{Callable, DeployBundle};
     use ink::codegen::TraitCallBuilder;
 
     tracing_subscriber::fmt()

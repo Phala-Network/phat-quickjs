@@ -14,7 +14,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 qjsbind = { path = "../qjs-sys/qjsbind", default-features = false }
 qjs-extensions = { path = "../qjs-sys/qjs-extensions", default-features = false, features = ["base64", "hex", "scale2"] }
-pink = { package = "pink-extension", version = "0.5.1", default-features = false, features = ["dlmalloc"] }
+pink = { version = "0.4.0", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
 phat_js = { path = "../phat_js", default-features = false }
 this-crate = "0.1"
