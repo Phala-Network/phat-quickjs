@@ -1,6 +1,6 @@
 # Sidevm QuickJS
 
-The JS Runtime that powers the [`pink::ext().js_eval()`](https://docs.rs/pink-extension/latest/pink_extension/chain_extension/trait.PinkExtBackend.html#tymethod.js_eval) of pink-extension.
+The JS Runtime that powers the [`pink::ext().js_eval()`](https://docs.rs/pink/latest/pink_extension/chain_extension/trait.PinkExtBackend.html#tymethod.js_eval) of pink.
 
 ## Difference from pink-quickjs
 

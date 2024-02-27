@@ -9,10 +9,10 @@ repository = "https://github.com/Phala-Network/phatjs-test"
 [dependencies]
 ink = { version = "4.3.0" }
 scale = { package = "parity-scale-codec", version = "3", features = ["derive"] }
-phat_js = { version = "0.2.8", default-features = false }
+phat_js = { version = "0.3.0", default-features = false }
 
 drink = "0.8.5"
-drink-pink-runtime = "1.2.13"
+pink-drink = "0.1.0"
 tracing = "0.1.27"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 serde = { version = "1.0.130", features = ["derive"] }

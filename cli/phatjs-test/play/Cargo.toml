@@ -6,8 +6,8 @@ edition = "2021"
 
 [dependencies]
 ink = { version = "4.3.0", default-features = false, features = ["static-buffer-512K"] }
-pink = { package = "pink-extension", version = "0.5.1", default-features = false, features = ["dlmalloc"] }
-phat_js = { version = "0.2.8", default-features = false }
+pink = { version = "0.4.0", default-features = false, features = ["dlmalloc"] }
+phat_js = { version = "0.3.0", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }

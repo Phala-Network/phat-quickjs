@@ -1,13 +1,12 @@
 [package]
 name = "phat_js"
-version = "0.2.8"
+version = "0.3.0"
 edition = "2021"
 description = "Provide a function to call the JSDelegate in a phat contract cluster"
 license = "MIT"
 repository = "https://github.com/Phala-Network/phala-blockchain"
 
 [lib]
-name = "phat_js"
 path = "lib.rs"
 
 [dependencies]
@@ -16,7 +15,7 @@ ink = { version = "4.3", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
-pink = { package = "pink-extension", version = "0.5.1", default-features = false }
+pink = { version = "0.4.0", default-features = false }
 hex_fmt = "0.3"
 
 [features]
