@@ -51,7 +51,7 @@ phala-allocator = { version = "0.1.0", optional = true }
 [dependencies.web-sys]
 version = "0.3.4"
 optional = true
-features = ['Window', 'console']
+features = ['console']
 
 [features]
 default = ["native", "js-url", "js-http-listen", "js-hash"]

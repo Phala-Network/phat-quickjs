@@ -240,20 +240,23 @@ pub mod runtime {
     }
 
     pub mod time {
-        pub async fn sleep(duration: std::time::Duration) {
-            use wasm_bindgen_futures::JsFuture;
-            JsFuture::from(js_sleep(duration.as_millis() as i32))
-                .await
-                .unwrap();
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen_futures::JsFuture;
+
+        #[wasm_bindgen]
+        extern "C" {
+            #[wasm_bindgen(catch, js_name=setTimeout)]
+            fn set_timeout(handler: &::js_sys::Function, timeout: i32) -> Result<i32, JsValue>;
         }
 
-        fn js_sleep(ms: i32) -> js_sys::Promise {
-            js_sys::Promise::new(&mut |resolve, _| {
-                web_sys::window()
-                    .unwrap()
-                    .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, ms)
-                    .unwrap();
-            })
+        fn js_sleep(ms: i32) -> JsFuture {
+            JsFuture::from(js_sys::Promise::new(&mut |resolve, _| {
+                set_timeout(&resolve, ms).expect("Failed to set timeout");
+            }))
+        }
+
+        pub async fn sleep(duration: std::time::Duration) {
+            js_sleep(duration.as_millis() as i32).await.unwrap();
         }
     }
 

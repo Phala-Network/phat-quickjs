@@ -18,6 +18,8 @@ ifeq ($(OPT),1)
 	wasm-tools strip web/dist/phatjs_bg.wasm -o web/dist/phatjs_bg.wasm
 endif
 	tar czvf phatjs-web.tar.gz web/
+	wasm-bindgen phatjs-web.wasm --out-dir nodejs/ --typescript --target nodejs --out-name phatjs
+	tar czvf phatjs-nodejs.tar.gz nodejs/
 
 %.wasm:
 	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm
@@ -46,6 +48,7 @@ clean:
 	rm -rf $(WEB_BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
 	rm -rf phatjs-*
+	rm -rf web/dist nodejs/
 
 deep-clean: clean
 	cargo clean
