@@ -45,14 +45,6 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     mem_stats::setup(&ns)?;
 
     js::get_global(ctx).set_property("Sidevm", &ns)?;
-    setup_process_object(ctx)?;
-    Ok(())
-}
-
-pub(crate) fn setup_process_object(ctx: &js::Context) -> Result<()> {
-    let process = js::Value::new_object(ctx);
-    process.define_property_fn("exit", exit)?;
-    js::get_global(ctx).set_property("process", &process)?;
     Ok(())
 }
 

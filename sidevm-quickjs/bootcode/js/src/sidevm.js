@@ -48,6 +48,13 @@
     g.global = g;
     g.window = g;
     g.SCALE = Sidevm.SCALE;
+    g.process = {
+        env: {},
+        exit: Sidevm.exit,
+        get argv() {
+            return ["phatjs", "<eval>", ...scriptArgs];
+        },
+    };
 }(globalThis))
 
 export default {};
