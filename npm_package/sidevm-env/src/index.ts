@@ -76,6 +76,16 @@ declare global {
      * Terminates the script execution.
      */
     exit(): void;
+
+    /**
+     * Prints the specified data to the console, recursively.
+     */
+    inspect(...data: any[]): void;
+
+    /**
+     * The version of the sidevm js runtime.
+     */
+    version: string;
   };
 }
 export {};
