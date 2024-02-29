@@ -1,9 +1,6 @@
 use anyhow::{anyhow, Context};
 use log::info;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    time::Duration,
-};
+use std::{collections::BTreeMap, time::Duration};
 
 use crate::{runtime::time::sleep, service::OwnedJsValue};
 use js::{AsBytes, Error as ValueError, FromJsValue, ToJsValue};
@@ -148,7 +145,7 @@ async fn do_http_request_inner(
         .parse()
         .with_context(|| format!("Failed to parse url: {}", req.url))?;
     let mut builder = hyper::Request::builder()
-        .method(req.method.as_str())
+        .method(req.method.to_uppercase().as_str())
         .uri(&uri);
     let body: Vec<u8> = if let Some(text_body) = req.text_body {
         text_body.into_bytes()
@@ -158,16 +155,18 @@ async fn do_http_request_inner(
     for (k, v) in req.headers.pairs.iter() {
         builder = builder.header(k.as_str(), v.as_str());
     }
-    let headers: BTreeSet<&str> = req.headers.pairs.iter().map(|(k, _v)| k.as_str()).collect();
-    // Append Host, Content-Length and Content-Length if not present
-    if !headers.contains("Host") {
-        builder = builder.header("Host", uri.host().unwrap_or_default());
+    let headers_map = builder
+        .headers_mut()
+        .ok_or_else(|| anyhow!("Failed to build request"))?;
+    // Append Host, Content-Length and User-Agent if not present
+    if !headers_map.contains_key("Host") {
+        headers_map.insert("Host", uri.host().unwrap_or_default().parse()?);
     }
-    if !headers.contains("Content-Length") {
-        builder = builder.header("Content-Length", body.len());
+    if !headers_map.contains_key("Content-Length") {
+        headers_map.insert("Content-Length", body.len().to_string().parse()?);
     }
-    if !headers.contains("User-Agent") {
-        builder = builder.header("User-Agent", "PhatContract/0.1.0");
+    if !headers_map.contains_key("User-Agent") {
+        headers_map.insert("User-Agent", "PhatContract/0.1.0".parse()?);
     }
     let request = builder
         .body(Body::from(body))
@@ -217,10 +216,12 @@ async fn do_http_request_inner(
     for (k, v) in req.headers.pairs.iter() {
         builder = builder.header(k, v);
     }
-    let headers: BTreeSet<&str> = req.headers.pairs.iter().map(|(k, _v)| k.as_str()).collect();
+    let headers_map = builder
+        .headers_mut()
+        .ok_or_else(|| anyhow!("Failed to build request"))?;
     // Append User-Agent if not present
-    if !headers.contains("User-Agent") {
-        builder = builder.header("User-Agent", "PhatContract/0.1.0");
+    if !headers_map.contains_key("User-Agent") {
+        headers_map.insert("User-Agent", "PhatContract/0.1.0".parse()?);
     }
     let body: Vec<u8> = if let Some(text_body) = req.text_body {
         text_body.into_bytes()
