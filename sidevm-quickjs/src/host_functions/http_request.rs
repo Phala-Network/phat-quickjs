@@ -208,21 +208,18 @@ async fn do_http_request_inner(
     use reqwest::{Client, Method};
     let method = Method::from_bytes(req.method.as_bytes()).context("Invalid method")?;
     let mut builder = Client::new().request(method, req.url);
+    let mut has_ua = false;
     for (k, v) in req.headers.pairs.iter() {
+        if k.eq_ignore_ascii_case("User-Agent") {
+            has_ua = true;
+        }
         builder = builder.header(k, v);
     }
-    let headers_map = builder
-        .headers_mut()
-        .ok_or_else(|| anyhow!("Failed to build request"))?;
     // Append User-Agent if not present
-    if !headers_map.contains_key("User-Agent") {
-        headers_map.insert("User-Agent", "PhatContract/0.1.0".parse()?);
+    if !has_ua {
+        builder = builder.header("User-Agent", "PhatContract/0.1.0");
     }
-    let body: Vec<u8> = if let Some(text_body) = req.text_body {
-        text_body.into_bytes()
-    } else {
-        req.body
-    };
+    let body = req.body.as_bytes().to_vec();
     builder = builder.body(body);
     let response = builder.send().await?;
     let head = {
