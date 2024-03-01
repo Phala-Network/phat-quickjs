@@ -1,5 +1,5 @@
 {
-  "name": "openai-api-demo",
+  "name": "langchain-sdk-demo",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -8,8 +8,9 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "array.prototype.flatmap": "^1.3.1",
-    "openai": "^3.3.0"
+    "@langchain/openai": "^0.0.15",
+    "@phala/sidevm-env": "^1.0.2",
+    "array.prototype.flatmap": "^1.3.1"
   },
   "devDependencies": {
     "@swc/cli": "^0.1.62",

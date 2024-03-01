@@ -12,7 +12,7 @@ async function main() {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: "Tell me a story" }],
     });
-    console.log('response:', response.data);
+    console.log('response:', JSON.stringify(response.data));
 }
 
-main().catch(console.error);
+main().catch(console.error).finally(() => process.exit());
