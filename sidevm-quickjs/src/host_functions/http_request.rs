@@ -64,9 +64,8 @@ pub struct HttpRequest {
     method: String,
     #[qjsbind(default)]
     headers: Headers,
-    #[qjsbind(default, as_bytes)]
-    body: Vec<u8>,
-    text_body: Option<String>,
+    #[qjsbind(default)]
+    body: js::BytesOrString,
     #[qjsbind(default = "default_timeout")]
     timeout_ms: u64,
 }
@@ -147,11 +146,7 @@ async fn do_http_request_inner(
     let mut builder = hyper::Request::builder()
         .method(req.method.to_uppercase().as_str())
         .uri(&uri);
-    let body: Vec<u8> = if let Some(text_body) = req.text_body {
-        text_body.into_bytes()
-    } else {
-        req.body
-    };
+    let body = req.body.as_bytes().to_vec();
     for (k, v) in req.headers.pairs.iter() {
         builder = builder.header(k.as_str(), v.as_str());
     }
