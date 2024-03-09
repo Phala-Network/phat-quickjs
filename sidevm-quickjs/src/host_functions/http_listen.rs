@@ -3,7 +3,7 @@ use log::{info, warn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc::Sender;
 
-use super::http_request::Headers;
+use super::http_request::Pairs;
 use super::*;
 use crate::service::OwnedJsValue;
 
@@ -12,7 +12,7 @@ use crate::service::OwnedJsValue;
 pub struct HttpRequest {
     method: String,
     url: String,
-    headers: Headers,
+    headers: Pairs,
     opaque_response_tx: js::Value,
     opaque_input_stream: js::Value,
     opaque_output_stream: js::Value,
@@ -22,7 +22,7 @@ pub struct HttpRequest {
 #[qjsbind(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
-    headers: Headers,
+    headers: Pairs,
 }
 
 #[derive(FromJsValue)]

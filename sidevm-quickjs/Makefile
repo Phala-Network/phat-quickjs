@@ -7,7 +7,7 @@ OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 OPT?=0
 
-.PHONY: all clean opt deep-clean install run test web phatjs-web.wasm wasi
+.PHONY: all clean opt deep-clean install run test web phatjs-web.wasm wasi always-rerun
 
 all: wasi web native
 wasi: $(BUILD_OUTPUT)
@@ -21,12 +21,12 @@ endif
 	wasm-bindgen phatjs-web.wasm --out-dir nodejs/ --typescript --target nodejs --out-name phatjs
 	tar czvf phatjs-nodejs.tar.gz nodejs/
 
-%.wasm:
-	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm
+%.wasm: always-rerun
+	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm,riscvm
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 phatjs-web.wasm:
-	cargo build --bin phatjs --release --target wasm32-unknown-unknown --no-default-features --features js-hash,web,mem-stats
+	cargo build --bin phatjs --release --target wasm32-unknown-unknown --no-default-features --features js-hash,web,mem-stats,riscvm
 	cp $(WEB_BUILD_OUTPUT_DIR)/phatjs.wasm $@
 
 opt: all $(OPTIMIZED_OUTPUT)

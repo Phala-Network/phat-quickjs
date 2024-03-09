@@ -22,6 +22,9 @@ mod url;
 #[cfg(feature = "js-hash")]
 mod hash;
 
+#[cfg(feature = "riscvm")]
+mod riscvm;
+
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = js::Value::new_object(ctx);
     let version = env!("CARGO_PKG_VERSION");
@@ -43,6 +46,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
+    #[cfg(feature = "riscvm")]
+    riscvm::setup(&ns)?;
 
     js::get_global(ctx).set_property("Sidevm", &ns)?;
     Ok(())

@@ -8,11 +8,11 @@ use js::{AsBytes, Error as ValueError, FromJsValue, ToJsValue};
 use super::*;
 
 #[derive(Debug, Default)]
-pub struct Headers {
-    pairs: Vec<(String, String)>,
+pub struct Pairs {
+    pub(crate) pairs: Vec<(String, String)>,
 }
 
-impl FromJsValue for Headers {
+impl FromJsValue for Pairs {
     fn from_js_value(value: js::Value) -> Result<Self, ValueError> {
         Ok(if value.is_array() {
             Vec::<(String, String)>::from_js_value(value)?.into()
@@ -22,19 +22,19 @@ impl FromJsValue for Headers {
     }
 }
 
-impl ToJsValue for Headers {
+impl ToJsValue for Pairs {
     fn to_js_value(&self, ctx: &js::Context) -> Result<js::Value, ValueError> {
         self.pairs.to_js_value(ctx)
     }
 }
 
-impl From<Vec<(String, String)>> for Headers {
+impl From<Vec<(String, String)>> for Pairs {
     fn from(pairs: Vec<(String, String)>) -> Self {
         Self { pairs }
     }
 }
 
-impl From<BTreeMap<String, String>> for Headers {
+impl From<BTreeMap<String, String>> for Pairs {
     fn from(headers: BTreeMap<String, String>) -> Self {
         Self {
             pairs: headers.into_iter().collect(),
@@ -42,13 +42,13 @@ impl From<BTreeMap<String, String>> for Headers {
     }
 }
 
-impl From<Headers> for Vec<(String, String)> {
-    fn from(headers: Headers) -> Self {
+impl From<Pairs> for Vec<(String, String)> {
+    fn from(headers: Pairs) -> Self {
         headers.pairs
     }
 }
 
-impl FromIterator<(String, String)> for Headers {
+impl FromIterator<(String, String)> for Pairs {
     fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
         Self {
             pairs: iter.into_iter().collect(),
@@ -63,7 +63,7 @@ pub struct HttpRequest {
     #[qjsbind(default = "default_method")]
     method: String,
     #[qjsbind(default)]
-    headers: Headers,
+    headers: Pairs,
     #[qjsbind(default)]
     body: js::BytesOrString,
     #[qjsbind(default = "default_timeout")]
@@ -76,7 +76,7 @@ struct HttpResponseHead {
     status: u16,
     status_text: String,
     version: String,
-    headers: Headers,
+    headers: Pairs,
 }
 
 #[derive(ToJsValue, Debug)]
