@@ -19,17 +19,10 @@
         });
         return merged;
     }
-    g.Sidevm.concatU8a = concatU8a;
     g.setTimeout = timerFn(Sidevm.setTimeout);
     g.setInterval = timerFn(Sidevm.setInterval);
     g.clearTimeout = Sidevm.close;
     g.clearInterval = Sidevm.close;
-    g.Sidevm.inspect = function (...obj) {
-        return Sidevm.print(2, obj, {
-            indent: '  ',
-            depth: 5,
-        });
-    }
     g.console = {
         log(...args) {
             return Sidevm.print(2, args);
@@ -54,6 +47,16 @@
         get argv() {
             return ["phatjs", "<eval>", ...scriptArgs];
         },
+    };
+    Sidevm.concatU8a = concatU8a;
+    Sidevm.inspect = function (...obj) {
+        return Sidevm.print(2, obj, {
+            indent: '  ',
+            depth: 5,
+        });
+    }
+    Sidevm.experimental = {
+        runRisc0Program: Sidevm.unstable_runRisc0Program,
     };
 }(globalThis))
 

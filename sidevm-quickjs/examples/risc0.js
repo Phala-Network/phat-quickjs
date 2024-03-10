@@ -21,7 +21,7 @@ async function main() {
     const stdin = encodeString(INPUT);
     console.log('size of guest program:', program.byteLength);
     console.log('stdin:', stdin);
-    const result = Sidevm.unstable_runRisc0Program({
+    const result = Sidevm.experimental.runRisc0Program({
         env: {},
         program,
         args: [],
