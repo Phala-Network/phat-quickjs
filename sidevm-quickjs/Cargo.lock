@@ -587,8 +587,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "190092ea657667030ac6a35e305e62fc4dd69fd98ac98631e5d3a2b1575a12b5"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1606,7 +1608,7 @@ dependencies = [
 [[package]]
 name = "risc0-binfmt"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#6c0f6815a0341c573c729f8ca007d527e260626b"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
 dependencies = [
  "anyhow",
  "elf",
@@ -1619,7 +1621,7 @@ dependencies = [
 [[package]]
 name = "risc0-core"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#6c0f6815a0341c573c729f8ca007d527e260626b"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
 dependencies = [
  "bytemuck",
  "rand_core",
@@ -1628,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkp"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#6c0f6815a0341c573c729f8ca007d527e260626b"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
 dependencies = [
  "anyhow",
  "blake2",
@@ -1647,12 +1649,12 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm-platform"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#6c0f6815a0341c573c729f8ca007d527e260626b"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
 
 [[package]]
 name = "riscvm"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#6c0f6815a0341c573c729f8ca007d527e260626b"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
 dependencies = [
  "anyhow",
  "bincode",

@@ -62,7 +62,14 @@ js-http-listen = []
 js-hash = ["sha2", "sha3", "blake2"]
 
 sidevm = []
-web = ["js-sys", "web-sys", "wasm-bindgen", "wasm-bindgen-futures", "reqwest"]
+web = [
+  "js-sys",
+  "web-sys",
+  "wasm-bindgen",
+  "wasm-bindgen-futures",
+  "reqwest",
+  "riscvm?/web"
+]
 mem-stats = ["phala-allocator", "js/pink-allocator"]
 
 native = [
