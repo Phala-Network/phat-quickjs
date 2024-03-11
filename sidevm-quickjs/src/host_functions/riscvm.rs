@@ -19,6 +19,7 @@ pub struct ExecRequest {
 #[derive(ToJsValue, Debug)]
 #[qjsbind(rename_all = "camelCase")]
 struct ExecResponse {
+    compute_id: AsBytes<Vec<u8>>,
     exit_code: u32,
     journal: AsBytes<Vec<u8>>,
 }
@@ -46,6 +47,7 @@ fn riscv_run_elf(req: ExecRequest) -> Result<ExecResponse> {
         ExitCode::SessionLimit => bail!("Session limit reached"),
     };
     Ok(ExecResponse {
+        compute_id: AsBytes(instance.compute_id().as_bytes().to_vec()),
         exit_code,
         journal: AsBytes(session.journal.unwrap_or_default().bytes),
     })
