@@ -1608,7 +1608,7 @@ dependencies = [
 [[package]]
 name = "risc0-binfmt"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#54ae551c1038acc06bc3d2a2874239d64121c5ad"
 dependencies = [
  "anyhow",
  "elf",
@@ -1621,7 +1621,7 @@ dependencies = [
 [[package]]
 name = "risc0-core"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#54ae551c1038acc06bc3d2a2874239d64121c5ad"
 dependencies = [
  "bytemuck",
  "rand_core",
@@ -1630,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkp"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#54ae551c1038acc06bc3d2a2874239d64121c5ad"
 dependencies = [
  "anyhow",
  "blake2",
@@ -1649,12 +1649,12 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm-platform"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#54ae551c1038acc06bc3d2a2874239d64121c5ad"
 
 [[package]]
 name = "riscvm"
 version = "0.22.0-alpha.1"
-source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#ae3ae778ca607a1b2b77c9932be2dead5c758049"
+source = "git+https://github.com/kvinwang/risc0-vm.git?branch=riscvm#54ae551c1038acc06bc3d2a2874239d64121c5ad"
 dependencies = [
  "anyhow",
  "bincode",
