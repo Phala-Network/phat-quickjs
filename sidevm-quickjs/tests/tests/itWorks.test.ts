@@ -71,6 +71,15 @@ describe("Run tests", () => {
     });
     console.log("Signer:", alice.address.toString());
 
+    // Upload the JS engine code to the cluster storage. But the code size would exceed the block limit.
+    // So we need to upload the code via pruntime RPC instead after the SideVM deployment.
+    // const hexEngineCode = '0x' + engineCode.toString('hex');
+    // await TxHandler.handle(
+    //   api.tx.phalaPhatContracts.clusterUploadResource(this.devPhase.mainClusterId, 'SidevmCode', hexEngineCode),
+    //   alice,
+    //   true,
+    // );
+
     // Upgrade pink runtime to latest, so that we can store larger values to the storage
     await TxHandler.handle(
       system.tx["system::upgradeRuntime"](
@@ -177,7 +186,7 @@ describe("Run tests", () => {
       );
       await checkUntil(async () => {
         const response = await new Axios({}).get(`${this.devPhase.workerUrl}/sidevm/${jssrv.address.toHex()}/_/getConfig`);
-        assertTrue(response.status === 200);
+        console.log('response.data:', response.data);
         return response.data === '' + newConfig;
       }, 1000 * 5);
     });
