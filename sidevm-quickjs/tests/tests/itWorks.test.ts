@@ -132,7 +132,7 @@ describe("Run tests", () => {
 
     it("can config the contract", async function () {
       await TxHandler.handle(
-        jssrv.tx.setScript(
+        jssrv.tx.updateScript(
           { gasLimit: "10000000000000" },
           fs.readFileSync("../examples/httpListen.js", "utf-8"),
         ),

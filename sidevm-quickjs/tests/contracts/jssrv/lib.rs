@@ -92,7 +92,7 @@ mod control {
 
         /// Update the source code of the JavaScript.
         #[ink(message)]
-        pub fn set_script(&mut self, script: String) {
+        pub fn update_script(&mut self, script: String) {
             self.script = script;
         }
 
