@@ -1,5 +1,5 @@
 [package]
-name = "control"
+name = "jssrv"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
@@ -12,6 +12,8 @@ scale-info = { version = "2.6", default-features = false, features = ["derive"],
 pink = { version = "0.4.0", default-features = false }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 phat_js = { version = "0.3.0", default-features = false }
+pink-json = { version = "0.4", default-features = false }
+serde = { version = "1", default-features = false }
 
 [dev-dependencies]
 ink_e2e = "4.3.0"
@@ -27,6 +29,8 @@ std = [
     "scale-info/std",
     "pink/std",
     "phat_js/std",
+    "pink-json/std",
+    "serde/std",
 ]
 ink-as-dependency = []
 e2e-tests = []

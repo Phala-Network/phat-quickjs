@@ -1,4 +1,5 @@
 console.log = Sidevm.inspect;
+console.log('Config: ', globalThis.config);
 console.log('Start to listen http requests...');
 
 Sidevm.httpListen(async req => {
@@ -18,17 +19,24 @@ Sidevm.httpListen(async req => {
         }
     });
     const writer = Sidevm.httpMakeWriter(req.opaqueOutputStream);
-    await writeString(writer, `You have sent me the following info\n`);
-    await writeString(writer, `method: ${req.method}\n`);
-    await sleep(1000);
-    await writeString(writer, `url: ${req.url}\n`);
-    await sleep(1000);
-    await writeString(writer, `headers: \n`);
-    for (var p of req.headers) {
-        await writeString(writer, `    ${p[0]}: ${p[1]}\n`);
-        await sleep(500);
+    const url = new URL(req.url);
+    console.log('path: ', url.pathname);
+    if (url.pathname == '/_/getConfig') {
+        await writeString(writer, JSON.stringify(globalThis.config));
+    } else {
+        await writeString(writer, `You have sent me the following info\n`);
+        await writeString(writer, `method: ${req.method}\n`);
+        await sleep(1000);
+        await writeString(writer, `url: ${req.url}\n`);
+        await sleep(1000);
+        await writeString(writer, `headers: \n`);
+        for (var p of req.headers) {
+            await writeString(writer, `    ${p[0]}: ${p[1]}\n`);
+            await sleep(500);
+        }
+        await writeString(writer, `actual body length: ${body.length}\n`);
+        await writeString(writer, `My config: ${globalThis.config}\n`);
     }
-    await writeString(writer, `actual body length: ${body.length}\n`);
     console.log('Response sent, closing writer');
     Sidevm.httpCloseWriter(writer);
 });

@@ -108,29 +108,32 @@ pub mod runtime {
         HttpConnector::new()
     }
 
-    async fn get_init_script() -> Result<String> {
+    async fn get_init_scripts() -> Result<Vec<String>> {
         type LangError = u8;
         let myid = sidevm::ocall::vmid()?;
-        let selector = ink_macro::selector_bytes!("sidevm_init_script");
+        let selector = ink_macro::selector_bytes!("sidevm_init_scripts");
         let response = query_pink(myid, selector.to_vec())
             .await
             .map_err(|err| anyhow!("Failed to query init script: {err:?}"))?;
-        let script = Result::<String, LangError>::decode(&mut &response[..])
+        let scripts = Result::<Vec<String>, LangError>::decode(&mut &response[..])
             .context("Failed to decode Result::<String, LangError>")?
             .map_err(|err| anyhow!("LangError({err})"))?;
-        Ok(script)
+        Ok(scripts)
     }
 
     pub async fn main_loop() {
-        info!("Getting init script...");
-        match get_init_script().await {
+        info!("Getting init scripts...");
+        match get_init_scripts().await {
             Err(err) => {
-                warn!("Failed to get init script: {err}");
+                warn!("Failed to get init scripts: {err}");
                 info!("No init script found, starting the service keeper...");
             }
-            Ok(script) => {
-                info!("Executing init script...");
-                crate::ServiceKeeper::exec_script("_main", &script);
+            Ok(scripts) => {
+                let n = scripts.len();
+                for (i, script) in scripts.iter().enumerate() {
+                    info!("Executing init script {}/{n}...", i + 1);
+                    crate::ServiceKeeper::exec_script("_", &script);
+                }
             }
         }
         info!("Listening for incoming queries...");
