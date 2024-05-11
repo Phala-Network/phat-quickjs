@@ -8,9 +8,9 @@ import {
   ContractType
 } from "@devphase/service";
 import { System } from "@/typings/System";
-import { Control } from "@/typings/Control";
 import { SidevmDeployer } from "@/typings/SidevmDeployer";
 import { Axios } from "axios";
+import { Jssrv } from '@/typings/Jssrv';
 
 import "dotenv/config";
 
@@ -36,8 +36,8 @@ describe("Run tests", () => {
   let system: System.Contract;
   let deployerFactory: SidevmDeployer.Factory;
   let deployer: SidevmDeployer.Contract;
-  let controlFactory: Control.Factory;
-  let control: Control.Contract;
+  let jssrvFactory: Jssrv.Factory;
+  let jssrv: Jssrv.Contract;
   let pruntime: InstanceType<typeof PhalaSdk.PhactoryAPI>;
 
   let api: ApiPromise;
@@ -45,6 +45,8 @@ describe("Run tests", () => {
   let certAlice: PhalaSdk.CertificateData;
   const txConf = { gasLimit: "10000000000000", storageDepositLimit: null };
   let currentStack: string;
+  const engineCode = fs.readFileSync("../sidejs.wasm");
+  const engineCodeHash = blake2AsHex(engineCode);
 
   before(async function () {
     this.timeout(500_000_000);
@@ -58,16 +60,25 @@ describe("Run tests", () => {
     console.log("system contract:", system.address.toHex());
 
     deployerFactory = await this.devPhase.getFactory(`${currentStack}/sidevm_deployer.contract`, { contractType: ContractType.InkCode });
-    controlFactory = await this.devPhase.getFactory('control', { contractType: ContractType.InkCode });
+    jssrvFactory = await this.devPhase.getFactory('jssrv', { contractType: ContractType.InkCode });
 
     await deployerFactory.deploy();
-    await controlFactory.deploy();
+    await jssrvFactory.deploy();
 
     alice = this.devPhase.accounts.alice;
     certAlice = await PhalaSdk.signCertificate({
       pair: alice,
     });
     console.log("Signer:", alice.address.toString());
+
+    // Upload the JS engine code to the cluster storage. But the code size would exceed the block limit.
+    // So we need to upload the code via pruntime RPC instead after the SideVM deployment.
+    // const hexEngineCode = '0x' + engineCode.toString('hex');
+    // await TxHandler.handle(
+    //   api.tx.phalaPhatContracts.clusterUploadResource(this.devPhase.mainClusterId, 'SidevmCode', hexEngineCode),
+    //   alice,
+    //   true,
+    // );
 
     // Upgrade pink runtime to latest, so that we can store larger values to the storage
     await TxHandler.handle(
@@ -81,7 +92,7 @@ describe("Run tests", () => {
 
     console.log("Instantiating contracts...");
     deployer = await deployerFactory.instantiate("default", [], txConf as any);
-    control = await controlFactory.instantiate("default", [], txConf as any);
+    jssrv = await jssrvFactory.instantiate("new", [engineCodeHash], txConf as any);
     await TxHandler.handle(
       system.tx["system::grantAdmin"](
         { gasLimit: "10000000000000" },
@@ -102,14 +113,14 @@ describe("Run tests", () => {
     await TxHandler.handle(
       deployer.tx["allow"](
         { gasLimit: "10000000000000" },
-        control.address.toHex(),
+        jssrv.address.toHex(),
       ),
       alice,
       true,
     );
 
     await checkUntil(async () => {
-      const { output } = await deployer.query["sidevmOperation::canDeploy"](alice.address, { cert: certAlice }, control.address.toHex());
+      const { output } = await deployer.query["sidevmOperation::canDeploy"](alice.address, { cert: certAlice }, jssrv.address.toHex());
       return output.asOk.valueOf();
     }, 1000 * 10);
     console.log("sidevmOperation::canDeploy checked");
@@ -119,32 +130,65 @@ describe("Run tests", () => {
   describe("Test quickjs in sidevm", function () {
     this.timeout(500_000_000);
 
+    it("can config the contract", async function () {
+      await TxHandler.handle(
+        jssrv.tx.updateScript(
+          { gasLimit: "10000000000000" },
+          fs.readFileSync("../examples/httpListen.js", "utf-8"),
+        ),
+        alice,
+        true,
+      );
+      await TxHandler.handle(
+        jssrv.tx.updateConfig(
+          { gasLimit: "10000000000000" },
+          2
+        ),
+        alice,
+        true,
+      );
+
+      // Wait for the config to be updated
+      await checkUntil(async () => {
+        const config = await jssrv.query.getConfig(alice.address, { cert: certAlice });
+        return config.output.eq({ Ok: 2 });
+      }, 1000 * 10);
+    });
+
     it("can start sidevm", async function () {
-      const code = fs.readFileSync("../qjs.wasm");
-      const codeHash = blake2AsHex(code);
-      await control.query.startSidevm(alice.address, { cert: certAlice }, codeHash);
+      await jssrv.query.restartSidevm(alice.address, { cert: certAlice });
       await pruntime.uploadSidevmCode({
-        contract: control.address.toU8a(),
-        code,
+        contract: jssrv.address.toU8a(),
+        code: engineCode,
       })
       await checkUntil(async () => {
-        const info = await pruntime.getContractInfo({ contracts: [control.address.toHex()] });
+        const info = await pruntime.getContractInfo({ contracts: [jssrv.address.toHex()] });
         return info.contracts[0].sidevm?.state === "running";
       }, 1000 * 10);
       await sleep(500);
     });
 
-    it("can query to sidevm from pink", async function () {
-      const { output } = await control.query.querySidevm(alice.address, { cert: certAlice }, 'ping');
-      assertTrue(output.asOk.eq('pong'));
-    });
-
     it("should be listening HTTP requests in JS", async function () {
-      const url = `${this.devPhase.workerUrl}/sidevm/${control.address.toHex()}/_main/`;
-      const client = new Axios({});
-      const response = await client.get(url);
+      const response = await new Axios({}).get(`${this.devPhase.workerUrl}/sidevm/${jssrv.address.toHex()}/_/`);
       assertTrue(response.status === 200);
       assertTrue(response.headers['x-foo'] === 'Bar');
+    });
+
+    it("can update config", async function () {
+      const newConfig = 42;
+      await TxHandler.handle(
+        jssrv.tx.updateConfig(
+          { gasLimit: "10000000000000" },
+          newConfig
+        ),
+        alice,
+        true,
+      );
+      await checkUntil(async () => {
+        const response = await new Axios({}).get(`${this.devPhase.workerUrl}/sidevm/${jssrv.address.toHex()}/_/getConfig`);
+        console.log('response.data:', response.data);
+        return response.data === '' + newConfig;
+      }, 1000 * 5);
     });
   });
 });

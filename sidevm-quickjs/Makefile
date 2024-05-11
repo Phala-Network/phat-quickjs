@@ -21,8 +21,12 @@ endif
 	wasm-bindgen phatjs-web.wasm --out-dir nodejs/ --typescript --target nodejs --out-name phatjs
 	tar czvf phatjs-nodejs.tar.gz nodejs/
 
-%.wasm: always-rerun
-	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,sidevm,riscvm
+sidejs.wasm: always-rerun
+	cargo build --release --bin sidejs --target wasm32-wasi --no-default-features --features js-hash,sidevm,riscvm,js-http-listen
+	cp $(BUILD_OUTPUT_DIR)/$@ $@
+
+phatjs.wasm: always-rerun
+	cargo build --release --bin phatjs --target wasm32-wasi --no-default-features --features js-hash,sidevm,riscvm
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 phatjs-web.wasm:
