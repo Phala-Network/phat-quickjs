@@ -110,6 +110,7 @@ struct ServiceState {
     next_resource_id: u64,
     recources: BTreeMap<u64, Resource>,
     http_listener: Option<OwnedJsValue>,
+    query_listener: Option<OwnedJsValue>,
     done_tx: broadcast::Sender<()>,
 }
 
@@ -119,6 +120,9 @@ impl ServiceState {
         self.next_resource_id += 1;
         id
     }
+    fn is_empty(&self) -> bool {
+        self.recources.is_empty() && self.http_listener.is_none() && self.query_listener.is_none()
+    }
 }
 
 impl Default for ServiceState {
@@ -127,6 +131,7 @@ impl Default for ServiceState {
             next_resource_id: Default::default(),
             recources: Default::default(),
             http_listener: Default::default(),
+            query_listener: Default::default(),
             done_tx: broadcast::channel(1).0,
         }
     }
@@ -229,15 +234,17 @@ impl Service {
             return;
         }
         state.recources.clear();
+        state.http_listener = None;
+        state.query_listener = None;
         let _ = state.done_tx.send(());
     }
 
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
         debug!("Destroying resource {id}");
         let mut state = self.state.borrow_mut();
-        let was_empty = state.recources.is_empty();
+        let was_empty = state.is_empty();
         let res = state.recources.remove(&id);
-        if !was_empty && state.recources.is_empty() {
+        if !was_empty && state.is_empty() {
             let _ = state.done_tx.send(());
         }
         res
@@ -295,8 +302,16 @@ impl Service {
         self.state.borrow_mut().http_listener = Some(listener);
     }
 
+    pub fn set_query_listener(&self, listener: OwnedJsValue) {
+        self.state.borrow_mut().query_listener = Some(listener);
+    }
+
     pub fn http_listener(&self) -> Option<OwnedJsValue> {
         self.state.borrow().http_listener.as_ref()?.dup()
+    }
+
+    pub fn query_listener(&self) -> Option<OwnedJsValue> {
+        self.state.borrow().query_listener.as_ref()?.dup()
     }
 
     pub fn to_js_value(&self, owned: &OwnedJsValue) -> js::Value {

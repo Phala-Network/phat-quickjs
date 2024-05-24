@@ -1,4 +1,5 @@
 use js::ToJsValue;
+use log::info;
 
 use crate::Service;
 use anyhow::{anyhow, bail, Context, Result};
@@ -8,6 +9,18 @@ use pink_types::js::{JsCode, JsValue};
 struct Args {
     codes: Vec<JsCode>,
     js_args: Vec<String>,
+}
+
+fn load_code(code_hash: &str) -> Result<String> {
+    let code_hash = code_hash.trim_start_matches("0x");
+    if code_hash.len() != 64 {
+        bail!("invalid code hash length: {}", code_hash.len());
+    }
+    let code_hash = hex::decode(code_hash).context("invalid code hash")?;
+    let source_blob =
+        wapo::ocall::blob_get(&code_hash, "sha256").context("failed to get source code")?;
+    let source_code = String::from_utf8(source_blob).context("source code is not valid utf-8")?;
+    Ok(source_code)
 }
 
 fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
@@ -20,14 +33,16 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                 break;
             }
             match arg.as_str() {
-                "-c" => {
-                    let code = iter.next().ok_or(anyhow!("Missing code after -c"))?;
+                "--code-hash" => {
+                    let code_hash = iter
+                        .next()
+                        .ok_or(anyhow!("Missing value after --code-hash"))?;
+                    let code = load_code(&code_hash).context("failed to load coded")?;
                     codes.push(JsCode::Source(code));
                 }
-                "-b" => {
-                    let code = iter.next().ok_or(anyhow!("Missing code after -b"))?;
-                    let bytecode = hex::decode(code).context("Failed to decode bytecode")?;
-                    codes.push(JsCode::Bytecode(bytecode));
+                "-c" => {
+                    let code = iter.next().ok_or(anyhow!("missing code after -c"))?;
+                    codes.push(JsCode::Source(code));
                 }
                 _ => {
                     print_usage();
@@ -54,6 +69,7 @@ fn print_usage() {
     println!("");
     println!("Options:");
     println!("  -c <code>        Execute code");
+    println!("  --code-hash <code_hash>  Execute code");
     println!("  -b <hexed code>  Execute bytecode");
     println!("  --               Stop processing options");
 }
@@ -83,8 +99,29 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
             }
         }
     }
-    if service.number_of_tasks() > 0 {
-        service.wait_for_tasks().await;
+    info!("listening for incoming queries...");
+    loop {
+        tokio::select! {
+            _ = service.wait_for_tasks() => {
+                info!("all tasks are done, exiting...");
+                break;
+            }
+            query = wapo::channel::incoming_queries().next() => {
+                let Some(query) = query else {
+                    info!("host dropped the channel, exiting...");
+                    break;
+                };
+                crate::host_functions::try_accept_query(service.clone(), query)?;
+            }
+            connection = wapo::channel::incoming_http_connections().next() => {
+                let Some(connection) = connection else {
+                    info!("host dropped the channel, exiting...");
+                    break;
+                };
+                #[cfg(feature = "js-http-listen")]
+                crate::host_functions::try_accept_http_request(service.clone(), connection)?;
+            }
+        }
     }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
     let output = js_ctx

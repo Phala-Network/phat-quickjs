@@ -7,8 +7,12 @@ use crate::traits::ResultExt;
 
 #[cfg(feature = "js-http-listen")]
 pub(crate) use http_listen::try_accept_http_request;
+#[cfg(feature = "wapo")]
+pub(crate) use query_listen::try_accept_query;
 
 mod debug;
+#[cfg(feature = "wapo")]
+mod query_listen;
 #[cfg(feature = "js-http-listen")]
 mod http_listen;
 mod http_request;
@@ -39,6 +43,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     url::setup(&ns)?;
     #[cfg(feature = "js-http-listen")]
     http_listen::setup(&ns)?;
+    #[cfg(feature = "wapo")]
+    query_listen::setup(&ns)?;
     #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
@@ -77,4 +83,14 @@ fn close_res(service: ServiceRef, _this: js::Value, res_id: u64) {
 #[js::host_call(with_context)]
 fn exit(service: ServiceRef, _this: js::Value) {
     service.close_all();
+}
+
+/// This function returns the value of f2 and infer it's type as the return type of f1.
+fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
+where
+    F1: FnOnce(I1) -> O,
+    F2: FnOnce() -> Option<O>,
+{
+    let _ = f1;
+    f2()
 }

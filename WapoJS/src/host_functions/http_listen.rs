@@ -74,19 +74,9 @@ pub(crate) fn try_accept_http_request(
     Ok(())
 }
 
-/// This function returns the value of f2 and infer it's type as the return type of f1.
-fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
-where
-    F1: FnOnce(I1) -> O,
-    F2: FnOnce() -> Option<O>,
-{
-    let _ = f1;
-    f2()
-}
-
 #[js::host_call]
 fn http_send_response_head(tx: js::Value, response: HttpResponseHead) {
-    let Some(response_tx) = valueof_f2_as_typeof_f1(
+    let Some(response_tx) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),
     ) else {
@@ -108,7 +98,7 @@ fn http_receive_body(
     input_stream: js::Value,
     callback: OwnedJsValue,
 ) -> Result<u64> {
-    let Some(read_half) = valueof_f2_as_typeof_f1(
+    let Some(read_half) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
         || input_stream.opaque_object_take_data(),
     ) else {
@@ -158,7 +148,7 @@ fn http_make_writer(
     _this: js::Value,
     output_stream: js::Value,
 ) -> anyhow::Result<js::Value> {
-    let Some(write_half) = valueof_f2_as_typeof_f1(
+    let Some(write_half) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
     ) else {
