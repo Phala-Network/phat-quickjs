@@ -35,7 +35,7 @@ pub(crate) fn try_accept_query(service: ServiceRef, request: wapo::channel::Quer
         payload: AsBytes(request.payload),
     };
     if let Err(err) = service.call_function(listener, (req,)) {
-        anyhow::bail!("Failed to fire http request event: {err}");
+        anyhow::bail!("failed to fire http request event: {err}");
     }
     Ok(())
 }
@@ -46,10 +46,10 @@ fn query_reply(tx: js::Value, data: js::BytesOrString) {
         |req: wapo::channel::Query| req.reply_tx,
         || tx.opaque_object_take_data(),
     ) else {
-        info!("Failed to get response tx");
+        info!("failed to get response tx");
         return;
     };
     if let Err(err) = reply_tx.send(data.as_bytes()) {
-        info!("Failed to send response: {err:?}");
+        info!("failed to send response: {err:?}");
     }
 }

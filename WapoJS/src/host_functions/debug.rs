@@ -11,7 +11,7 @@ struct Marker {
 }
 impl Drop for Marker {
     fn drop(&mut self) {
-        info!("Dropping marker: {}", self.tag);
+        info!("dropping marker: {}", self.tag);
     }
 }
 

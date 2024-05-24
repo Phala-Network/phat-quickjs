@@ -22,13 +22,13 @@ pub trait ResultExt {
 impl<E: Debug, T> ResultExt for Result<T, E> {
     fn ignore(self) {
         if let Err(err) = self {
-            error!("Ignored error: {:?}", err);
+            error!("ignored error: {:?}", err);
         }
     }
 
     fn log_err(self) -> Self {
         if let Err(err) = &self {
-            error!("Error: {:?}", err);
+            error!("error: {:?}", err);
         }
         self
     }

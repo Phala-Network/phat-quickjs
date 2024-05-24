@@ -72,7 +72,7 @@ fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
 #[no_mangle]
 extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
     let buf = unsafe { core::slice::from_raw_parts_mut(pbuf, nbytes as usize) };
-    crate::runtime::getrandom(buf).expect("Failed to get random bytes");
+    crate::runtime::getrandom(buf).expect("failed to get random bytes");
 }
 
 #[js::host_call(with_context)]

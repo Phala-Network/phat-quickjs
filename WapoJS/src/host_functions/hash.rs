@@ -25,7 +25,7 @@ fn hash(algorithm: js::JsString, message: js::BytesOrString) -> Result<AsBytes<V
         "blake2b128" => do_hash::<Blake2b<U16>>(message),
         "blake2b256" => do_hash::<Blake2b<U32>>(message),
         "blake2b512" => do_hash::<Blake2b<U64>>(message),
-        _ => bail!("Unsupported hash algorithm: {}", algorithm.as_str()),
+        _ => bail!("unsupported hash algorithm: {}", algorithm.as_str()),
     };
     Ok(hash.into())
 }

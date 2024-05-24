@@ -36,7 +36,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                 "--code-hash" => {
                     let code_hash = iter
                         .next()
-                        .ok_or(anyhow!("Missing value after --code-hash"))?;
+                        .ok_or(anyhow!("missing value after --code-hash"))?;
                     let code = load_code(&code_hash).context("failed to load coded")?;
                     codes.push(JsCode::Source(code));
                 }
@@ -46,18 +46,18 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                 }
                 _ => {
                     print_usage();
-                    bail!("Unknown option: {}", arg);
+                    bail!("unknown option: {}", arg);
                 }
             }
         } else {
             // File name
-            let code = std::fs::read_to_string(arg).context("Failed to read script file")?;
+            let code = std::fs::read_to_string(arg).context("failed to read script file")?;
             codes.push(JsCode::Source(code));
         }
     }
     if codes.is_empty() {
         print_usage();
-        bail!("No script file provided");
+        bail!("no script file provided");
     }
     let js_args = iter.collect();
     Ok(Args { codes, js_args })
@@ -81,11 +81,11 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     let js_args = args
         .js_args
         .to_js_value(&js_ctx)
-        .context("Failed to convert args to js value")?;
+        .context("failed to convert args to js value")?;
     js_ctx
         .get_global_object()
         .set_property("scriptArgs", &js_args)
-        .context("Failed to set scriptArgs")?;
+        .context("failed to set scriptArgs")?;
     let mut expr_val = None;
     for code in args.codes.into_iter() {
         let result = match code {
@@ -95,7 +95,7 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
         match result {
             Ok(value) => expr_val = value.to_js_value(),
             Err(err) => {
-                bail!("Failed to execute script: {err}");
+                bail!("failed to execute script: {err}");
             }
         }
     }
@@ -133,7 +133,7 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     } else {
         output
     };
-    convert(output).context("Failed to convert output")
+    convert(output).context("failed to convert output")
 }
 
 fn convert(output: js::Value) -> Result<JsValue> {

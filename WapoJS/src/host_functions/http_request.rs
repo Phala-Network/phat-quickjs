@@ -112,7 +112,7 @@ async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest
     let url = req.url.clone();
     let result = tokio::select! {
         _ = sleep(Duration::from_millis(req.timeout_ms)) => {
-            Err(anyhow!("Timed out"))
+            Err(anyhow!("timed out"))
         }
         result = do_http_request_inner(weak_service.clone(), id, req) => result,
     };
@@ -121,7 +121,7 @@ async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest
             &weak_service,
             id,
             "error",
-            &format!("Failed to request `{url}`: {err:?}"),
+            &format!("failed to request `{url}`: {err:?}"),
         );
     }
 }
@@ -142,7 +142,7 @@ async fn do_http_request_inner(
     let uri: hyper::Uri = req
         .url
         .parse()
-        .with_context(|| format!("Failed to parse url: {}", req.url))?;
+        .with_context(|| format!("failed to parse url: {}", req.url))?;
     let mut builder = hyper::Request::builder()
         .method(req.method.to_uppercase().as_str())
         .uri(&uri);
@@ -152,7 +152,7 @@ async fn do_http_request_inner(
     }
     let headers_map = builder
         .headers_mut()
-        .ok_or_else(|| anyhow!("Failed to build request"))?;
+        .ok_or_else(|| anyhow!("failed to build request"))?;
     // Append Host, Content-Length and User-Agent if not present
     if !headers_map.contains_key("Host") {
         headers_map.insert("Host", uri.host().unwrap_or_default().parse()?);
@@ -165,7 +165,7 @@ async fn do_http_request_inner(
     }
     let request = builder
         .body(Body::from(body))
-        .context("Failed to build request")?;
+        .context("failed to build request")?;
     let response = client.request(request).await?;
     {
         let head = {
@@ -192,7 +192,7 @@ async fn do_http_request_inner(
     }
     let mut response = pin!(response);
     while let Some(chunk) = response.data().await {
-        let chunk = chunk.context("Failed to read response body")?;
+        let chunk = chunk.context("failed to read response body")?;
         invoke_callback(&weak_service, id, "data", &AsBytes(chunk));
     }
     invoke_callback(&weak_service, id, "end", &());
@@ -258,6 +258,6 @@ fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: &dyn
         return;
     };
     if let Err(err) = service.call_function(callback, (name, data)) {
-        error!("[{id}] Failed to report http_request event {name}: {err:?}");
+        error!("[{id}] failed to report http_request event {name}: {err:?}");
     }
 }

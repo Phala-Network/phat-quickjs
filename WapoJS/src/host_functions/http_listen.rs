@@ -69,7 +69,7 @@ pub(crate) fn try_accept_http_request(
         opaque_output_stream: js::Value::new_opaque_object(service.context(), output_stream),
     };
     if let Err(err) = service.call_function(listener, (req,)) {
-        anyhow::bail!("Failed to fire http request event: {err}");
+        anyhow::bail!("failed to fire http request event: {err}");
     }
     Ok(())
 }
@@ -80,14 +80,14 @@ fn http_send_response_head(tx: js::Value, response: HttpResponseHead) {
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),
     ) else {
-        info!("Failed to get response tx");
+        info!("failed to get response tx");
         return;
     };
     if let Err(err) = response_tx.send(crate::runtime::HttpResponseHead {
         status: response.status,
         headers: response.headers.into(),
     }) {
-        info!("Failed to send response: {err:?}");
+        info!("failed to send response: {err:?}");
     }
 }
 
@@ -102,7 +102,7 @@ fn http_receive_body(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
         || input_stream.opaque_object_take_data(),
     ) else {
-        anyhow::bail!("Failed to get input_stream");
+        anyhow::bail!("failed to get input_stream");
     };
 
     let id = service.spawn(
@@ -113,11 +113,11 @@ fn http_receive_body(
             loop {
                 let result = reader.read(&mut buf).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("Service dropped while reading from stream");
+                    warn!("service dropped while reading from stream");
                     break;
                 };
                 let Some(callback) = service.get_resource_value(id) else {
-                    warn!("Callback dropped while reading from stream");
+                    warn!("callback dropped while reading from stream");
                     break;
                 };
                 let mut end = false;
@@ -130,7 +130,7 @@ fn http_receive_body(
                     Err(err) => service.call_function(callback, ("error", err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("Failed to report read result: {err:?}");
+                    warn!("failed to report read result: {err:?}");
                 }
                 if end {
                     break;
@@ -152,7 +152,7 @@ fn http_make_writer(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
     ) else {
-        anyhow::bail!("Failed to get output_stream");
+        anyhow::bail!("failed to get output_stream");
     };
     let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(1);
     let _id = service.spawn(
@@ -163,7 +163,7 @@ fn http_make_writer(
             while let Some(chunk) = rx.recv().await {
                 let result = write_half.write_all(&chunk.data.0).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("Service dropped while writing to stream");
+                    warn!("service dropped while writing to stream");
                     break;
                 };
                 let result = match result {
@@ -171,7 +171,7 @@ fn http_make_writer(
                     Err(err) => service.call_function(chunk.callback, (false, err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("Failed to report write result: {err:?}");
+                    warn!("failed to report write result: {err:?}");
                 }
             }
         },
@@ -189,17 +189,17 @@ fn http_write_chunk(
     callback: js::Value,
 ) -> Result<()> {
     let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
-        anyhow::bail!("Failed to get writer");
+        anyhow::bail!("failed to get writer");
     };
     let result = tx.try_send(WriteChunk {
         data: chunk,
         callback: callback.clone(),
     });
     if result.is_err() {
-        if let Err(err) = service.call_function(callback, (false, "Failed to send chunk")) {
-            info!("Failed to report write result: {err:?}");
+        if let Err(err) = service.call_function(callback, (false, "failed to send chunk")) {
+            info!("failed to report write result: {err:?}");
         }
-        anyhow::bail!("Failed to send chunk");
+        anyhow::bail!("failed to send chunk");
     }
     Ok(())
 }
@@ -210,7 +210,7 @@ fn http_close_writer(writer: js::Value) {
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()
     {
-        warn!("Double drop of writer");
+        warn!("double drop of writer");
         return;
     };
 }

@@ -48,7 +48,7 @@ impl TryFrom<js::Context> for ServiceRef {
 
     fn try_from(ctx: js::Context) -> Result<Self, Self::Error> {
         js_context_get_service(&ctx)
-            .ok_or(ValueError::Static("Service not found"))?
+            .ok_or(ValueError::Static("service not found"))?
             .upgrade()
             .ok_or(ValueError::RuntimeDropped)
     }
@@ -89,10 +89,10 @@ impl JsEngine {
             match self.runtime.exec_pending_jobs() {
                 Ok(0) => break,
                 Ok(cnt) => {
-                    debug!("Executed {cnt} pending jobs");
+                    debug!("executed {cnt} pending jobs");
                 }
                 Err(err) => {
-                    error!("Uncatched error: {err}");
+                    error!("uncatched error: {err}");
                     *self.last_error.lock().unwrap() = Some(err);
                     continue;
                 }
@@ -143,9 +143,9 @@ impl Service {
         let ctx = runtime.new_context();
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
-        setup_host_functions(&ctx).expect("Failed to setup host functions");
+        setup_host_functions(&ctx).expect("failed to setup host functions");
         let bootcode = Code::Bytecode(bootcode::BOOT_CODE);
-        ctx.eval(&bootcode).expect("Failed to eval bootcode");
+        ctx.eval(&bootcode).expect("failed to eval bootcode");
         let state = RefCell::new(ServiceState::default());
         Self {
             runtime: Rc::new_cyclic(|weak_self| JsEngine {
@@ -208,7 +208,7 @@ impl Service {
         };
         if c::is_exception(ret) {
             let err = self.context().get_exception_str();
-            anyhow::bail!("Failed to call function: {err}");
+            anyhow::bail!("failed to call function: {err}");
         }
         self.runtime.exec_pending_jobs();
         Ok(js::Value::new_moved(self.context(), ret))
@@ -218,7 +218,7 @@ impl Service {
         let mut state = self.state.borrow_mut();
         let id = state.take_next_resource_id();
         state.recources.insert(id, resource);
-        debug!("Created resource {id}");
+        debug!("created resource {id}");
         id
     }
 
@@ -228,7 +228,7 @@ impl Service {
     }
 
     pub fn close_all(&self) {
-        debug!("Destroying all resources");
+        debug!("destroying all resources");
         let mut state = self.state.borrow_mut();
         if state.recources.is_empty() {
             return;
@@ -240,7 +240,7 @@ impl Service {
     }
 
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
-        debug!("Destroying resource {id}");
+        debug!("destroying resource {id}");
         let mut state = self.state.borrow_mut();
         let was_empty = state.is_empty();
         let res = state.recources.remove(&id);
@@ -272,7 +272,7 @@ impl Service {
                 _ = cancel_rx => {
                 }
             }
-            debug!("Task {id} finished");
+            debug!("task {id} finished");
             close(weak_service, id);
         });
         id
