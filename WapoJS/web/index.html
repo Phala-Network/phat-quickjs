@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Play with QuickJS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+        textarea {
+            font-family: monospace;
+            font-size: 14px;
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .checkbox-container label {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        .checkbox-container {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .container {
+            margin-bottom: 10px;
+        }
+        input[type='text'] {
+            font-size: 14px;
+            padding: 10px;
+            width: 100%;
+            max-width: 440px; /* adjust to line up with textarea width */
+        }
+        .output {
+            background-color: #eaeaea;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            max-width: 600px;
+            resize: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <textarea id="input-code">
+async function main() {
+    const url = "https://httpbin.org/get";
+    console.log("Getting: ", url);
+    const response = await fetch(url);
+    console.log("Response: ", response.status);
+    const body = await response.text();
+    console.log("Body: ", body);
+    return body;
+}
+main()
+    .then(result => scriptOutput = result)
+    .catch(err => scriptOutput = err)
+    .finally(() => process.exit());
+        </textarea>
+        <br>
+        <button id="btn-run">Run</button>
+        <div class="checkbox-container">
+            <input type="checkbox" id="use-proxy" name="use-proxy" />
+            <label for="use-proxy">Use CORS Proxy</label>
+            <input type="text" id="proxy-url" placeholder="Enter proxy URL" disabled value="http://localhost:3000"/>
+        </div>
+        <p>Output:</p>
+        <textarea id="output" class="output"></textarea>
+    </div>
+</body>
+</html>
+<script type="module" src="main.js"></script>
