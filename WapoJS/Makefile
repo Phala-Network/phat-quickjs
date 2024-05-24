@@ -1,4 +1,4 @@
-TARGETS=sidejs phatjs
+TARGETS=wapojs
 
 PREFIX=~/bin
 BUILD_OUTPUT_DIR=target/wasm32-wasi/release
@@ -7,27 +7,17 @@ OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 OPT?=0
 
-.PHONY: all clean opt deep-clean install run test web phatjs-web.wasm wasi
+.PHONY: all clean opt deep-clean install run test wasi rs
 
-all: wasi web native
+all: wasi
+
+$(BUILD_OUTPUT): rs
+
 wasi: $(BUILD_OUTPUT)
-web: phatjs-web.wasm
-	wasm-bindgen phatjs-web.wasm --out-dir web/dist --typescript --target web --out-name phatjs
-ifeq ($(OPT),1)
-	wasm-opt web/dist/phatjs_bg.wasm -Os -o web/dist/phatjs_bg.wasm
-	wasm-tools strip web/dist/phatjs_bg.wasm -o web/dist/phatjs_bg.wasm
-endif
-	tar czvf phatjs-web.tar.gz web/
-	wasm-bindgen phatjs-web.wasm --out-dir nodejs/ --typescript --target nodejs --out-name phatjs
-	tar czvf phatjs-nodejs.tar.gz nodejs/
 
 %.wasm:
-	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,wapo
+	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,wapo,js-http-listen
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
-
-phatjs-web.wasm:
-	cargo build --bin phatjs --release --target wasm32-unknown-unknown --no-default-features --features js-hash,web,mem-stats
-	cp $(WEB_BUILD_OUTPUT_DIR)/phatjs.wasm $@
 
 opt: all $(OPTIMIZED_OUTPUT)
 	blake2 -b --length 32 *.wasm phatjs-x86_64-unknown-linux-musl | tee hash.txt
@@ -48,7 +38,6 @@ clean:
 	rm -rf $(WEB_BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
 	rm -rf phatjs-*
-	rm -rf web/dist nodejs/
 
 deep-clean: clean
 	cargo clean

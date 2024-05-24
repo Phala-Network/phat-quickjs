@@ -8,12 +8,8 @@ edition = "2021"
 lto = true
 
 [[bin]]
-name = "sidejs"
-path = "src/sidejs.rs"
-
-[[bin]]
-name = "phatjs"
-path = "src/phatjs.rs"
+name = "wapojs"
+path = "src/wapojs.rs"
 
 [dependencies]
 js = { package = "qjsbind", path = "../qjs-sys/qjsbind" }
@@ -27,7 +23,6 @@ wapo = "0.2.0-alpha.7"
 log = "0.4"
 anyhow = "1.0"
 url = "2.4.0"
-ink_macro = "4.3"
 scale = { package = "parity-scale-codec", version = "3" }
 hex = "0.4.3"
 pink-types = "0.1"
@@ -36,16 +31,6 @@ sha2 = { version = "0.10", optional = true, default-features = false }
 sha3 = { version = "0.10", optional = true, default-features = false }
 blake2 = { version = "0.10", optional = true, default-features = false }
 
-# Crates for native testing
-tracing-subscriber = { version = "0.3", optional = true }
-rand = { version = "0.8.5", optional = true }
-hyper-rustls = { version = "0.24.1", optional = true }
-
-# Creates for web backend
-wasm-bindgen = { version = "0.2.89", optional = true, default-features = false }
-js-sys = { version = "0.3.66", optional = true }
-wasm-bindgen-futures = { version = "0.4.39", optional = true }
-reqwest = { version = "0.11.23", optional = true, git = "https://github.com/kvinwang/reqwest", branch = "phatjs" }
 phala-allocator = { version = "0.1.0", optional = true }
 
 [dependencies.web-sys]
@@ -54,21 +39,10 @@ optional = true
 features = ['console']
 
 [features]
-default = ["native", "js-url", "js-http-listen", "js-hash"]
+default = ["wapo", "js-url", "js-http-listen", "js-hash"]
 sanitize-address = ["js/sanitize-address"]
 js-url = []
 js-http-listen = []
 js-hash = ["sha2", "sha3", "blake2"]
-
 wapo = []
-web = ["js-sys", "web-sys", "wasm-bindgen", "wasm-bindgen-futures", "reqwest"]
 mem-stats = ["phala-allocator", "js/pink-allocator"]
-
-native = [
-  "tokio/full",
-  "tracing-subscriber",
-  "rand",
-  "hyper/runtime",
-  "hyper/tcp",
-  "hyper-rustls/webpki-roots",
-]
