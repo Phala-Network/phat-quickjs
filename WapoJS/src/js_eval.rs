@@ -25,8 +25,7 @@ fn load_code(code_hash: &str) -> Result<String> {
 
 fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
     let mut codes = vec![];
-    let mut iter = args;
-    iter.next();
+    let mut iter = args.skip(1);
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
             if arg == "--" {
@@ -64,13 +63,12 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
 }
 
 fn print_usage() {
-    println!("phatjs v{}", env!("CARGO_PKG_VERSION"));
-    println!("Usage: phatjs [options] [script..] [-- [args]]");
+    println!("wapojs v{}", env!("CARGO_PKG_VERSION"));
+    println!("Usage: wapojs [options] [script..] [-- [args]]");
     println!("");
     println!("Options:");
     println!("  -c <code>        Execute code");
     println!("  --code-hash <code_hash>  Execute code");
-    println!("  -b <hexed code>  Execute bytecode");
     println!("  --               Stop processing options");
 }
 

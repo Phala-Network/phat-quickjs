@@ -53,13 +53,13 @@ $ (cd tests/bench && cargo test --release)
 ```
 
 ```
-$ wapo-run phatjs-opt.wasm -c @examples/scale-bench.js
+$ wapo-run wapojs-opt.wasm -c @examples/scale-bench.js
 2023-12-05T07:11:45.502895Z  INFO ocall{tid=0}: wapo: JS:[2]|  Wapo qjs: parse 10000 iterations in 1161ms, 8613.264427217915 ops/sec    
 2023-12-05T07:11:47.213053Z  INFO ocall{tid=0}: wapo: JS:[2]|  Wapo qjs: enc/dec 10000 iterations in 1709ms, 5851.375073142189 ops/sec
 ```
 
 ```
-$ ./target/release/phatjs examples/scale-bench.js 
+$ ./target/release/wapojs examples/scale-bench.js 
 2023-12-05T07:10:38.534559Z  INFO wapouickjs::service: JS:[2]|  Wapo qjs: parse 10000 iterations in 155ms, 64516.12903225806 ops/sec    
 2023-12-05T07:10:38.774607Z  INFO wapo_quickjs::service: JS:[2]|  Wapo qjs: enc/dec 10000 iterations in 240ms, 41666.666666666664 ops/sec   
 ```
@@ -95,9 +95,9 @@ cd phat-quickjs/wapo-quickjs
 make opt
 ```
 
-If no error happens, it should output `phatjs-opt.wasm` in the current directory.
+If no error happens, it should output `wapojs-opt.wasm` in the current directory.
 
 ```
 $ ls *.wasm
-phatjs-opt.wasm sidejs.wasm phatjs.wasm sidejs-opt.wasm
+wapojs-opt.wasm wapojs.wasm
 ```

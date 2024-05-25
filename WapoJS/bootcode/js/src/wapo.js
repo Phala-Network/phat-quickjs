@@ -52,7 +52,7 @@
         env: {},
         exit: Wapo.exit,
         get argv() {
-            return ["phatjs", "<eval>", ...scriptArgs];
+            return ["wapojs", "<eval>", ...scriptArgs];
         },
     };
 }(globalThis))

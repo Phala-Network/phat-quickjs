@@ -20,7 +20,7 @@ wasi: $(BUILD_OUTPUT)
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 opt: all $(OPTIMIZED_OUTPUT)
-	blake2 -b --length 32 *.wasm phatjs-x86_64-unknown-linux-musl | tee hash.txt
+	blake2 -b --length 32 *.wasm | tee hash.txt
 
 %-stripped.wasm: %.wasm
 	wasm-opt $< -Os -o $@
@@ -28,7 +28,7 @@ opt: all $(OPTIMIZED_OUTPUT)
 
 native:
 	cargo build --release --target x86_64-unknown-linux-musl --features mem-stats
-	cp target/x86_64-unknown-linux-musl/release/phatjs phatjs-x86_64-unknown-linux-musl
+	cp target/x86_64-unknown-linux-musl/release/wapojs wapojs-x86_64-unknown-linux-musl
 
 install: native
 	$(foreach bin,$(TARGETS),cp target/release/$(bin) $(PREFIX)/;)
@@ -37,7 +37,7 @@ clean:
 	rm -rf $(BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf $(WEB_BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
-	rm -rf phatjs-*
+	rm -rf wapojs-*
 
 deep-clean: clean
 	cargo clean

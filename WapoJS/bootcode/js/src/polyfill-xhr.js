@@ -239,7 +239,7 @@
                 return void 0;
             }
             _sendHxxpRequest() {
-                var agent = "sidejs/1.0.0";
+                var agent = "wapojs/1.0.0";
                 const request = {};
                 const response = {
                     headers: {},

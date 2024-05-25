@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
-    "test": "webpack && phatjs dist/index.js"
+    "test": "webpack && wapojs dist/index.js"
   },
   "license": "Apache-2.0",
   "dependencies": {

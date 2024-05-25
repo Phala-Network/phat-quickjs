@@ -11,17 +11,19 @@ pub(crate) use http_listen::try_accept_http_request;
 pub(crate) use query_listen::try_accept_query;
 
 mod debug;
-#[cfg(feature = "wapo")]
-mod query_listen;
 #[cfg(feature = "js-http-listen")]
 mod http_listen;
 mod http_request;
 #[cfg(feature = "mem-stats")]
 mod mem_stats;
 mod print;
+#[cfg(feature = "wapo")]
+mod query_listen;
 mod timer;
 #[cfg(feature = "js-url")]
 mod url;
+#[cfg(feature = "wapo")]
+mod wapo_ocalls;
 
 #[cfg(feature = "js-hash")]
 mod hash;
@@ -45,6 +47,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     http_listen::setup(&ns)?;
     #[cfg(feature = "wapo")]
     query_listen::setup(&ns)?;
+    #[cfg(feature = "wapo")]
+    wapo_ocalls::setup(&ns)?;
     #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]

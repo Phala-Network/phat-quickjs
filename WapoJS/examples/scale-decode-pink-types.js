@@ -1,4 +1,4 @@
-#!/usr/bin/env phatjs
+#!/usr/bin/env wapojs
 const R = globalThis.Wapo || globalThis.Pink;
 const { repr, inspect, hexDecode, SCALE: scl } = R;
 console.log = inspect;
