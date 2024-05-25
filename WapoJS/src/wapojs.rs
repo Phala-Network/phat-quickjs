@@ -7,7 +7,7 @@ use wapo_quickjs::{js_eval, runtime};
 #[runtime::main]
 async fn main() {
     runtime::init_logger();
-    let _ = js_eval::run(std::env::args())
+    let _ = runtime::run_local(js_eval::run(std::env::args()))
         .await
         .expect("failed to run js code");
 }

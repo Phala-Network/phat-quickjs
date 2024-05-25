@@ -11,6 +11,7 @@ struct Args {
     js_args: Vec<String>,
 }
 
+#[cfg(feature = "wapo")]
 fn load_code(code_hash: &str) -> Result<String> {
     let code_hash = code_hash.trim_start_matches("0x");
     if code_hash.len() != 64 {
@@ -32,6 +33,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                 break;
             }
             match arg.as_str() {
+                #[cfg(feature = "wapo")]
                 "--code-hash" => {
                     let code_hash = iter
                         .next()
@@ -68,6 +70,7 @@ fn print_usage() {
     println!("");
     println!("Options:");
     println!("  -c <code>        Execute code");
+    #[cfg(feature = "wapo")]
     println!("  --code-hash <code_hash>  Execute code");
     println!("  --               Stop processing options");
 }
@@ -98,6 +101,7 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
         }
     }
     info!("listening for incoming queries...");
+    #[cfg(feature = "wapo")]
     loop {
         tokio::select! {
             _ = service.wait_for_tasks() => {
@@ -120,6 +124,11 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
                 crate::host_functions::try_accept_http_request(service.clone(), connection)?;
             }
         }
+    }
+    #[cfg(not(feature = "wapo"))]
+    {
+        service.wait_for_tasks().await;
+        info!("all tasks are done, exiting...");
     }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
     let output = js_ctx

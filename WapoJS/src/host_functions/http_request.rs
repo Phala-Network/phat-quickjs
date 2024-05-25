@@ -161,7 +161,7 @@ async fn do_http_request_inner(
         headers_map.insert("Content-Length", body.len().to_string().parse()?);
     }
     if !headers_map.contains_key("User-Agent") {
-        headers_map.insert("User-Agent", "PhatContract/0.1.0".parse()?);
+        headers_map.insert("User-Agent", "WapoJS/0.1.0".parse()?);
     }
     let request = builder
         .body(Body::from(body))
@@ -217,7 +217,7 @@ async fn do_http_request_inner(
     }
     // Append User-Agent if not present
     if !has_ua {
-        builder = builder.header("User-Agent", "PhatContract/0.1.0");
+        builder = builder.header("User-Agent", "WapoJS/0.1.0");
     }
     let body = req.body.as_bytes().to_vec();
     builder = builder.body(body);
