@@ -70,6 +70,8 @@ fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     ns.define_property_fn("utf8Encode", ext::utf8::encode)?;
     ns.define_property_fn("base64Decode", ext::base64::decode)?;
     ns.define_property_fn("base64Encode", ext::base64::encode)?;
+    #[cfg(feature = "js-crypto")]
+    ext::crypto::setup(&ctx.get_global_object())?;
     Ok(())
 }
 
@@ -89,6 +91,7 @@ fn exit(service: ServiceRef, _this: js::Value) {
     service.close_all();
 }
 
+#[allow(dead_code)]
 /// This function returns the value of f2 and infer it's type as the return type of f1.
 fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
 where

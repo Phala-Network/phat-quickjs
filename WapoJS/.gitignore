@@ -9,7 +9,7 @@
 Cargo.lock
 .vscode
 /*.wasm
-/wapojs-*
+/wapojs
 /hash.txt
 node_modules
 yarn.lock

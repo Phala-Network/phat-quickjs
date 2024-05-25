@@ -44,11 +44,14 @@ optional = true
 features = ['console']
 
 [features]
-default = ["native", "js-url", "js-http-listen", "js-hash"]
+default = ["native", "js-url", "js-http-listen", "js-hash", "js-crypto"]
 sanitize-address = ["js/sanitize-address"]
 js-url = []
 js-http-listen = []
 js-hash = ["sha2", "sha3", "blake2"]
+js-crypto = [
+    "qjs-extensions/crypto",
+]
 wapo = []
 mem-stats = ["phala-allocator", "js/pink-allocator"]
 
