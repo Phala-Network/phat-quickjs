@@ -287,7 +287,7 @@ impl Service {
     }
 
     pub async fn wait_for_tasks(&self) {
-        if self.state.borrow().recources.len() == 0 {
+        if self.state.borrow().is_empty() {
             return;
         }
         let mut rx = self.state.borrow().done_tx.subscribe();
