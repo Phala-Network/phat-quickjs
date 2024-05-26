@@ -15,13 +15,20 @@ Wapo.httpRequest({
         switch (cmd) {
             case "head":
                 console.log("head:", data);
-                break;
-            case "data":
-                console.log(`data.length=${data.length}`);
-                console.log('-------------------------------------------');
-                console.log(new TextDecoder().decode(data));
-                break;
-            case "end":
+                Wapo.httpReceiveBody(data.bodyStream, (cmd, data) => {
+                    switch (cmd) {
+                        case "data":
+                            console.log(`data.length=${data.length}`);
+                            console.log('-------------------------------------------');
+                            console.log(new TextDecoder().decode(data));
+                            break;
+                        case "end":
+                            break;
+                        case "error":
+                            console.log("error:", data);
+                            break;
+                    }
+                });
                 break;
             case "error":
                 console.log("error:", data);

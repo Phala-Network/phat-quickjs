@@ -245,7 +245,7 @@
                     headers: {},
                     body: [],
                 };
-                const reqId = Wapo.httpRequest({
+                this._reqId = Wapo.httpRequest({
                     url: this.url,
                     method: this._method,
                     headers: {
@@ -255,37 +255,30 @@
                     timeout: this.timeout || 60000,
                     body: this.upload._body,
                 },
-                (cmd, data) => {
-                    switch (cmd) {
-                        case "head":
-                            {
-                                const head = data;
-                                response.ok = ((head.status / 100) | 0) == 2;
-                                response.headers = data.headers;
-                                response.statusText = head.statusText;
-                                response.statusCode = head.status;
-                                response.url = head["Location"] || head["location"] || "";
-                                response.bodyUsed = false;
-                                response.type = "default";
-                                this._onHttpResponse(request, response);
+                    (cmd, data) => {
+                        switch (cmd) {
+                            case "head":
+                                {
+                                    const head = data;
+                                    response.ok = ((head.status / 100) | 0) == 2;
+                                    response.headers = data.headers;
+                                    response.statusText = head.statusText;
+                                    response.statusCode = head.status;
+                                    response.url = head["Location"] || head["location"] || "";
+                                    response.bodyUsed = false;
+                                    response.type = "default";
+                                    response._bodyStream = data.bodyStream;
+                                    this._onHttpResponse(request, response);
+                                    break;
+                                }
+                            case "error": {
+                                this._onHttpRequestError(request, data);
                                 break;
                             }
-                        case "data":
-                            this._onHttpResponseData(response, data);
-                            break;
-                        case "end": {
-                            this._onHttpResponseEnd(response);
-                            this._onHttpResponseClose(response);
-                            break;
                         }
-                        case "error": {
-                            this._onHttpRequestError(request, data);
-                            break;
-                        }
-                    }
-                });
+                    });
                 request.abort = () => {
-                    Wapo.close(reqId);
+                    Wapo.close(this._reqId);
                 };
                 this._request = request;
                 this._dispatchProgress('loadstart');
@@ -342,6 +335,26 @@
                 } else {
                     this._lengthComputable = false;
                 }
+
+                this._reqId = Wapo.httpReceiveBody(bodyStream, (cmd, data) => {
+                    switch (cmd) {
+                        case "data":
+                            this._onHttpResponseData(response, data);
+                            break;
+                        case "end": {
+                            this._onHttpResponseEnd(response);
+                            this._onHttpResponseClose(response);
+                            break;
+                        }
+                        case "error":
+                            this._onHttpRequestError(request, data);
+                            break;
+                        default:
+                            console.log("unknown cmd:", cmd);
+                            break;
+                    }
+                });
+
                 return this._setReadyState(XMLHttpRequest.HEADERS_RECEIVED);
             }
 

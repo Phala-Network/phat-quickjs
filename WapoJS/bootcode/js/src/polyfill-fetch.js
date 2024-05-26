@@ -36,22 +36,11 @@
             this.status = options.status || 200;
             this.url = options.url || '';
             this.headers = new Headers(options.headers || {});
-            this.receiver = options.receiver || {};
+            this._bodyStream = options.bodyStream || null;
             this.bodyUsed = false;
             this.type = "default";
             if (bodyInit !== null) {
                 this.setBody(bodyInit);
-            }
-            const chunks = [];
-            this.receiver.recv = (cmd, data) => {
-                if (cmd == "data") {
-                    chunks.push(data);
-                } else if (cmd == "end") {
-                    const body = Wapo.concatU8a(chunks);
-                    this.receiver.resolve(body);
-                } else {
-                    this.receiver.reject(data);
-                }
             }
         }
         async text() {
@@ -81,7 +70,7 @@
             });
         }
         get body() {
-            return this._body ? this._body : this.createReceiverBody();
+            return this._body ? this._body : this.createBodyStream();
         }
 
         setBody(bodyInit) {
@@ -118,23 +107,32 @@
             }
         }
 
-        createReceiverBody() {
-            const r = this.receiver;
-            const reqId = this.id;
+        createBodyStream() {
+            const anchor = {};
+            const bodyStream = this._bodyStream;
             return new ReadableStream({
                 start(controller) {
-                    r.recv = (cmd, data) => {
-                        if (cmd == "data") {
-                            controller.enqueue(data);
-                        } else if (cmd == "end") {
-                            controller.close();
-                        } else {
-                            controller.error(data);
+                    anchor.reqId = Wapo.httpReceiveBody(bodyStream, (cmd, data) => {
+                        switch (cmd) {
+                            case "data":
+                                controller.enqueue(data);
+                                break;
+                            case "end":
+                                controller.close();
+                                break;
+                            case "error":
+                                controller.error(data);
+                                break;
+                            default:
+                                console.log("unknown cmd:", cmd);
+                                break;
                         }
-                    }
+                    });
                 },
                 cancel() {
-                    Wapo.close(reqId);
+                    if (anchor.reqId) {
+                        Wapo.close(anchor.reqId);
+                    }
                 }
             });
         }
@@ -156,8 +154,15 @@
         options = options || {};
         const redirect = options.redirect || "follow";
         return new Promise((resolve, reject) => {
-            const receiver = {
-                recv: (cmd, data) => {
+            const request = {
+                url,
+                method: options.method || "GET",
+                headers: options.headers || {},
+                timeout: options.timeout || 10000,
+                body: options.body || "",
+            };
+            Wapo.httpRequest(request,
+                (cmd, data) => {
                     if (cmd == "head") {
                         if (redirect == "follow" && [301, 302, 307, 308].includes(data.status)) {
                             const location = data.headers['Location'];
@@ -166,26 +171,11 @@
                                 return;
                             }
                         }
-                        resolve(new Response(null, {
-                            id: reqId,
-                            receiver,
-                            ...data
-                        }));
+                        resolve(new Response(null, data));
                     } else {
                         reject(data);
                     }
-                },
-                resolve: () => { },
-                reject: () => { },
-            }
-            const reqId = Wapo.httpRequest({
-                url,
-                method: options.method || "GET",
-                headers: options.headers || {},
-                timeout: options.timeout || 10000,
-                body: options.body || "",
-            },
-                (cmd, data) => receiver.recv(cmd, data),
+                }
             );
         });
     };

@@ -3,7 +3,7 @@ use log::info;
 use std::{collections::BTreeMap, time::Duration};
 
 use crate::{runtime::time::sleep, service::OwnedJsValue};
-use js::{AsBytes, Error as ValueError, FromJsValue, ToJsValue};
+use js::{Error as ValueError, FromJsValue, ToJsValue};
 
 use super::*;
 
@@ -77,6 +77,7 @@ struct HttpResponseHead {
     status_text: String,
     version: String,
     headers: Headers,
+    body_stream: js::Value,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -126,7 +127,6 @@ async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest
     }
 }
 
-#[cfg(not(feature = "web"))]
 async fn do_http_request_inner(
     weak_service: ServiceWeakRef,
     id: u64,
@@ -135,6 +135,8 @@ async fn do_http_request_inner(
     use crate::runtime::{http_connector, HyperExecutor};
     use core::pin::pin;
     use hyper::{body::HttpBody, Body};
+    use log::warn;
+    use tokio::io::AsyncWriteExt;
     let connector = http_connector();
     let client = hyper::Client::builder()
         .executor(HyperExecutor)
@@ -181,70 +183,39 @@ async fn do_http_request_inner(
                 .unwrap_or_default()
                 .into();
             let version = format!("{:?}", response.version());
+            let (down, up) = tokio::io::duplex(1024 * 16);
+            crate::runtime::spawn(async move {
+                let mut tx = tokio::io::split(up).1;
+                let mut response = pin!(response);
+                // TODO: add timeout?
+                while let Some(chunk) = response.data().await {
+                    let Ok(chunk) = chunk else {
+                        warn!("failed to read response body");
+                        break;
+                    };
+                    if tx.write_all(&chunk).await.is_err() {
+                        warn!("failed to write response body to pipe");
+                        break;
+                    }
+                }
+                tx.shutdown().await.ok();
+            });
+            let rx = tokio::io::split(down).0;
+            let service = weak_service
+                .clone()
+                .upgrade()
+                .ok_or_else(|| anyhow!("service dropped while reading response body"))?;
+            let body_stream = js::Value::new_opaque_object(service.context(), rx);
             HttpResponseHead {
                 status,
                 status_text,
                 version,
                 headers,
+                body_stream,
             }
         };
         invoke_callback(&weak_service, id, "head", &head);
     }
-    let mut response = pin!(response);
-    while let Some(chunk) = response.data().await {
-        let chunk = chunk.context("failed to read response body")?;
-        invoke_callback(&weak_service, id, "data", &AsBytes(chunk));
-    }
-    invoke_callback(&weak_service, id, "end", &());
-    Ok(())
-}
-
-#[cfg(feature = "web")]
-async fn do_http_request_inner(
-    weak_service: ServiceWeakRef,
-    id: u64,
-    req: HttpRequest,
-) -> Result<()> {
-    use reqwest::{Client, Method};
-    let method = Method::from_bytes(req.method.as_bytes()).context("Invalid method")?;
-    let mut builder = Client::new().request(method, req.url);
-    let mut has_ua = false;
-    for (k, v) in req.headers.pairs.iter() {
-        if k.eq_ignore_ascii_case("User-Agent") {
-            has_ua = true;
-        }
-        builder = builder.header(k, v);
-    }
-    // Append User-Agent if not present
-    if !has_ua {
-        builder = builder.header("User-Agent", "WapoJS/0.1.0");
-    }
-    let body = req.body.as_bytes().to_vec();
-    builder = builder.body(body);
-    let response = builder.send().await?;
-    let head = {
-        let headers = response
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.as_str().into(), v.to_str().unwrap_or_default().into()))
-            .collect();
-        let status = response.status().as_u16();
-        let status_text = response
-            .status()
-            .canonical_reason()
-            .unwrap_or_default()
-            .into();
-        HttpResponseHead {
-            status,
-            status_text,
-            version: "HTTP/1.1".into(),
-            headers,
-        }
-    };
-    invoke_callback(&weak_service, id, "head", &head);
-    let body = response.bytes().await?;
-    invoke_callback(&weak_service, id, "data", &AsBytes(body));
-    invoke_callback(&weak_service, id, "end", &());
     Ok(())
 }
 

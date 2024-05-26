@@ -102,7 +102,7 @@ fn http_receive_body(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
         || input_stream.opaque_object_take_data(),
     ) else {
-        anyhow::bail!("failed to get input_stream");
+        anyhow::bail!("failed to get input_stream from {input_stream:?}");
     };
 
     let id = service.spawn(
