@@ -184,6 +184,7 @@ fn http_make_writer(
                     warn!("Failed to report write result: {err:?}");
                 }
             }
+            write_half.shutdown().await.ok();
         },
         (),
     );
