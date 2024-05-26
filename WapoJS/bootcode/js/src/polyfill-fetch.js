@@ -19,25 +19,38 @@
     }
 
     class Response {
-        constructor(id, receiver, head) {
-            this.id = id;
-            this.ok = ((head.status / 100) | 0) == 2;
-            this.statusText = head.statusText;
-            this.status = head.status;
-            this.url = head["Location"] || head["location"] || "";
-            this.headers = new Headers(head.headers);
-            this.receiver = receiver;
+        constructor(bodyInit = null, options = {}) {
+            if (
+                bodyInit !== null &&
+                typeof bodyInit !== 'string' &&
+                !(bodyInit instanceof Blob) &&
+                !(bodyInit instanceof ArrayBuffer) &&
+                !(bodyInit instanceof Uint8Array)
+            ) {
+                throw new TypeError('Unsupported bodyInit type');
+            }
+
+            this.id = options.id || null;
+            this.ok = (options.status / 100 | 0) == 2;
+            this.statusText = options.statusText || '';
+            this.status = options.status || 200;
+            this.url = options.url || '';
+            this.headers = new Headers(options.headers || {});
+            this.receiver = options.receiver || {};
             this.bodyUsed = false;
             this.type = "default";
+            if (bodyInit !== null) {
+                this.setBody(bodyInit);
+            }
             const chunks = [];
-            receiver.recv = (cmd, data) => {
+            this.receiver.recv = (cmd, data) => {
                 if (cmd == "data") {
                     chunks.push(data);
                 } else if (cmd == "end") {
                     const body = Wapo.concatU8a(chunks);
-                    receiver.resolve(body);
+                    this.receiver.resolve(body);
                 } else {
-                    receiver.reject(data);
+                    this.receiver.reject(data);
                 }
             }
         }
@@ -54,13 +67,58 @@
             return (await this.bytes()).buffer;
         }
         bytes() {
-            const r = this.receiver;
             return new Promise((resolve, reject) => {
-                r.resolve = resolve
-                r.reject = reject;
+                const reader = this.body.getReader();
+                const chunks = [];
+                reader.read().then(function processText({ done, value }) {
+                    if (done) {
+                        resolve(Wapo.concatU8a(chunks));
+                    } else {
+                        chunks.push(value);
+                        reader.read().then(processText);
+                    }
+                }).catch(reject);
             });
         }
         get body() {
+            return this._body ? this._body : this.createReceiverBody();
+        }
+
+        setBody(bodyInit) {
+            if (typeof bodyInit === 'string') {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(new TextEncoder().encode(bodyInit));
+                        controller.close();
+                    }
+                });
+            } else if (bodyInit instanceof Blob) {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        bodyInit.arrayBuffer().then(buffer => {
+                            controller.enqueue(new Uint8Array(buffer));
+                            controller.close();
+                        });
+                    }
+                });
+            } else if (bodyInit instanceof ArrayBuffer) {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(new Uint8Array(bodyInit));
+                        controller.close();
+                    }
+                });
+            } else if (bodyInit instanceof Uint8Array) {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(bodyInit);
+                        controller.close();
+                    }
+                });
+            }
+        }
+
+        createReceiverBody() {
             const r = this.receiver;
             const reqId = this.id;
             return new ReadableStream({
@@ -108,7 +166,11 @@
                                 return;
                             }
                         }
-                        resolve(new Response(reqId, receiver, data));
+                        resolve(new Response(null, {
+                            id: reqId,
+                            receiver,
+                            ...data
+                        }));
                     } else {
                         reject(data);
                     }
@@ -117,12 +179,12 @@
                 reject: () => { },
             }
             const reqId = Wapo.httpRequest({
-                    url,
-                    method: options.method || "GET",
-                    headers: options.headers || {},
-                    timeout: options.timeout || 10000,
-                    body: options.body || "",
-                },
+                url,
+                method: options.method || "GET",
+                headers: options.headers || {},
+                timeout: options.timeout || 10000,
+                body: options.body || "",
+            },
                 (cmd, data) => receiver.recv(cmd, data),
             );
         });
