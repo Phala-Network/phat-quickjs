@@ -13,6 +13,7 @@ struct Args {
 
 #[cfg(feature = "wapo")]
 fn load_code(code_hash: &str) -> Result<String> {
+    info!("loading code with hash: {code_hash}");
     let code_hash = code_hash.trim_start_matches("0x");
     if code_hash.len() != 64 {
         bail!("invalid code hash length: {}", code_hash.len());
@@ -38,7 +39,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code_hash = iter
                         .next()
                         .ok_or(anyhow!("missing value after --code-hash"))?;
-                    let code = load_code(&code_hash).context("failed to load coded")?;
+                    let code = load_code(&code_hash).context("failed to load code with given hash")?;
                     codes.push(JsCode::Source(code));
                 }
                 "-c" => {
