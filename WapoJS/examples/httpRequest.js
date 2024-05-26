@@ -15,7 +15,7 @@ Wapo.httpRequest({
         switch (cmd) {
             case "head":
                 console.log("head:", data);
-                Wapo.httpReceiveBody(data.bodyStream, (cmd, data) => {
+                Wapo.httpReceiveBody(data.opaqueBodyStream, (cmd, data) => {
                     switch (cmd) {
                         case "data":
                             console.log(`data.length=${data.length}`);

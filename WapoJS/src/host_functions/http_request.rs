@@ -77,7 +77,7 @@ struct HttpResponseHead {
     status_text: String,
     version: String,
     headers: Headers,
-    body_stream: js::Value,
+    opaque_body_stream: js::Value,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -205,13 +205,13 @@ async fn do_http_request_inner(
                 .clone()
                 .upgrade()
                 .ok_or_else(|| anyhow!("service dropped while reading response body"))?;
-            let body_stream = js::Value::new_opaque_object(service.context(), rx);
+            let opaque_body_stream = js::Value::new_opaque_object(service.context(), rx);
             HttpResponseHead {
                 status,
                 status_text,
                 version,
                 headers,
-                body_stream,
+                opaque_body_stream,
             }
         };
         invoke_callback(&weak_service, id, "head", &head);

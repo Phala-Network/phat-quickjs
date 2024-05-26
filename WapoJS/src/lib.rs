@@ -10,6 +10,7 @@ mod traits;
 
 #[cfg(feature = "wapo")]
 pub mod runtime {
+    pub use wapo::net::TcpStream;
     pub use wapo::channel::HttpRequest;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
     pub use wapo::{
@@ -37,6 +38,7 @@ pub mod runtime {
 
 #[cfg(feature = "native")]
 pub mod runtime {
+    pub use tokio::net::TcpStream;
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};

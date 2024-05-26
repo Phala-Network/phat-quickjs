@@ -36,7 +36,7 @@
             this.status = options.status || 200;
             this.url = options.url || '';
             this.headers = new Headers(options.headers || {});
-            this._bodyStream = options.bodyStream || null;
+            this._opaqueBodyStream = options.opaqueBodyStream || null;
             this.bodyUsed = false;
             this.type = "default";
             if (bodyInit !== null) {
@@ -109,10 +109,10 @@
 
         createBodyStream() {
             const anchor = {};
-            const bodyStream = this._bodyStream;
+            const opaqueBodyStream = this._opaqueBodyStream;
             return new ReadableStream({
                 start(controller) {
-                    anchor.reqId = Wapo.httpReceiveBody(bodyStream, (cmd, data) => {
+                    anchor.reqId = Wapo.httpReceiveBody(opaqueBodyStream, (cmd, data) => {
                         switch (cmd) {
                             case "data":
                                 controller.enqueue(data);

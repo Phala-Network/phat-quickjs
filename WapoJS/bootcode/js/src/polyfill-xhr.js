@@ -267,7 +267,7 @@
                                     response.url = head["Location"] || head["location"] || "";
                                     response.bodyUsed = false;
                                     response.type = "default";
-                                    response._bodyStream = data.bodyStream;
+                                    response._opaqueBodyStream = data.opaqueBodyStream;
                                     this._onHttpResponse(request, response);
                                     break;
                                 }
@@ -336,7 +336,7 @@
                     this._lengthComputable = false;
                 }
 
-                this._reqId = Wapo.httpReceiveBody(bodyStream, (cmd, data) => {
+                this._reqId = Wapo.httpReceiveBody(opaqueBodyStream, (cmd, data) => {
                     switch (cmd) {
                         case "data":
                             this._onHttpResponseData(response, data);

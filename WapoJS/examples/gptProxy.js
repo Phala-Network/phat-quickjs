@@ -227,8 +227,16 @@ function addEventListener(type, callback) {
                                 status: response.status,
                                 headers: Array.from(response.headers.entries()),
                             });
-                            const writer = toWritableStream(Wapo.httpMakeWriter(req.opaqueOutputStream));
-                            response.body.pipeTo(writer);
+                            if (response._opaqueBodyStream) {
+                                // offload to host for better performance
+                                Wapo.ioBridge({
+                                    input: response._opaqueBodyStream,
+                                    output: req.opaqueOutputStream,
+                                });
+                            } else {
+                                const writer = toWritableStream(Wapo.httpMakeWriter(req.opaqueOutputStream));
+                                response.body.pipeTo(writer);
+                            }
                         }
                     }
                     callback(event);

@@ -44,7 +44,7 @@ optional = true
 features = ['console']
 
 [features]
-default = ["native", "js-url", "js-http-listen", "js-hash", "js-crypto"]
+default = ["wapo", "js-url", "js-http-listen", "js-hash", "js-crypto"]
 sanitize-address = ["js/sanitize-address"]
 js-url = []
 js-http-listen = []

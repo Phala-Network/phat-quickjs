@@ -25,6 +25,8 @@ mod url;
 #[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
+mod io;
+
 #[cfg(feature = "js-hash")]
 mod hash;
 
@@ -53,6 +55,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
+
+    io::setup(&ns)?;
 
     js::get_global(ctx).set_property("Wapo", &ns)?;
     Ok(())
@@ -91,7 +95,6 @@ fn exit(service: ServiceRef, _this: js::Value) {
     service.close_all();
 }
 
-#[allow(dead_code)]
 /// This function returns the value of f2 and infer it's type as the return type of f1.
 fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
 where
