@@ -320,7 +320,7 @@ function indexPage() {
                 <button onclick="updateConfig()">Update Config</button>
                 <textarea id="message-input" placeholder="Enter OpenAI API Message">
                 {
-                    "model": "gpt-4o",
+                    "model": "gpt-3.5-turbo",
                     "messages": [
                       {
                         "role": "system",
@@ -348,9 +348,9 @@ function indexPage() {
                             body: JSON.stringify({ publicKey, iv, ciphertext })
                         });
                         const result = await response.json();
-                        document.getElementById('console-output').innerText = JSON.stringify(result, null, 2);
+                        document.getElementById('console-output').value = JSON.stringify(result, null, 2);
                     } catch (e) {
-                        document.getElementById('console-output').innerText = 'Error updating config: ' + e.message;
+                        document.getElementById('console-output').value = 'Error updating config: ' + e.message;
                     }
                 }
 
@@ -371,7 +371,7 @@ function indexPage() {
                             outputArea.scrollTop = outputArea.scrollHeight;
                         }
                     } catch (e) {
-                        document.getElementById('console-output').innerText = 'Error sending message: ' + e.message;
+                        document.getElementById('console-output').value = 'Error sending message: ' + e.message;
                     }
                 }
 
