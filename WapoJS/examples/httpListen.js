@@ -17,7 +17,7 @@ Wapo.httpListen(async req => {
             'X-Foo': 'Bar',
         }
     });
-    const writer = Wapo.httpMakeWriter(req.opaqueOutputStream);
+    const writer = Wapo.streamOpenWrite(req.opaqueOutputStream);
     await writeString(writer, `You have sent me the following info\n`);
     await writeString(writer, `method: ${req.method}\n`);
     await sleep(1000);
@@ -30,13 +30,13 @@ Wapo.httpListen(async req => {
     }
     await writeString(writer, `actual body length: ${body.length}\n`);
     console.log('Response sent, closing writer');
-    Wapo.httpCloseWriter(writer);
+    Wapo.streamClose(writer);
 });
 
 async function receiveBody(streamHandle) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        Wapo.httpReceiveBody(streamHandle, (cmd, data) => {
+        Wapo.streamOpenRead(streamHandle, (cmd, data) => {
             switch (cmd) {
                 case "data":
                     chunks.push(data);
@@ -59,7 +59,7 @@ async function receiveBody(streamHandle) {
 async function writeString(writer, s) {
     const data = new TextEncoder().encode(s);
     return new Promise((resolve, reject) => {
-        Wapo.httpWriteChunk(writer, data, (suc, err) => {
+        Wapo.streamWriteChunk(writer, data, (suc, err) => {
             if (suc) {
                 resolve();
             } else {

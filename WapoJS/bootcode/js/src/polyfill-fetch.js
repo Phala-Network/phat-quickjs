@@ -112,7 +112,7 @@
             const opaqueBodyStream = this._opaqueBodyStream;
             return new ReadableStream({
                 start(controller) {
-                    anchor.reqId = Wapo.httpReceiveBody(opaqueBodyStream, (cmd, data) => {
+                    anchor.reqId = Wapo.streamOpenRead(opaqueBodyStream, (cmd, data) => {
                         switch (cmd) {
                             case "data":
                                 controller.enqueue(data);

@@ -167,7 +167,7 @@ function fromHexString(hexString) {
 function toReadableStream(body) {
     return new ReadableStream({
         start(controller) {
-            Wapo.httpReceiveBody(body, (cmd, data) => {
+            Wapo.streamOpenRead(body, (cmd, data) => {
                 switch (cmd) {
                     case "data":
                         controller.enqueue(data);
@@ -187,11 +187,12 @@ function toReadableStream(body) {
     });
 }
 
-function toWritableStream(writer) {
+function toWritableStream(streamId) {
+    const writer = Wapo.streamOpenWrite(streamId);
     return new WritableStream({
         write(chunk) {
             return new Promise((resolve, reject) => {
-                Wapo.httpWriteChunk(writer, chunk, (suc, err) => {
+                Wapo.streamWriteChunk(writer, chunk, (suc, err) => {
                     if (suc) {
                         resolve();
                     } else {
@@ -201,7 +202,7 @@ function toWritableStream(writer) {
             });
         },
         close() {
-            Wapo.httpCloseWriter(writer);
+            Wapo.streamClose(writer);
         }
     });
 }
@@ -233,7 +234,7 @@ function addEventListener(type, callback) {
                                     output: req.opaqueOutputStream,
                                 });
                             } else {
-                                const writer = toWritableStream(Wapo.httpMakeWriter(req.opaqueOutputStream));
+                                const writer = toWritableStream(req.opaqueOutputStream);
                                 response.body.pipeTo(writer);
                             }
                         }

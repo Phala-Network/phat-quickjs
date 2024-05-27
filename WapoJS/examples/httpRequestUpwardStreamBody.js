@@ -18,7 +18,7 @@ console.log('Posting data to url:', url);
             switch (cmd) {
                 case "head":
                     console.log("head:", data);
-                    Wapo.httpReceiveBody(data.opaqueBodyStream, (cmd, data) => {
+                    Wapo.streamOpenRead(data.opaqueBodyStream, (cmd, data) => {
                         switch (cmd) {
                             case "data":
                                 console.log(`data.length=${data.length}`);
@@ -53,7 +53,7 @@ async function sleep(ms) {
 }
 
 async function writeBody(req) {
-    const writer = Wapo.httpMakeWriter(req.opaqueBodyStream);
+    const writer = Wapo.streamOpenWrite(req.opaqueBodyStream);
     for (let i = 0; i < 3; i++) {
         console.log(`Uploading data ${i}`);
         await writeString(writer, `HelloWorld\n`);
@@ -64,7 +64,7 @@ async function writeBody(req) {
 async function writeString(writer, s) {
     const data = new TextEncoder().encode(s);
     return new Promise((resolve, reject) => {
-        Wapo.httpWriteChunk(writer, data, (suc, err) => {
+        Wapo.streamWriteChunk(writer, data, (suc, err) => {
             if (suc) {
                 resolve();
             } else {

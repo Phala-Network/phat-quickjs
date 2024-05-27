@@ -25,7 +25,7 @@ mod url;
 #[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
-mod io;
+mod stream;
 
 #[cfg(feature = "js-hash")]
 mod hash;
@@ -56,7 +56,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
 
-    io::setup(&ns)?;
+    stream::setup(&ns)?;
 
     js::get_global(ctx).set_property("Wapo", &ns)?;
     Ok(())

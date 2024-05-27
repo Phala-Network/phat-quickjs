@@ -336,7 +336,7 @@
                     this._lengthComputable = false;
                 }
 
-                this._reqId = Wapo.httpReceiveBody(opaqueBodyStream, (cmd, data) => {
+                this._reqId = Wapo.streamOpenRead(opaqueBodyStream, (cmd, data) => {
                     switch (cmd) {
                         case "data":
                             this._onHttpResponseData(response, data);

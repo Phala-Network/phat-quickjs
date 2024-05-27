@@ -26,7 +26,7 @@ pub mod runtime {
 
     pub fn init_logger() {
         use wapo::logger::Logger;
-        Logger::with_max_level(log::LevelFilter::Info).init();
+        Logger::with_max_level(log::LevelFilter::Debug).init();
     }
     pub fn set_output(output: Vec<u8>) {
         wapo::ocall::emit_program_output(&output).expect("failed to emit program output")
