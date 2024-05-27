@@ -1,0 +1,29 @@
+Types:
+0: #u32
+1: @0
+2: (4)
+3: #u8
+4: [3;32]
+5: {foo:1,bar:2}
+6: {bar:1,baz:0}
+7: <Foo:5:2,Bar:6>
+8: (7,0)
+9: ()
+10: <CouldNotReadInput::1>
+11: <Ok:9,Err:10>
+----
+#u32
+@0
+(4)
+#u8
+[3;32]
+{foo:1,bar:2}
+{bar:1,baz:0}
+<Foo:5:2,Bar:6>
+(7,0)
+()
+<CouldNotReadInput::1>
+<Ok:9,Err:10>
+----
+Messages:
+Contract(check_system).test_info(0xe4d61b97, 8) -> 11

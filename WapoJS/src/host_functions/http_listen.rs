@@ -3,7 +3,7 @@ use log::{info, warn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc::Sender;
 
-use super::http_request::Pairs;
+use super::http_request::Headers;
 use super::*;
 use crate::service::OwnedJsValue;
 
@@ -12,7 +12,7 @@ use crate::service::OwnedJsValue;
 pub struct HttpRequest {
     method: String,
     url: String,
-    headers: Pairs,
+    headers: Headers,
     opaque_response_tx: js::Value,
     opaque_input_stream: js::Value,
     opaque_output_stream: js::Value,
@@ -22,7 +22,7 @@ pub struct HttpRequest {
 #[qjsbind(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
-    headers: Pairs,
+    headers: Headers,
 }
 
 #[derive(FromJsValue)]
@@ -69,35 +69,25 @@ pub(crate) fn try_accept_http_request(
         opaque_output_stream: js::Value::new_opaque_object(service.context(), output_stream),
     };
     if let Err(err) = service.call_function(listener, (req,)) {
-        anyhow::bail!("Failed to fire http request event: {err}");
+        anyhow::bail!("failed to fire http request event: {err}");
     }
     Ok(())
 }
 
-/// This function returns the value of f2 and infer it's type as the return type of f1.
-fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
-where
-    F1: FnOnce(I1) -> O,
-    F2: FnOnce() -> Option<O>,
-{
-    let _ = f1;
-    f2()
-}
-
 #[js::host_call]
 fn http_send_response_head(tx: js::Value, response: HttpResponseHead) {
-    let Some(response_tx) = valueof_f2_as_typeof_f1(
+    let Some(response_tx) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),
     ) else {
-        info!("Failed to get response tx");
+        info!("failed to get response tx");
         return;
     };
     if let Err(err) = response_tx.send(crate::runtime::HttpResponseHead {
         status: response.status,
         headers: response.headers.into(),
     }) {
-        info!("Failed to send response: {err:?}");
+        info!("failed to send response: {err:?}");
     }
 }
 
@@ -108,11 +98,11 @@ fn http_receive_body(
     input_stream: js::Value,
     callback: OwnedJsValue,
 ) -> Result<u64> {
-    let Some(read_half) = valueof_f2_as_typeof_f1(
+    let Some(read_half) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
         || input_stream.opaque_object_take_data(),
     ) else {
-        anyhow::bail!("Failed to get input_stream");
+        anyhow::bail!("failed to get input_stream from {input_stream:?}");
     };
 
     let id = service.spawn(
@@ -123,11 +113,11 @@ fn http_receive_body(
             loop {
                 let result = reader.read(&mut buf).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("Service dropped while reading from stream");
+                    warn!("service dropped while reading from stream");
                     break;
                 };
                 let Some(callback) = service.get_resource_value(id) else {
-                    warn!("Callback dropped while reading from stream");
+                    warn!("callback dropped while reading from stream");
                     break;
                 };
                 let mut end = false;
@@ -140,7 +130,7 @@ fn http_receive_body(
                     Err(err) => service.call_function(callback, ("error", err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("Failed to report read result: {err:?}");
+                    warn!("failed to report read result: {err:?}");
                 }
                 if end {
                     break;
@@ -158,11 +148,11 @@ fn http_make_writer(
     _this: js::Value,
     output_stream: js::Value,
 ) -> anyhow::Result<js::Value> {
-    let Some(write_half) = valueof_f2_as_typeof_f1(
+    let Some(write_half) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).1,
         || output_stream.opaque_object_take_data(),
     ) else {
-        anyhow::bail!("Failed to get output_stream");
+        anyhow::bail!("failed to get output_stream");
     };
     let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(1);
     let _id = service.spawn(
@@ -173,7 +163,7 @@ fn http_make_writer(
             while let Some(chunk) = rx.recv().await {
                 let result = write_half.write_all(&chunk.data.0).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("Service dropped while writing to stream");
+                    warn!("service dropped while writing to stream");
                     break;
                 };
                 let result = match result {
@@ -181,7 +171,7 @@ fn http_make_writer(
                     Err(err) => service.call_function(chunk.callback, (false, err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("Failed to report write result: {err:?}");
+                    warn!("failed to report write result: {err:?}");
                 }
             }
             write_half.shutdown().await.ok();
@@ -200,17 +190,17 @@ fn http_write_chunk(
     callback: js::Value,
 ) -> Result<()> {
     let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
-        anyhow::bail!("Failed to get writer");
+        anyhow::bail!("failed to get writer");
     };
     let result = tx.try_send(WriteChunk {
         data: chunk,
         callback: callback.clone(),
     });
     if result.is_err() {
-        if let Err(err) = service.call_function(callback, (false, "Failed to send chunk")) {
-            info!("Failed to report write result: {err:?}");
+        if let Err(err) = service.call_function(callback, (false, "failed to send chunk")) {
+            info!("failed to report write result: {err:?}");
         }
-        anyhow::bail!("Failed to send chunk");
+        anyhow::bail!("failed to send chunk");
     }
     Ok(())
 }
@@ -221,7 +211,7 @@ fn http_close_writer(writer: js::Value) {
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()
     {
-        warn!("Double drop of writer");
+        warn!("double drop of writer");
         return;
     };
 }
