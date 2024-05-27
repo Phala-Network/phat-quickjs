@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context};
-use log::info;
+use log::{info, warn};
 use std::{collections::BTreeMap, time::Duration};
+use tokio::io::{AsyncReadExt, DuplexStream, ReadHalf, WriteHalf};
 
 use crate::{runtime::time::sleep, service::OwnedJsValue};
 use js::{Error as ValueError, FromJsValue, ToJsValue};
@@ -66,8 +67,17 @@ pub struct HttpRequest {
     headers: Headers,
     #[qjsbind(default)]
     body: js::BytesOrString,
+    #[qjsbind(default)]
+    stream_body: bool,
     #[qjsbind(default = "default_timeout")]
     timeout_ms: u64,
+}
+
+#[derive(ToJsValue, Debug)]
+#[qjsbind(rename_all = "camelCase")]
+pub struct HttpRequestReceipt {
+    cancel_token: u64,
+    opaque_body_stream: Option<js::Value>,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -91,14 +101,47 @@ pub fn setup(ns: &js::Value) -> Result<()> {
     Ok(())
 }
 
+const STREAM_BUF_SIZE: usize = 1024 * 8;
+struct Pipes {
+    duplex_up: DuplexStream,
+    duplex_down_rx: ReadHalf<DuplexStream>,
+}
+
+impl Pipes {
+    fn create() -> (WriteHalf<DuplexStream>, Self) {
+        let (duplex_up, duplex_down) = tokio::io::duplex(STREAM_BUF_SIZE);
+        let (duplex_down_rx, duplex_down_tx) = tokio::io::split(duplex_down);
+        (
+            duplex_down_tx,
+            Self {
+                duplex_up,
+                duplex_down_rx,
+            },
+        )
+    }
+}
+
 #[js::host_call(with_context)]
 fn http_request(
     service: ServiceRef,
     _this: js::Value,
     req: HttpRequest,
     callback: OwnedJsValue,
-) -> Result<u64> {
-    Ok(service.spawn(callback, do_http_request, req))
+) -> Result<HttpRequestReceipt> {
+    let (duplex_down_tx, pipes) = Pipes::create();
+    let opaque_body_stream = if req.stream_body {
+        Some(js::Value::new_opaque_object(
+            service.context(),
+            duplex_down_tx,
+        ))
+    } else {
+        None
+    };
+    let cancel_token = service.spawn(callback, do_http_request, (req, pipes));
+    Ok(HttpRequestReceipt {
+        cancel_token,
+        opaque_body_stream,
+    })
 }
 
 fn default_method() -> String {
@@ -109,15 +152,20 @@ fn default_timeout() -> u64 {
     30_000
 }
 
-async fn do_http_request(weak_service: ServiceWeakRef, id: u64, req: HttpRequest) {
+async fn do_http_request(
+    weak_service: ServiceWeakRef,
+    id: u64,
+    (req, pipes): (HttpRequest, Pipes),
+) {
     let url = req.url.clone();
     let result = tokio::select! {
         _ = sleep(Duration::from_millis(req.timeout_ms)) => {
             Err(anyhow!("timed out"))
         }
-        result = do_http_request_inner(weak_service.clone(), id, req) => result,
+        result = do_http_request_inner(weak_service.clone(), id, req, pipes) => result,
     };
     if let Err(err) = result {
+        warn!("failed to request `{url}`: {err:?}");
         invoke_callback(
             &weak_service,
             id,
@@ -131,11 +179,11 @@ async fn do_http_request_inner(
     weak_service: ServiceWeakRef,
     id: u64,
     req: HttpRequest,
+    pipes: Pipes,
 ) -> Result<()> {
     use crate::runtime::{http_connector, HyperExecutor};
     use core::pin::pin;
     use hyper::{body::HttpBody, Body};
-    use log::warn;
     use tokio::io::AsyncWriteExt;
     let connector = http_connector();
     let client = hyper::Client::builder()
@@ -148,7 +196,6 @@ async fn do_http_request_inner(
     let mut builder = hyper::Request::builder()
         .method(req.method.to_uppercase().as_str())
         .uri(&uri);
-    let body = req.body.as_bytes().to_vec();
     for (k, v) in req.headers.pairs.iter() {
         builder = builder.header(k.as_str(), v.as_str());
     }
@@ -159,17 +206,45 @@ async fn do_http_request_inner(
     if !headers_map.contains_key("Host") {
         headers_map.insert("Host", uri.host().unwrap_or_default().parse()?);
     }
-    if !headers_map.contains_key("Content-Length") {
-        headers_map.insert("Content-Length", body.len().to_string().parse()?);
-    }
     if !headers_map.contains_key("User-Agent") {
         headers_map.insert("User-Agent", "WapoJS/0.1.0".parse()?);
     }
-    let request = builder
-        .body(Body::from(body))
-        .context("failed to build request")?;
-    let response = client.request(request).await?;
+    let (body_tx, body);
+    if req.stream_body {
+        let (tx, b) = Body::channel();
+        body_tx = Some(tx);
+        body = b;
+    } else {
+        let body_bytes = req.body.as_bytes().to_vec();
+        if !headers_map.contains_key("Content-Length") {
+            headers_map.insert("Content-Length", body_bytes.len().to_string().parse()?);
+        }
+        body = body_bytes.into();
+        body_tx = None;
+    }
+    let request = builder.body(body).context("failed to build request")?;
+    let (mut duplex_up_rx, mut duplex_up_tx) = tokio::io::split(pipes.duplex_up);
+    if let Some(mut body_tx) = body_tx {
+        crate::runtime::spawn(async move {
+            loop {
+                let mut buf = bytes::BytesMut::new();
+                let chunk = match duplex_up_rx.read_buf(&mut buf).await {
+                    Ok(n) if n == 0 => break,
+                    Ok(_n) => buf.into(),
+                    Err(err) => {
+                        warn!("failed to read request body from pipe: {err}");
+                        break;
+                    }
+                };
+                if body_tx.send_data(chunk).await.is_err() {
+                    warn!("failed to write request body to pipe");
+                    break;
+                }
+            }
+        });
+    }
     {
+        let response = client.request(request).await?;
         let head = {
             let headers = response
                 .headers()
@@ -183,9 +258,7 @@ async fn do_http_request_inner(
                 .unwrap_or_default()
                 .into();
             let version = format!("{:?}", response.version());
-            let (down, up) = tokio::io::duplex(1024 * 16);
             crate::runtime::spawn(async move {
-                let mut tx = tokio::io::split(up).1;
                 let mut response = pin!(response);
                 // TODO: add timeout?
                 while let Some(chunk) = response.data().await {
@@ -193,19 +266,19 @@ async fn do_http_request_inner(
                         warn!("failed to read response body");
                         break;
                     };
-                    if tx.write_all(&chunk).await.is_err() {
+                    if duplex_up_tx.write_all(&chunk).await.is_err() {
                         warn!("failed to write response body to pipe");
                         break;
                     }
                 }
-                tx.shutdown().await.ok();
+                duplex_up_tx.shutdown().await.ok();
             });
-            let rx = tokio::io::split(down).0;
             let service = weak_service
                 .clone()
                 .upgrade()
                 .ok_or_else(|| anyhow!("service dropped while reading response body"))?;
-            let opaque_body_stream = js::Value::new_opaque_object(service.context(), rx);
+            let opaque_body_stream =
+                js::Value::new_opaque_object(service.context(), pipes.duplex_down_rx);
             HttpResponseHead {
                 status,
                 status_text,
