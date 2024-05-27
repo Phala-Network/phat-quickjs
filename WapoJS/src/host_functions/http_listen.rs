@@ -189,13 +189,16 @@ fn http_write_chunk(
     chunk: AsBytes<Vec<u8>>,
     callback: js::Value,
 ) -> Result<()> {
-    let Some(tx) = writer.opaque_object_data::<Sender<WriteChunk>>() else {
-        anyhow::bail!("failed to get writer");
+    let result = {
+        let guard = writer.opaque_object_data::<Sender<WriteChunk>>();
+        let Some(tx) = guard.get() else {
+            anyhow::bail!("failed to get writer");
+        };
+        tx.try_send(WriteChunk {
+            data: chunk,
+            callback: callback.clone(),
+        })
     };
-    let result = tx.try_send(WriteChunk {
-        data: chunk,
-        callback: callback.clone(),
-    });
     if result.is_err() {
         if let Err(err) = service.call_function(callback, (false, "failed to send chunk")) {
             info!("failed to report write result: {err:?}");

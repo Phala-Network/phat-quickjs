@@ -54,7 +54,8 @@ async function sleep(ms) {
 
 async function writeBody(req) {
     const writer = Wapo.httpMakeWriter(req.opaqueBodyStream);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 3; i++) {
+        console.log(`Uploading data ${i}`);
         await writeString(writer, `HelloWorld\n`);
         await sleep(1000);
     }
