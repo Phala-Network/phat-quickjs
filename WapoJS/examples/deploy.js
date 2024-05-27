@@ -82,7 +82,7 @@ function httpPost(url, jsonData) {
 }
 
 async function main() {
-    const WAPOD_URL = process.env.WAPOD_URL || "http://localhost:8001";
+    const WAPOD_URL = process.env.WAPOD_URL || "http://127.0.0.1:8001";
     const client = new WorkerClient(WAPOD_URL);
 
     try {

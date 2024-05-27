@@ -16,11 +16,11 @@ cargo run --release -- -m 1g
 git clone https://github.com/Phala-Network/phat-quickjs.git --recursive
 cd phat-quickjs/WapoJS
 make
-WAPOD_URL=http://localhost:8001 ./examples/deploy.js examples/gptProxy.js
+WAPOD_URL=http://127.0.0.1:8001 ./examples/deploy.js wapojs.wasm examples/gptProxy.js
 ```
 
 ### Access the deployed WapoJS
-Open `http://localhost:8002/app/<ADDRESS>/` with your browser where `<ADDRESS>` is the address
+Open `http://127.0.0.1:8002/app/<ADDRESS>/` with your browser where `<ADDRESS>` is the address
 displayed in the previous step.
 
 **NOTE: The HTML page is for development only. Don't use Wapod to provide HTML pages in production.**
