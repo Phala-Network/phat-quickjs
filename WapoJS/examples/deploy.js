@@ -83,18 +83,17 @@ function httpPost(url, jsonData) {
 
 async function main() {
     const WAPOD_URL = process.env.WAPOD_URL || "http://127.0.0.1:8001";
-    const client = new WorkerClient(WAPOD_URL);
+    const engineFile = process.argv[2];
+    const scriptFile = process.argv[3];
+    if (!engineFile || !scriptFile) {
+        console.error('Usage: deploy.js <engine_wasm_file> <js_script_file>');
+        console.error('Please provide both engine and script file names as arguments.');
+        process.exit(1);
+    }
 
     try {
+        const client = new WorkerClient(WAPOD_URL);
         await client.init();
-
-        const engineFile = process.argv[2];
-        const scriptFile = process.argv[3];
-
-        if (!engineFile || !scriptFile) {
-            console.error('Please provide both engine and script file names as arguments.');
-            process.exit(1);
-        }
 
         const engineInfo = await client.uploadFile(engineFile);
         const scriptInfo = await client.uploadFile(scriptFile);
