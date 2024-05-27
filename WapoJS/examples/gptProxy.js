@@ -29,7 +29,6 @@
                 event.respondWith(new Response(signedPublicKey, {
                     headers: {
                         "Content-Type": "application/json",
-                        "Content-Length": signedPublicKey.length.toString(),
                     },
                 }));
                 break;

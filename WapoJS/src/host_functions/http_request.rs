@@ -101,7 +101,7 @@ pub fn setup(ns: &js::Value) -> Result<()> {
     Ok(())
 }
 
-const STREAM_BUF_SIZE: usize = 1024 * 8;
+pub(crate) const STREAM_BUF_SIZE: usize = 8192;
 struct Pipes {
     duplex_up: DuplexStream,
     duplex_down_rx: ReadHalf<DuplexStream>,
@@ -227,7 +227,7 @@ async fn do_http_request_inner(
     if let Some(mut body_tx) = body_tx {
         crate::runtime::spawn(async move {
             loop {
-                let mut buf = bytes::BytesMut::new();
+                let mut buf = bytes::BytesMut::with_capacity(STREAM_BUF_SIZE);
                 let chunk = match duplex_up_rx.read_buf(&mut buf).await {
                     Ok(n) if n == 0 => break,
                     Ok(_n) => buf.into(),

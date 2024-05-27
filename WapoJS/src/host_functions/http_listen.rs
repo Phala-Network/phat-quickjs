@@ -1,6 +1,6 @@
 use js::{AsBytes, FromJsValue, ToJsValue};
 use log::{info, warn};
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::Sender;
 
 use super::http_request::Headers;
@@ -98,7 +98,7 @@ fn http_receive_body(
     input_stream: js::Value,
     callback: OwnedJsValue,
 ) -> Result<u64> {
-    let Some(read_half) = super::valueof_f2_as_typeof_f1(
+    let Some(mut read_half) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| tokio::io::split(req.io_stream).0,
         || input_stream.opaque_object_take_data(),
     ) else {
@@ -108,10 +108,10 @@ fn http_receive_body(
     let id = service.spawn(
         callback,
         |weak_srv, id, _| async move {
-            let mut reader = BufReader::with_capacity(1024, read_half);
-            let mut buf = [0u8; 1024];
+            let mut buf = bytes::BytesMut::with_capacity(super::http_request::STREAM_BUF_SIZE);
             loop {
-                let result = reader.read(&mut buf).await;
+                buf.clear();
+                let result = read_half.read_buf(&mut buf).await;
                 let Some(service) = weak_srv.upgrade() else {
                     warn!("service dropped while reading from stream");
                     break;
