@@ -18,7 +18,7 @@ pub fn setup(ns: &js::Value) -> Result<()> {
 }
 
 #[derive(FromJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct Args {
     input: js::Value,
     output: js::Value,

@@ -5,7 +5,7 @@ use super::*;
 use crate::service::OwnedJsValue;
 
 #[derive(ToJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 pub struct Query {
     origin: Option<AsBytes<[u8; 32]>>,
     path: String,

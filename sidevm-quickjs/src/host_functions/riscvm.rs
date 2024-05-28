@@ -5,19 +5,19 @@ use riscvm::{ExecutorEnv, ExecutorImpl, ExitCode};
 use super::http_request::Pairs;
 
 #[derive(FromJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 pub struct ExecRequest {
     program: JsUint8Array,
-    #[qjsbind(default)]
+    #[qjs(default)]
     args: Vec<String>,
-    #[qjsbind(default)]
+    #[qjs(default)]
     env: Pairs,
-    #[qjsbind(default)]
+    #[qjs(default)]
     stdin: BytesOrString,
 }
 
 #[derive(ToJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct ExecResponse {
     compute_id: AsBytes<Vec<u8>>,
     exit_code: u32,

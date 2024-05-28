@@ -57,21 +57,21 @@ impl FromIterator<(String, String)> for Pairs {
 }
 
 #[derive(FromJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 pub struct HttpRequest {
     url: String,
-    #[qjsbind(default = "default_method")]
+    #[qjs(default = "default_method")]
     method: String,
-    #[qjsbind(default)]
+    #[qjs(default)]
     headers: Pairs,
-    #[qjsbind(default)]
+    #[qjs(default)]
     body: js::BytesOrString,
-    #[qjsbind(default = "default_timeout")]
+    #[qjs(default = "default_timeout")]
     timeout_ms: u64,
 }
 
 #[derive(ToJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
     status_text: String,

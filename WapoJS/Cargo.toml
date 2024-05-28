@@ -12,7 +12,7 @@ name = "wapojs"
 path = "src/wapojs.rs"
 
 [dependencies]
-js = { package = "qjsbind", path = "../qjs-sys/qjsbind" }
+js = { package = "qjsbind", path = "../qjs-sys/qjsbind", features = ['tynm'] }
 qjs-extensions = { path = "../qjs-sys/qjs-extensions", features = ['std'] }
 tokio = { version = "1", features = ["sync", "macros", "io-util"] }
 hyper = { version = "0.14", features = ["client", "http1"] }

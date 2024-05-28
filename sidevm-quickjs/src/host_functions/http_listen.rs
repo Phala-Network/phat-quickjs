@@ -8,7 +8,7 @@ use super::*;
 use crate::service::OwnedJsValue;
 
 #[derive(ToJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 pub struct HttpRequest {
     method: String,
     url: String,
@@ -19,7 +19,7 @@ pub struct HttpRequest {
 }
 
 #[derive(FromJsValue, Debug)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct HttpResponseHead {
     status: u16,
     headers: Pairs,

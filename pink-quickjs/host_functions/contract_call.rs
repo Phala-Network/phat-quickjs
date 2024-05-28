@@ -11,18 +11,18 @@ pub fn setup(pink: &js::Value) -> js::Result<()> {
 }
 
 #[derive(Debug, js::FromJsValue)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct ContractCall {
-    #[qjsbind(bytes_or_hex)]
+    #[qjs(bytes_or_hex)]
     callee: [u8; 32],
-    #[qjsbind(default)]
+    #[qjs(default)]
     gas_limit: u64,
-    #[qjsbind(default)]
+    #[qjs(default)]
     value: u128,
     selector: u32,
-    #[qjsbind(default, bytes_or_hex)]
+    #[qjs(default, bytes_or_hex)]
     input: Vec<u8>,
-    #[qjsbind(default)]
+    #[qjs(default)]
     allow_reentry: bool,
 }
 
@@ -39,14 +39,14 @@ fn contract_call(call: ContractCall) -> Result<Vec<u8>> {
 }
 
 #[derive(Debug, js::FromJsValue)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct DelegateCall {
-    #[qjsbind(bytes_or_hex)]
+    #[qjs(bytes_or_hex)]
     code_hash: [u8; 32],
     selector: u32,
-    #[qjsbind(default, bytes_or_hex)]
+    #[qjs(default, bytes_or_hex)]
     input: Vec<u8>,
-    #[qjsbind(default)]
+    #[qjs(default)]
     allow_reentry: bool,
 }
 

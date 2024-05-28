@@ -29,18 +29,18 @@ where
 }
 
 #[derive(js::FromJsValue)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct HttpRequest {
     url: String,
-    #[qjsbind(default = "defualt_method")]
+    #[qjs(default = "defualt_method")]
     method: String,
-    #[qjsbind(default)]
+    #[qjs(default)]
     headers: Headers,
-    #[qjsbind(default)]
+    #[qjs(default)]
     body: js::BytesOrHex<Vec<u8>>,
-    #[qjsbind(default)]
+    #[qjs(default)]
     text_body: String,
-    #[qjsbind(default)]
+    #[qjs(default)]
     return_text_body: bool,
 }
 fn defualt_method() -> String {
@@ -63,7 +63,7 @@ impl From<HttpRequest> for pink::chain_extension::HttpRequest {
 }
 
 #[derive(js::ToJsValue)]
-#[qjsbind(rename_all = "camelCase")]
+#[qjs(rename_all = "camelCase")]
 struct HttpResponse {
     status_code: u16,
     reason_phrase: String,
