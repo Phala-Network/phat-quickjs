@@ -110,7 +110,7 @@
         createBodyStream() {
             const anchor = {};
             const opaqueBodyStream = this._opaqueBodyStream;
-            return new ReadableStream({
+            this._body = new ReadableStream({
                 start(controller) {
                     anchor.reqId = Wapo.streamOpenRead(opaqueBodyStream, (cmd, data) => {
                         switch (cmd) {
@@ -135,6 +135,7 @@
                     }
                 }
             });
+            return this._body;
         }
     }
 
