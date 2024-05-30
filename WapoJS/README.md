@@ -24,3 +24,8 @@ Open `http://127.0.0.1:8002/app/<ADDRESS>/` with your browser where `<ADDRESS>` 
 displayed in the previous step.
 
 **NOTE: The HTML page is for development only. Don't use Wapod to provide HTML pages in production.**
+
+### Quick testing JavaScript code
+```bash
+./run-js.sh examples/gptProxy.js
+```

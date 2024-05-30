@@ -60,8 +60,6 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
     stream::setup(&ns)?;
 
-    qjsbind_test::setup(&ns)?;
-
     Ok(())
 }
 
