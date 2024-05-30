@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::service::OwnedJsValue;
-use js::{FromJsValue, ToJsValue};
+use js::FromJsValue;
 use log::{info, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
@@ -103,12 +103,6 @@ fn bridge(service: ServiceRef, _this: js::Value, args: Args) -> anyhow::Result<u
 struct WriteChunk {
     data: js::Bytes,
     callback: js::Value,
-}
-
-#[derive(ToJsValue, Debug)]
-struct Event<'a, Data> {
-    name: &'a str,
-    data: Data,
 }
 
 #[js::host_call(with_context)]

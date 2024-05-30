@@ -90,12 +90,6 @@ struct HttpResponseHead {
     opaque_body_stream: js::Value,
 }
 
-#[derive(ToJsValue, Debug)]
-struct Event<'a, Data> {
-    name: &'a str,
-    data: Data,
-}
-
 pub fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("httpRequest", http_request)?;
     Ok(())
