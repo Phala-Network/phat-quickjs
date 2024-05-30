@@ -158,7 +158,7 @@
                 url,
                 method: options.method || "GET",
                 headers: options.headers || {},
-                timeout: options.timeout || 10000,
+                timeout: options.timeout,
                 body: options.body || "",
             };
             Wapo.httpRequest(request,
