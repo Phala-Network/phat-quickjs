@@ -25,6 +25,7 @@ mod url;
 #[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
+mod env;
 mod stream;
 
 #[cfg(feature = "js-hash")]
@@ -59,6 +60,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     mem_stats::setup(&ns)?;
 
     stream::setup(&ns)?;
+    env::setup(&ns)?;
 
     Ok(())
 }
