@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context};
-use log::{info, warn};
+use log::{debug, info, warn};
 use std::{collections::BTreeMap, time::Duration};
 use tokio::io::{AsyncReadExt, DuplexStream, ReadHalf, WriteHalf};
 
@@ -131,6 +131,7 @@ fn http_request(
     } else {
         None
     };
+    debug!("http_request: {req:?}");
     let cancel_token = service.spawn(callback, do_http_request, (req, pipes));
     Ok(HttpRequestReceipt {
         cancel_token,
@@ -143,7 +144,7 @@ fn default_method() -> String {
 }
 
 fn default_timeout() -> u64 {
-    30_000
+    u64::MAX
 }
 
 async fn do_http_request(
