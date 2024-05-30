@@ -25,7 +25,8 @@ displayed in the previous step.
 
 **NOTE: The HTML page is for development only. Don't use Wapod to provide HTML pages in production.**
 
-### Quick testing JavaScript code
+## Quick testing JavaScript code without deploying to Wapod
 ```bash
 ./run-js.sh examples/gptProxy.js
 ```
+This will run the JavaScript code in a Wapod simulator.
