@@ -10,8 +10,9 @@
 (function (g) {
     class TextDecoder {
         constructor(encoding = 'utf-8') {
-            if (encoding !== 'utf-8') {
-                throw new TypeError('Only utf-8 encoding is supported');
+            const normalizedEncoding = encoding.toLowerCase();
+            if (normalizedEncoding !== 'utf-8' && normalizedEncoding !== 'utf8') {
+                throw new TypeError('Unsupported text encoding: ' + encoding);
             }
         }
         decode(bytes) {
