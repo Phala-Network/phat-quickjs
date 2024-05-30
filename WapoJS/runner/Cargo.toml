@@ -12,6 +12,7 @@ parse-size = "1.0.0"
 tracing = "0.1.40"
 tokio = { version = "1.37.0", features = ["full"] }
 hex_fmt = "0.3.0"
+dirs = "5.0.1"
 
 [dependencies.wapod]
 git = "https://github.com/Phala-Network/wapo.git"

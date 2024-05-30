@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use tokio::time::sleep;
 use tracing::info;
@@ -30,8 +30,11 @@ pub struct Args {
     #[arg(long, short = 'p', default_value = "8002")]
     port: u16,
     /// The WASM file of the JS engine
-    #[arg(long, short = 'e', default_value = "./wapojs.wasm")]
-    engine: String,
+    #[arg(long, short = 'e')]
+    engine: Option<String>,
+    /// Remember the engine code for future use
+    #[arg(long, short = 'u')]
+    save_engine: bool,
     /// The JS script to run
     script: String,
     /// The rest of the arguments are passed to the WASM program
@@ -53,6 +56,20 @@ fn init_logger() {
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
+fn engine_config_file() -> Option<std::path::PathBuf> {
+    Some(dirs::config_dir()?.join("wapojs").join("default_engine"))
+}
+
+fn read_default_engine() -> Option<String> {
+    engine_config_file().and_then(|s| std::fs::read_to_string(s).ok())
+}
+
+fn save_default_engine(engine: &str) -> Result<()> {
+    let path = engine_config_file().context("failed to get config directory")?;
+    std::fs::create_dir_all(path.parent().context("no parent")?).context("failed to create dir")?;
+    std::fs::write(path, engine).context("failed to write engine code")
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     init_logger();
@@ -67,7 +84,15 @@ async fn main() -> Result<()> {
         .no_mem_pool(true)
         .use_winch(true)
         .build();
-    let engine_code = std::fs::read(&args.engine).context("failed to read engine code")?;
+    let Some(engine_file) = args.engine.clone().or_else(read_default_engine) else {
+        return Err(anyhow!(
+            "no js engine provided, use --engine or set the default engine"
+        ));
+    };
+    let engine_code = std::fs::read(&engine_file).context("failed to read engine code")?;
+    if args.save_engine {
+        save_default_engine(&engine_file)?;
+    }
     let script = std::fs::read_to_string(&args.script).context("failed to read engine code")?;
     let worker = Worker::crate_running(worker_args).context("failed to create worker state")?;
     let hash_algorithm = "sha256".to_string();
@@ -102,7 +127,11 @@ async fn main() -> Result<()> {
         hex_fmt::HexFmt(app_info.address)
     );
     use rocket::yansi::Paint;
-    let url = format!("http://localhost:{}/app/0x{}/", args.port, hex_fmt::HexFmt(app_info.address));
+    let url = format!(
+        "http://localhost:{}/app/0x{}/",
+        args.port,
+        hex_fmt::HexFmt(app_info.address)
+    );
     info!("app endpoint: {}", url.green());
     let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
     let server = web_api::serve_user(worker.clone(), args.port);
