@@ -138,7 +138,11 @@ fn stream_make_writer(
         },
         (),
     );
-    Ok(js::Value::new_opaque_object(service.context(), tx))
+    Ok(js::Value::new_opaque_object(
+        service.context(),
+        Some("WriteStream"),
+        tx,
+    ))
 }
 
 #[js::host_call(with_context)]

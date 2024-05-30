@@ -46,9 +46,21 @@ pub(crate) fn try_accept_http_request(
         method: request.head.method.clone(),
         url: request.head.url.clone(),
         headers: request.head.headers.iter().cloned().collect(),
-        opaque_response_tx: js::Value::new_opaque_object(service.context(), request.response_tx),
-        opaque_input_stream: js::Value::new_opaque_object(service.context(), input_stream),
-        opaque_output_stream: js::Value::new_opaque_object(service.context(), output_stream),
+        opaque_response_tx: js::Value::new_opaque_object(
+            service.context(),
+            Some("HttpHeadTx"),
+            request.response_tx,
+        ),
+        opaque_input_stream: js::Value::new_opaque_object(
+            service.context(),
+            Some("HttpInputBodyStream"),
+            input_stream,
+        ),
+        opaque_output_stream: js::Value::new_opaque_object(
+            service.context(),
+            Some("HttpOutputBodyStream"),
+            output_stream,
+        ),
     };
     if let Err(err) = service.call_function(listener, (req,)) {
         anyhow::bail!("failed to fire http request event: {err}");

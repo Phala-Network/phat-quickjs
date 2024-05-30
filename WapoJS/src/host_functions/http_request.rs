@@ -126,6 +126,7 @@ fn http_request(
     let opaque_body_stream = if req.stream_body {
         Some(js::Value::new_opaque_object(
             service.context(),
+            Some("HttpRequestUpStream"),
             duplex_down_tx,
         ))
     } else {
@@ -272,8 +273,11 @@ async fn do_http_request_inner(
                 .clone()
                 .upgrade()
                 .ok_or_else(|| anyhow!("service dropped while reading response body"))?;
-            let opaque_body_stream =
-                js::Value::new_opaque_object(service.context(), pipes.duplex_down_rx);
+            let opaque_body_stream = js::Value::new_opaque_object(
+                service.context(),
+                Some("HttpBodyStream"),
+                pipes.duplex_down_rx,
+            );
             HttpResponseHead {
                 status,
                 status_text,

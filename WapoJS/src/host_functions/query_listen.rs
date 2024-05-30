@@ -29,7 +29,11 @@ pub(crate) fn try_accept_query(service: ServiceRef, request: wapo::channel::Quer
         return Ok(());
     };
     let req = Query {
-        reply_tx: js::Value::new_opaque_object(service.context(), request.reply_tx),
+        reply_tx: js::Value::new_opaque_object(
+            service.context(),
+            Some("QueryReplyTx"),
+            request.reply_tx,
+        ),
         origin: request.origin.map(AsBytes),
         path: request.path,
         payload: AsBytes(request.payload),

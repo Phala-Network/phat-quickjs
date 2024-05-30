@@ -17,5 +17,5 @@ impl Drop for Marker {
 
 #[js::host_call(with_context)]
 fn marker(service: ServiceRef, _this: js::Value, tag: String) -> js::Value {
-    js::Value::new_opaque_object(service.context(), Marker { tag })
+    js::Value::new_opaque_object(service.context(), Some("Marker"), Marker { tag })
 }
