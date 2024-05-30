@@ -4,7 +4,7 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref};
-use log::{debug, error, info, warn};
+use log::{debug, error};
 use std::{future::Future, sync::Mutex};
 
 use crate::host_functions::setup_host_functions;
@@ -276,14 +276,6 @@ impl Service {
             close(weak_service, id);
         });
         id
-    }
-    pub fn js_log(&self, level: u32, msg: &str) {
-        match level {
-            1 => debug!("JS: {}", msg),
-            2 => info!("JS: {}", msg),
-            3 => warn!("JS: {}", msg),
-            _ => error!("JS: {}", msg),
-        }
     }
 
     pub async fn wait_for_tasks(&self) {
