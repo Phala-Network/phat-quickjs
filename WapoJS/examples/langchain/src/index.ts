@@ -1,35 +1,99 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { createRetrievalChain } from "langchain/chains/retrieval";
+import { MinimaxEmbeddings } from "@langchain/community/embeddings/minimax";
 
-const OPENAI_API_KEY = process.env.GPT_API_KEY;
-const BASE_URL = process.env.GPT_BASE_URL || "https://api.openai.com";
+import { compile } from "html-to-text";
+import { RecursiveUrlLoader } from "@langchain/community/document_loaders/web/recursive_url";
+
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com";
+const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
+const MINIMAX_GROUP_ID = process.env.MINIMAX_GROUP_ID;
 
 async function main() {
     if (!OPENAI_API_KEY) {
-        console.error("Please set the GPT_API_KEY environment variable");
+        console.error("Please set the OPENAI_API_KEY environment variable");
         return;
     }
-    console.log("BASE_URL:", BASE_URL);
+    console.log("BASE_URL:", OPENAI_BASE_URL);
 
-    const prompt = ChatPromptTemplate.fromMessages([
-        ["system", "You are a world class technical documentation writer."],
-        ["user", "{input}"],
-    ]);
+    const url = "https://files.kvin.wang:8443/test-docs";
+
+    console.log("compiling html-to-text");
+    const compiledConvert = compile({ wordwrap: 130 }); // returns (text: string) => string;
+
+    const loader = new RecursiveUrlLoader(url, {
+        // extractor: compiledConvert,
+        extractor: t => t,
+        maxDepth: 1,
+        excludeDirs: ["about:"],
+        preventOutside: true,
+    });
+
+    console.log("loading docs");
+    const docs = await loader.load();
+    console.log("loaded docs, length:", docs.length);
+    console.log("page 0 length:", docs[0].pageContent.length);
+
+    const splitter = new RecursiveCharacterTextSplitter();
+    const splitDocs = await splitter.splitDocuments(docs);
+    console.log("split docs, length:", splitDocs.length);
+    console.log("split page 0 length:", splitDocs[0].pageContent.length);
+
+    const embeddings = new MinimaxEmbeddings({
+        apiKey: MINIMAX_API_KEY,
+        minimaxGroupId: MINIMAX_GROUP_ID,
+    });
+
+    console.log("embedding docs and creating vector store");
+    const vectorstore = await MemoryVectorStore.fromDocuments(
+        splitDocs,
+        embeddings
+    );
+
+    const prompt =
+        ChatPromptTemplate.fromTemplate(`Answer the following question based only on the provided context:
+
+<context>
+{context}
+</context>
+
+Question: {input}`);
+
     const chatModel = new ChatOpenAI({
         openAIApiKey: OPENAI_API_KEY,
         configuration: {
-            baseURL: BASE_URL,
+            baseURL: OPENAI_BASE_URL,
         }
     });
-    const outputParser = new StringOutputParser();
-    const llmChain = prompt.pipe(chatModel).pipe(outputParser);
-    const stream = await llmChain.stream({ input: "Hello! Tell me about yourself." });
-    const chunks = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
-        console.log(`${chunk}|`);
-    }
+
+    console.log("creating document chain");
+    const documentChain = await createStuffDocumentsChain({
+        llm: chatModel,
+        prompt,
+    });
+
+    const retriever = vectorstore.asRetriever();
+
+    console.log("creating retrieval chain");
+    const retrievalChain = await createRetrievalChain({
+        combineDocsChain: documentChain,
+        retriever,
+    });
+
+    const question = "Give me the code to calculate sha256 hash of `Hello, world` using wapo js.";
+    console.log("Asking question:", question);
+    const result = await retrievalChain.invoke({
+        input: question,
+    });
+    console.log("================================================");
+    console.log("Answer:");
+    console.log(result.answer);
 }
 
 main().catch(console.error).finally(() => process.exit());
