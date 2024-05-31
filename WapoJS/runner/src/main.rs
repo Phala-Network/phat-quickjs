@@ -1,4 +1,4 @@
-use std::{path::Path, time::Duration};
+use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
@@ -56,21 +56,6 @@ fn init_logger() {
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
-fn engine_config_file() -> Option<std::path::PathBuf> {
-    Some(dirs::config_dir()?.join("wapojs").join("default_engine"))
-}
-
-fn read_default_engine() -> Option<String> {
-    engine_config_file().and_then(|s| std::fs::read_to_string(s).ok())
-}
-
-fn save_default_engine(engine: &Path) -> Result<()> {
-    let path = engine_config_file().context("failed to get config directory")?;
-    std::fs::create_dir_all(path.parent().context("no parent")?).context("failed to create dir")?;
-    std::fs::write(path, engine.to_str().context("non string path")?.as_bytes())
-        .context("failed to write engine code")
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     init_logger();
@@ -85,15 +70,16 @@ async fn main() -> Result<()> {
         .no_mem_pool(true)
         .use_winch(true)
         .build();
-    let Some(engine_file) = args.engine.clone().or_else(read_default_engine) else {
+    let Some(engine_file) = args.engine.clone().or_else(config::read_default_engine) else {
         return Err(anyhow!(
             "no js engine provided, use --engine or set the default engine"
         ));
     };
+    info!("using engine file: {engine_file}");
     let engine_code = std::fs::read(&engine_file).context("failed to read engine code")?;
     if args.save_engine {
         let engine_file = std::fs::canonicalize(&engine_file).expect("canonicalize");
-        save_default_engine(&engine_file)?;
+        config::save_default_engine(&engine_file)?;
     }
     let script = std::fs::read_to_string(&args.script).context("failed to read engine code")?;
     let worker = Worker::crate_running(worker_args).context("failed to create worker state")?;

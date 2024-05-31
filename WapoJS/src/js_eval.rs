@@ -12,7 +12,7 @@ struct Args {
 
 #[cfg(feature = "wapo")]
 fn load_code(code_hash: &str) -> Result<String> {
-    info!("loading code with hash: {code_hash}");
+    log::info!("loading code with hash: {code_hash}");
     let code_hash = code_hash.trim_start_matches("0x");
     if code_hash.len() != 64 {
         bail!("invalid code hash length: {}", code_hash.len());
@@ -108,14 +108,14 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
             }
             query = wapo::channel::incoming_queries().next() => {
                 let Some(query) = query else {
-                    info!("host dropped the channel, exiting...");
+                    log::info!("host dropped the channel, exiting...");
                     break;
                 };
                 crate::host_functions::try_accept_query(service.clone(), query)?;
             }
             connection = wapo::channel::incoming_http_connections().next() => {
                 let Some(connection) = connection else {
-                    info!("host dropped the channel, exiting...");
+                    log::info!("host dropped the channel, exiting...");
                     break;
                 };
                 #[cfg(feature = "js-http-listen")]
