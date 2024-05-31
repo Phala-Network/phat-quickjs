@@ -5,6 +5,7 @@ import "./polyfill-url";
 import "./polyfill-xhr";
 import "./wapo";
 import "./polyfill-abortcontroller";
+import "./polyfill-abortsignal-more";
 import "./polyfill-blob";
 
 import { Headers } from "headers-polyfill";
