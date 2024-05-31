@@ -20,4 +20,5 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
   },
   target: 'web',
+  devtool: 'source-map',
 };
