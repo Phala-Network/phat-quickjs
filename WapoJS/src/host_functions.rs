@@ -28,6 +28,9 @@ mod wapo_ocalls;
 mod env;
 mod stream;
 
+#[cfg(feature = "js-wasm")]
+mod webassambly;
+
 #[cfg(feature = "js-hash")]
 mod hash;
 
