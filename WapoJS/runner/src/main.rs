@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
@@ -64,10 +64,11 @@ fn read_default_engine() -> Option<String> {
     engine_config_file().and_then(|s| std::fs::read_to_string(s).ok())
 }
 
-fn save_default_engine(engine: &str) -> Result<()> {
+fn save_default_engine(engine: &Path) -> Result<()> {
     let path = engine_config_file().context("failed to get config directory")?;
     std::fs::create_dir_all(path.parent().context("no parent")?).context("failed to create dir")?;
-    std::fs::write(path, engine).context("failed to write engine code")
+    std::fs::write(path, engine.to_str().context("non string path")?.as_bytes())
+        .context("failed to write engine code")
 }
 
 #[tokio::main]
@@ -91,6 +92,7 @@ async fn main() -> Result<()> {
     };
     let engine_code = std::fs::read(&engine_file).context("failed to read engine code")?;
     if args.save_engine {
+        let engine_file = std::fs::canonicalize(&engine_file).expect("canonicalize");
         save_default_engine(&engine_file)?;
     }
     let script = std::fs::read_to_string(&args.script).context("failed to read engine code")?;
