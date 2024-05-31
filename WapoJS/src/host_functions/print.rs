@@ -27,9 +27,9 @@ fn print(level: u32, args: Vec<js::Value>, config: Option<repr::ReprConfig>) {
 
 pub fn js_log(level: u32, msg: &str) {
     match level {
-        1 => debug!("JS: {}", msg),
-        2 => info!("JS: {}", msg),
-        3 => warn!("JS: {}", msg),
-        _ => error!("JS: {}", msg),
+        1 => debug!(target: "js::console", "{msg}"),
+        2 => info!(target: "js::console", "{msg}"),
+        3 => warn!(target: "js::console", "{msg}"),
+        _ => error!(target: "js::console", "{msg}"),
     }
 }

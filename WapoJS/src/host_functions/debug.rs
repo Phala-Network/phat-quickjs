@@ -11,7 +11,7 @@ struct Marker {
 }
 impl Drop for Marker {
     fn drop(&mut self) {
-        info!("dropping marker: {}", self.tag);
+        info!(target: "js::debug", "dropping marker: {}", self.tag);
     }
 }
 

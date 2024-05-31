@@ -1,5 +1,5 @@
 use js::{AsBytes, ToJsValue};
-use log::info;
+use log::{debug, info};
 
 use super::*;
 use crate::service::OwnedJsValue;
@@ -26,8 +26,10 @@ fn query_listen(service: ServiceRef, _this: js::Value, callback: OwnedJsValue) {
 
 pub(crate) fn try_accept_query(service: ServiceRef, request: wapo::channel::Query) -> Result<()> {
     let Some(Ok(listener)) = service.query_listener().map(TryInto::try_into) else {
+        debug!(target: "js::query", "no query listener, ignoring request");
         return Ok(());
     };
+    debug!(target: "js::query", "accepting query request: {:#?}", request.path);
     let req = Query {
         reply_tx: js::Value::new_opaque_object(
             service.context(),
@@ -50,10 +52,10 @@ fn query_reply(tx: js::Value, data: js::BytesOrString) {
         |req: wapo::channel::Query| req.reply_tx,
         || tx.opaque_object_take_data(),
     ) else {
-        info!("failed to get response tx");
+        info!(target: "js::query", "failed to get response tx");
         return;
     };
     if let Err(err) = reply_tx.send(data.as_bytes()) {
-        info!("failed to send response: {err:?}");
+        info!(target: "js::query", "failed to send response: {err:?}");
     }
 }

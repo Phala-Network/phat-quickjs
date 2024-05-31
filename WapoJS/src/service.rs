@@ -89,10 +89,10 @@ impl JsEngine {
             match self.runtime.exec_pending_jobs() {
                 Ok(0) => break,
                 Ok(cnt) => {
-                    debug!("executed {cnt} pending jobs");
+                    debug!(target: "js::rt", "executed {cnt} pending jobs");
                 }
                 Err(err) => {
-                    error!("uncatched error: {err}");
+                    error!(target: "js::rt", "uncatched error: {err}");
                     *self.last_error.lock().unwrap() = Some(err);
                     continue;
                 }
@@ -223,7 +223,7 @@ impl Service {
         let mut state = self.state.borrow_mut();
         let id = state.take_next_resource_id();
         state.recources.insert(id, resource);
-        debug!("created resource {id}");
+        debug!(target: "js::rt", "created resource {id}");
         id
     }
 
@@ -233,7 +233,7 @@ impl Service {
     }
 
     pub fn close_all(&self) {
-        debug!("destroying all resources");
+        debug!(target: "js::rt", "destroying all resources");
         let mut state = self.state.borrow_mut();
         if state.recources.is_empty() {
             return;
@@ -245,7 +245,7 @@ impl Service {
     }
 
     pub fn remove_resource(&self, id: u64) -> Option<Resource> {
-        debug!("destroying resource {id}");
+        debug!(target: "js::rt", "destroying resource {id}");
         let mut state = self.state.borrow_mut();
         let was_empty = state.is_empty();
         let res = state.recources.remove(&id);
@@ -277,7 +277,7 @@ impl Service {
                 _ = cancel_rx => {
                 }
             }
-            debug!("task {id} finished");
+            debug!(target: "js::rt", "task {id} finished");
             close(weak_service, id);
         });
         id

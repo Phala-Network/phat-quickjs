@@ -90,7 +90,7 @@ fn bridge(service: ServiceRef, _this: js::Value, args: Args) -> anyhow::Result<u
         |_weak_service, _id, _| async move {
             if let Err(err) = tokio::io::copy(read_half.dyn_reader(), write_half.dyn_writer()).await
             {
-                warn!("io_bridge: failed to copy data: {err}");
+                warn!(target: "js::stream", "io_bridge: failed to copy data: {err}");
             }
             write_half.shutdown().await.ok();
         },
@@ -123,7 +123,7 @@ fn stream_make_writer(
             while let Some(chunk) = rx.recv().await {
                 let result = write_half.write_all(chunk.data.as_bytes()).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("service dropped while writing to stream");
+                    warn!(target: "js::stream", "service dropped while writing to stream");
                     break;
                 };
                 let result = match result {
@@ -131,7 +131,7 @@ fn stream_make_writer(
                     Err(err) => service.call_function(chunk.callback, (false, err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("failed to report write result: {err:?}");
+                    warn!(target: "js::stream", "failed to report write result: {err:?}");
                 }
             }
             write_half.shutdown().await.ok();
@@ -165,7 +165,7 @@ fn stream_write_chunk(
     };
     if result.is_err() {
         if let Err(err) = service.call_function(callback, (false, "failed to send chunk")) {
-            info!("failed to report write result: {err:?}");
+            info!(target: "js::stream", "failed to report write result: {err:?}");
         }
         anyhow::bail!("failed to send chunk");
     }
@@ -178,7 +178,7 @@ fn stream_close(writer: js::Value) {
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()
     {
-        warn!("double drop of writer");
+        warn!(target: "js::stream", "double drop of writer");
         return;
     };
 }
@@ -203,11 +203,11 @@ fn stream_make_reader(
                 buf.clear();
                 let result = read_half.read_buf(&mut buf).await;
                 let Some(service) = weak_srv.upgrade() else {
-                    warn!("service dropped while reading from stream");
+                    warn!(target: "js::stream", "service dropped while reading from stream");
                     break;
                 };
                 let Some(callback) = service.get_resource_value(id) else {
-                    warn!("callback dropped while reading from stream");
+                    warn!(target: "js::stream", "callback dropped while reading from stream");
                     break;
                 };
                 let mut end = false;
@@ -220,7 +220,7 @@ fn stream_make_reader(
                     Err(err) => service.call_function(callback, ("error", err.to_string())),
                 };
                 if let Err(err) = result {
-                    warn!("failed to report read result: {err:?}");
+                    warn!(target: "js::stream", "failed to report read result: {err:?}");
                 }
                 if end {
                     break;

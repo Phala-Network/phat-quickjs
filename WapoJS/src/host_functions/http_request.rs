@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context};
-use log::{debug, info, warn};
+use log::{debug, info, log_enabled, trace, warn};
 use std::{collections::BTreeMap, time::Duration};
 use tokio::io::{AsyncReadExt, DuplexStream, ReadHalf, WriteHalf};
 
@@ -132,7 +132,7 @@ fn http_request(
     } else {
         None
     };
-    debug!("http_request: {req:?}");
+    debug!(target: "js::httpc::header", "http_request: {req:#?}");
     let cancel_token = service.spawn(callback, do_http_request, (req, pipes));
     Ok(HttpRequestReceipt {
         cancel_token,
@@ -161,7 +161,7 @@ async fn do_http_request(
         result = do_http_request_inner(weak_service.clone(), id, req, pipes) => result,
     };
     if let Err(err) = result {
-        warn!("failed to request `{url}`: {err:?}");
+        warn!(target: "js::httpc", "failed to request `{url}`: {err:?}");
         invoke_callback(
             &weak_service,
             id,
@@ -220,27 +220,42 @@ async fn do_http_request_inner(
     }
     let request = builder.body(body).context("failed to build request")?;
     let (mut duplex_up_rx, mut duplex_up_tx) = tokio::io::split(pipes.duplex_up);
+    let url = req.url.clone();
+    const MAX_DBG_BODY_SIZE: usize = 1024 * 64;
     if let Some(mut body_tx) = body_tx {
         crate::runtime::spawn(async move {
+            let mut dbg_buf = vec![];
             loop {
                 let mut buf = bytes::BytesMut::with_capacity(STREAM_BUF_SIZE);
-                let chunk = match duplex_up_rx.read_buf(&mut buf).await {
+                let chunk: bytes::Bytes = match duplex_up_rx.read_buf(&mut buf).await {
                     Ok(n) if n == 0 => break,
                     Ok(_n) => buf.into(),
                     Err(err) => {
-                        warn!("failed to read request body from pipe: {err}");
+                        warn!(target: "js::httpc::body", "failed to read request body from pipe: {err}");
                         break;
                     }
                 };
+                trace!(target: "js::httpc::chunk", "sending chunk: {}", hex_fmt::HexFmt(&chunk));
+                if log_enabled!(target: "js::httpc::chunk", log::Level::Debug) {
+                    if dbg_buf.len() + chunk.len() <= MAX_DBG_BODY_SIZE {
+                        dbg_buf.extend_from_slice(&chunk);
+                    }
+                }
                 if body_tx.send_data(chunk).await.is_err() {
-                    warn!("failed to write request body to pipe");
+                    warn!(target: "js::httpc::body", "failed to write request body to pipe");
                     break;
+                }
+            }
+            if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+                if let Ok(body) = String::from_utf8(dbg_buf) {
+                    debug!(target: "js::httpc::body", "sent body to {url}:\n<<{body}>>\n");
                 }
             }
         });
     }
     {
         let response = client.request(request).await?;
+        debug!(target: "js::httpc::header", "response head: {response:#?}");
         let head = {
             let headers = response
                 .headers()
@@ -254,17 +269,30 @@ async fn do_http_request_inner(
                 .unwrap_or_default()
                 .into();
             let version = format!("{:?}", response.version());
+            let url = req.url.clone();
             crate::runtime::spawn(async move {
                 let mut response = pin!(response);
+                let mut dbg_buf = vec![];
                 // TODO: add timeout?
                 while let Some(chunk) = response.data().await {
                     let Ok(chunk) = chunk else {
-                        warn!("failed to read response body");
+                        warn!(target: "js::httpc::body", "failed to read response body");
                         break;
                     };
+                    trace!(target: "js::httpc::chunk", "received chunk: {}", hex_fmt::HexFmt(&chunk));
+                    if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+                        if dbg_buf.len() + chunk.len() <= MAX_DBG_BODY_SIZE {
+                            dbg_buf.extend_from_slice(&chunk);
+                        }
+                    }
                     if duplex_up_tx.write_all(&chunk).await.is_err() {
-                        warn!("failed to write response body to pipe");
+                        warn!(target: "js::httpc::body", "failed to write response body to pipe");
                         break;
+                    }
+                }
+                if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+                    if let Ok(body) = String::from_utf8(dbg_buf) {
+                        debug!(target: "js::httpc::body", "received body from {url}:\n<<{body}>>\n");
                     }
                 }
                 duplex_up_tx.shutdown().await.ok();
@@ -293,14 +321,14 @@ async fn do_http_request_inner(
 
 fn invoke_callback(weak_service: &Weak<Service>, id: u64, name: &str, data: &dyn ToJsValue) {
     let Some(service) = weak_service.upgrade() else {
-        info!("http_request {id} exited because the service has been dropped");
+        info!(target: "js::httpc", "http_request {id} exited because the service has been dropped");
         return;
     };
     let Some(callback) = service.get_resource_value(id) else {
-        info!("http_request {id} exited because the resource has been dropped");
+        info!(target: "js::httpc", "http_request {id} exited because the resource has been dropped");
         return;
     };
     if let Err(err) = service.call_function(callback, (name, data)) {
-        error!("[{id}] failed to report http_request event {name}: {err:?}");
+        error!(target: "js::httpc", "[{id}] failed to report http_request event {name}: {err:?}");
     }
 }

@@ -10,9 +10,9 @@ mod traits;
 
 #[cfg(feature = "wapo")]
 pub mod runtime {
-    pub use wapo::net::TcpStream;
     pub use wapo::channel::HttpRequest;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
+    pub use wapo::net::TcpStream;
     pub use wapo::{
         env::messages::AccountId, hyper_rt::HyperExecutor, net::hyper_v0::HttpConnector,
         ocall::getrandom, spawn, time,
@@ -25,8 +25,7 @@ pub mod runtime {
     }
 
     pub fn init_logger() {
-        use wapo::logger::Logger;
-        Logger::with_max_level(log::LevelFilter::Debug).init();
+        wapo::logger::init();
     }
     pub fn set_output(output: Vec<u8>) {
         wapo::ocall::emit_program_output(&output).expect("failed to emit program output")
@@ -38,11 +37,11 @@ pub mod runtime {
 
 #[cfg(feature = "native")]
 pub mod runtime {
-    pub use tokio::net::TcpStream;
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-    pub use wapo::env::messages::{HttpHead, HttpResponseHead};
     use tokio::io::DuplexStream;
+    pub use tokio::net::TcpStream;
+    pub use wapo::env::messages::{HttpHead, HttpResponseHead};
 
     pub struct HttpRequest {
         /// The HTTP request head.

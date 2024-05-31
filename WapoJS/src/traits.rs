@@ -10,13 +10,13 @@ pub trait ResultExt {
 impl<E: Debug, T> ResultExt for Result<T, E> {
     fn ignore(self) {
         if let Err(err) = self {
-            error!("ignored error: {:?}", err);
+            error!(target: "js", "ignored error: {:?}", err);
         }
     }
 
     fn log_err(self) -> Self {
         if let Err(err) = &self {
-            error!("error: {:?}", err);
+            error!(target: "js", "error: {:?}", err);
         }
         self
     }
