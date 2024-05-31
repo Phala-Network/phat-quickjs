@@ -1,5 +1,4 @@
 use js::ToJsValue;
-use log::info;
 
 use crate::Service;
 use anyhow::{anyhow, bail, Context, Result};
@@ -101,12 +100,10 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
             }
         }
     }
-    info!("listening for incoming queries...");
     #[cfg(feature = "wapo")]
     loop {
         tokio::select! {
             _ = service.wait_for_tasks() => {
-                info!("all tasks are done, exiting...");
                 break;
             }
             query = wapo::channel::incoming_queries().next() => {
@@ -129,7 +126,6 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     #[cfg(not(feature = "wapo"))]
     {
         service.wait_for_tasks().await;
-        info!("all tasks are done, exiting...");
     }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
     let output = js_ctx
