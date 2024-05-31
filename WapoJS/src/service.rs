@@ -146,6 +146,11 @@ impl Service {
         setup_host_functions(&ctx).expect("failed to setup host functions");
         let bootcode = Code::Bytecode(bootcode::BOOT_CODE);
         ctx.eval(&bootcode).expect("failed to eval bootcode");
+        if let Ok(v) = std::env::var("WAPO_RT_FLAGS") {
+            if let Ok(v) = v.parse::<u32>() {
+                runtime.set_debug_flags(v);
+            }
+        }
         let state = RefCell::new(ServiceState::default());
         Self {
             runtime: Rc::new_cyclic(|weak_self| JsEngine {
