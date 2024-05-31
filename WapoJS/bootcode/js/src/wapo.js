@@ -22,8 +22,11 @@
     g.Wapo.concatU8a = concatU8a;
     g.setTimeout = timerFn(Wapo.setTimeout);
     g.setInterval = timerFn(Wapo.setInterval);
-    g.clearTimeout = Wapo.close;
-    g.clearInterval = Wapo.close;
+    g.clearTimeout = function (id) {
+        if (id == null) return;
+        return Wapo.close(id);
+    };
+    g.clearInterval = g.clearTimeout;
     g.Wapo.inspect = function (...obj) {
         return Wapo.print(2, obj, {
             indent: '  ',
