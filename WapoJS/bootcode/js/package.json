@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "test",
-    "build": "webpack"
+    "build": "webpack",
+    "build:debug": "webpack --mode=development"
   },
   "license": "Apache-2.0",
   "dependencies": {
