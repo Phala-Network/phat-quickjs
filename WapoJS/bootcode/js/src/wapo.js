@@ -52,7 +52,7 @@
     g.window = g;
     g.SCALE = Wapo.SCALE;
     g.process = {
-        env: {},
+        env: Wapo.env,
         exit: Wapo.exit,
         get argv() {
             return ["wapojs", "<eval>", ...scriptArgs];
