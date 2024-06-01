@@ -8,7 +8,7 @@ use log::{debug, error, info, warn};
 use std::{future::Future, sync::Mutex};
 
 use crate::host_functions::setup_host_functions;
-use anyhow::Result;
+use anyhow::{Result, Context};
 use js::{c, Code, Error as ValueError, ToArgs};
 use tokio::sync::broadcast;
 
@@ -48,9 +48,9 @@ impl TryFrom<js::Context> for ServiceRef {
 
     fn try_from(ctx: js::Context) -> Result<Self, Self::Error> {
         js_context_get_service(&ctx)
-            .ok_or(ValueError::Static("Service not found"))?
+            .context("service not found")?
             .upgrade()
-            .ok_or(ValueError::RuntimeDropped)
+            .context("runtime has been dropped")
     }
 }
 

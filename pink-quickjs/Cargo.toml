@@ -18,6 +18,7 @@ pink = { version = "0.4.0", default-features = false, features = ["dlmalloc"] }
 bootcode = { path = "bootcode" }
 phat_js = { path = "../phat_js", default-features = false }
 this-crate = "0.1"
+anyhow = { version = "1.0.86", default-features = false }
 
 [lib]
 name = "pink_quickjs"
@@ -33,6 +34,7 @@ std = [
     "qjsbind/std",
     "qjs-extensions/std",
     "phat_js/std",
+    "anyhow/std",
 ]
 ink-as-dependency = []
 

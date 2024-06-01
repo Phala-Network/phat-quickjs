@@ -83,6 +83,10 @@ mod contract_qjs {
     }
 
     fn eval(codes: &[Code], args: Vec<String>) -> Result<Output, String> {
+        eval_impl(codes, args).map_err(|err| err.to_string())
+    }
+
+    fn eval_impl(codes: &[Code], args: Vec<String>) -> qjsbind::Result<Output> {
         unsafe { set_codes(codes) };
 
         let rt = qjsbind::Runtime::new();
@@ -94,11 +98,11 @@ mod contract_qjs {
         let global = ctx.get_global_object();
         global.set_property("scriptArgs", &args)?;
 
-        ctx.eval(&Code::Bytecode(BOOT_CODE))?;
-        ctx.eval(&Code::Source(&set_version()))?;
+        ctx.eval(&Code::Bytecode(BOOT_CODE)).map_err(qjsbind::Error::msg)?;
+        ctx.eval(&Code::Source(&set_version())).map_err(qjsbind::Error::msg)?;
         let mut output = JsValue::undefined();
         for code in codes.iter() {
-            output = ctx.eval(code)?;
+            output = ctx.eval(code).map_err(qjsbind::Error::msg)?;
         }
         if output.is_uint8_array() {
             let bytes = output.decode_bytes()?;

@@ -31,12 +31,6 @@ struct WriteChunk {
     callback: js::Value,
 }
 
-#[derive(ToJsValue, Debug)]
-struct Event<'a, Data> {
-    name: &'a str,
-    data: Data,
-}
-
 pub fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("httpListen", http_listen)?;
     ns.define_property_fn("httpSendResponseHead", http_send_response_head)?;
