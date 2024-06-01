@@ -26,7 +26,7 @@ mod hash;
 mod riscvm;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
-    let ns = js::Value::new_object(ctx);
+    let ns = js::Value::new_object(ctx, "Sidevm");
     let version = env!("CARGO_PKG_VERSION");
     let version = ctx.new_string(version);
     ns.set_property("version", &version)?;
@@ -55,7 +55,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
 fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     use qjs_extensions as ext;
-    let scale = js::Value::new_object(ctx);
+    let scale = js::Value::new_object(ctx, "SCALE");
     ext::scale2::setup(&scale, ctx)?;
     ext::repr::setup(ns)?;
     ns.set_property("SCALE", &scale)?;

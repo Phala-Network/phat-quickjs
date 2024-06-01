@@ -50,7 +50,7 @@ extern "C" fn __pink_getrandom(pbuf: *mut u8, nbytes: u8) {
 
 pub fn setup_host_functions(ctx: &js::Context) -> js::Result<()> {
     let global_object = ctx.get_global_object();
-    let pink = ctx.new_object();
+    let pink = ctx.new_object("Pink");
     log::setup(&pink)?;
     contract_call::setup(&pink)?;
     hash::setup(&pink)?;
@@ -71,7 +71,7 @@ fn setup_encoding_functions(pink: &js::Value, ctx: &js::Context) -> js::Result<(
     pink.define_property_fn("base64Decode", ext::base64::decode)?;
     pink.define_property_fn("hexEncode", ext::hex::encode)?;
     pink.define_property_fn("hexDecode", ext::hex::decode)?;
-    let scale = ctx.new_object();
+    let scale = ctx.new_object("SCALE");
     ext::scale2::setup(&scale, ctx)?;
     ext::repr::setup(pink)?;
     pink.set_property("SCALE", &scale)?;

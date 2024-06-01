@@ -3,7 +3,7 @@ use js::IntoJsValue;
 
 pub fn setup(ns: &js::Value) -> Result<()> {
     let ctx = ns.context()?;
-    let env = ctx.new_object();
+    let env = ctx.new_object("Env");
     for (key, value) in std::env::vars() {
         env.set_property(&key, &value.into_js_value(ctx)?)?;
     }

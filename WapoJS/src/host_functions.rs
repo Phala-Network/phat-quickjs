@@ -32,7 +32,7 @@ mod stream;
 mod hash;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
-    let ns = js::Value::new_object(ctx);
+    let ns = ctx.new_object("Wapo");
     js::get_global(ctx).set_property("Wapo", &ns)?;
 
     let version = env!("CARGO_PKG_VERSION");
@@ -67,7 +67,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
 fn set_extensions(ns: &js::Value, ctx: &js::Context) -> Result<()> {
     use qjs_extensions as ext;
-    let scale = js::Value::new_object(ctx);
+    let scale = ctx.new_object("SCALE");
     ext::scale2::setup(&scale, ctx)?;
     ext::repr::setup(ns)?;
     ns.set_property("SCALE", &scale)?;
