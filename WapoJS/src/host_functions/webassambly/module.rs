@@ -1,9 +1,16 @@
 pub use bind::*;
 
+pub fn setup(wasm_ns: &js::Value) -> js::Result<()> {
+    use js::NativeClass;
+    let constructor = Module::constructor_object(wasm_ns.context()?)?;
+    wasm_ns.set_property("Module", &constructor)?;
+    Ok(())
+}
+
 #[js::qjsbind]
 mod bind {
     use anyhow::{bail, Context};
-    use js::Native;
+    use js::{Native, Result};
     use wasmi::ExternType;
 
     use crate::host_functions::webassambly::engine::GlobalStore;
@@ -15,7 +22,7 @@ mod bind {
     }
 
     #[derive(js::ToJsValue)]
-    struct ExportItem {
+    pub struct ExportItem {
         name: String,
         kind: String,
     }
@@ -29,7 +36,7 @@ mod bind {
 
     impl Module {
         #[qjs(constructor)]
-        pub fn new(#[qjs(from_context)] store: GlobalStore, code: js::Bytes) -> js::Result<Self> {
+        pub fn new(#[qjs(from_context)] store: GlobalStore, code: js::Bytes) -> Result<Self> {
             let module = wasmi::Module::new(&store.engine(), &mut code.as_bytes())
                 .context("failed to parse module")?;
             Ok(Self { module })
@@ -39,7 +46,7 @@ mod bind {
         fn custom_sections(
             _module: Native<Module>,
             _section_name: js::JsString,
-        ) -> js::Result<Vec<js::Bytes>> {
+        ) -> Result<Vec<js::Bytes>> {
             bail!("Module.customSections not implemented")
         }
 

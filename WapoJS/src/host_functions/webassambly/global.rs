@@ -1,9 +1,9 @@
 use super::*;
 
 pub use bind::*;
-use js::NativeClass;
 
 pub fn setup(wasm_ns: &js::Value) -> Result<()> {
+    use js::NativeClass;
     let constructor = Global::constructor_object(wasm_ns.context()?)?;
     wasm_ns.set_property("Global", &constructor)?;
     Ok(())
