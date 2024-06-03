@@ -36,7 +36,7 @@ mod hash;
 
 pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     let ns = ctx.new_object("Wapo");
-    js::get_global(ctx).set_property("Wapo", &ns)?;
+    ctx.get_global_object().set_property("Wapo", &ns)?;
 
     let version = env!("CARGO_PKG_VERSION");
     let version = ctx.new_string(version);
@@ -64,6 +64,9 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
     stream::setup(&ns)?;
     env::setup(&ns)?;
+
+    #[cfg(feature = "js-wasm")]
+    webassambly::setup(&ctx.get_global_object())?;
 
     Ok(())
 }

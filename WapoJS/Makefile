@@ -16,7 +16,7 @@ $(BUILD_OUTPUT): rs
 wasi: $(BUILD_OUTPUT)
 
 %.wasm:
-	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,wapo,js-http-listen,js-crypto
+	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,wapo,js-http-listen,js-crypto,js-wasm
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 opt: all $(OPTIMIZED_OUTPUT)
@@ -27,7 +27,7 @@ opt: all $(OPTIMIZED_OUTPUT)
 	wasm-tools strip $@ -o $@
 
 native:
-	cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features mem-stats,native,js-hash,js-crypto,js-http-listen
+	cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features mem-stats,native,js-hash,js-crypto,js-http-listen,js-wasm
 	cp target/x86_64-unknown-linux-musl/release/wapojs ./
 
 install: native
