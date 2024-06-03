@@ -1,8 +1,22 @@
 use alloc::vec::Vec;
-use ink::env::{call, Result};
+use ink::env::{call, Error as InkError};
 use pink::PinkEnvironment;
 use qjsbind as js;
 use scale::{Decode, Encode};
+
+type Result<T> = core::result::Result<T, Error>;
+pub struct Error(InkError);
+impl core::fmt::Debug for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
 
 pub fn setup(pink: &js::Value) -> js::Result<()> {
     pink.define_property_fn("invokeContract", contract_call)?;
@@ -104,6 +118,7 @@ pub(crate) fn invoke_contract_delegate(
         .returns::<RawBytes<Vec<u8>>>()
         .try_invoke()
         .map(|x| x.encode())
+        .map_err(Error)
 }
 
 pub(crate) fn invoke_contract(
@@ -128,4 +143,5 @@ pub(crate) fn invoke_contract(
         .returns::<RawBytes<Vec<u8>>>()
         .try_invoke()
         .map(|x| x.encode())
+        .map_err(Error)
 }
