@@ -16,6 +16,9 @@
             }
         }
         decode(bytes) {
+            if (bytes == null) {
+                return '';
+            }
             let result = '';
             let i = 0;
             while (i < bytes.length) {

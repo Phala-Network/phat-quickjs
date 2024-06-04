@@ -13,7 +13,7 @@ mod bind {
 
     use anyhow::bail;
     use js::{ErrorContext, FromJsValue, ToJsValue};
-    use log::{debug, info};
+    use log::{debug, info, trace};
     use wasmi::{ExternType, FuncType};
 
     use crate::host_functions::webassambly::{
@@ -31,6 +31,7 @@ mod bind {
     }
 
     struct JsFn {
+        name: String,
         ty: FuncType,
         callback: Arc<js::Value>,
     }
@@ -39,14 +40,15 @@ mod bind {
     unsafe impl Sync for JsFn {}
 
     impl JsFn {
-        fn new(store: &mut Store, ty: FuncType, callback: js::Value) -> Self {
+        fn new(name: String, store: &mut Store, ty: FuncType, callback: js::Value) -> Self {
             let callback = Arc::new(callback);
             let weak = Arc::downgrade(&callback);
             store.push_ref(weak);
-            Self { ty, callback }
+            Self { name, ty, callback }
         }
 
         fn call(&self, args: &[wasmi::Val], outputs: &mut [wasmi::Val]) -> js::Result<()> {
+            trace!(target: "js::wasm", "calling ext function: {}", self.name);
             if outputs.len() != self.ty.results().len() {
                 bail!(
                     "expected {} results, got {}",
@@ -78,6 +80,7 @@ mod bind {
 
     #[qjs(class(js_name = "WebAssembly.HostFunction"))]
     struct HostFn {
+        name: String,
         #[gc(skip)]
         ty: FuncType,
         #[gc(skip)]
@@ -85,8 +88,8 @@ mod bind {
     }
 
     impl HostFn {
-        fn new(ty: FuncType, func: wasmi::Func) -> Self {
-            Self { ty, func }
+        fn new(name: String, ty: FuncType, func: wasmi::Func) -> Self {
+            Self { name, ty, func }
         }
 
         #[qjs(method)]
@@ -94,20 +97,25 @@ mod bind {
             &self,
             #[qjs(from_context)] ctx: js::Context,
             #[qjs(from_context)] store: GlobalStore,
-            mut args: Vec<js::Value>,
+            args: Vec<js::Value>,
         ) -> js::Result<js::Value> {
             let mut inputs = vec![];
             let mut outputs = vec![];
-            for ty in self.ty.params() {
-                let arg = args.pop().unwrap_or(js::Value::undefined());
+            let mut args_iter = args.into_iter();
+            for ty in self.ty.params().iter() {
+                let arg = args_iter.next().unwrap_or(js::Value::undefined());
                 inputs.push(decode_value_or_default(*ty, arg)?);
             }
             for t in self.ty.results() {
                 outputs.push(wasmi::Val::default(*t));
             }
-            self.func
-                .call(store.try_borrow_mut()?.as_mut(), &inputs, &mut outputs[..])
-                .context("failed to call host function")?;
+            trace!(target: "js::wasm", "{} inputs : {:?}", self.name, inputs);
+            wasmi::with_js_context(&ctx, || -> js::Result<_> {
+                self.func
+                    .call(store.try_borrow_mut()?.as_mut(), &inputs, &mut outputs[..])
+                    .context("failed to call host function")
+            })?;
+            trace!(target: "js::wasm", "{} outputs: {:?}", self.name, outputs);
             let js_outputs = outputs
                 .into_iter()
                 .map(|val| encode_value(&ctx, val))
@@ -123,6 +131,7 @@ mod bind {
     impl Instance {
         #[qjs(constructor)]
         pub fn new(
+            #[qjs(from_context)] ctx: js::Context,
             #[qjs(from_context)] store: GlobalStore,
             module: js::Native<Module>,
             imports: js::Value,
@@ -160,7 +169,8 @@ mod bind {
                             if !obj.is_function() {
                                 bail!("imported function {module_name}.{field_name} is not a function");
                             }
-                            let js_fn = JsFn::new(&mut store, ty.clone(), obj);
+                            let name = format!("{module_name}.{field_name}");
+                            let js_fn = JsFn::new(name, &mut store, ty.clone(), obj);
                             linker.func_new(
                                 module_name,
                                 field_name,
@@ -176,12 +186,14 @@ mod bind {
                     }
                 }
                 debug!(target: "js::wasm", "instantiating module");
-                let instance = linker
-                    .instantiate(store.as_mut(), &module.module)
-                    .context("failed to instantiate module")?;
-                instance
-                    .ensure_no_start(store.as_mut())
-                    .context("unexpected start function")?
+                wasmi::with_js_context(&ctx, || -> js::Result<_> {
+                    let instance = linker
+                        .instantiate(store.as_mut(), &module.module)
+                        .context("failed to instantiate module")?;
+                    instance
+                        .ensure_no_start(store.as_mut())
+                        .context("unexpected start function")
+                })?
             };
             debug!(target: "js::wasm", "module instantiated");
             Ok(Self {
@@ -227,7 +239,9 @@ mod bind {
                     }
                     ExternType::Func(ty) => {
                         let f = entry.into_func().expect("must be a function");
-                        let value = ctx.wrap_native(HostFn::new(ty, f))?.to_js_value(&ctx)?;
+                        let value = ctx
+                            .wrap_native(HostFn::new(name.to_string(), ty, f))?
+                            .to_js_value(&ctx)?;
                         let js_fn = wrapper.call(&js::Value::null(), &[value])?;
                         output.insert(name, js_fn);
                     }
