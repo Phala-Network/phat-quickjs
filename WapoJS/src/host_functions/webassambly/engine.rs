@@ -2,10 +2,16 @@ use std::ops::{Deref, DerefMut};
 
 type Data = ();
 
-#[derive(js::GcMark)]
 pub struct Store {
-    #[gc(skip)]
     store: wasmi::Store<Data>,
+}
+
+impl js::GcMark for Store {
+    fn gc_mark(&self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
+        for buffer in self.store.iter_memory_buffers() {
+            buffer.gc_mark(rt, mark_fn);
+        }
+    }
 }
 
 impl Deref for Store {

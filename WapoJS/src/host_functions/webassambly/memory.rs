@@ -67,7 +67,7 @@ mod bind {
 
         #[qjs(getter)]
         pub fn buffer(&self) -> Option<js::JsArrayBuffer> {
-            self.memory.js_buffer(&**self.store.borrow_mut())
+            self.memory.js_buffer(&**self.store.borrow_mut()).cloned()
         }
     }
 }
