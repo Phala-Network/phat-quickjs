@@ -27,7 +27,7 @@ opt: all $(OPTIMIZED_OUTPUT)
 	wasm-tools strip $@ -o $@
 
 native:
-	cargo build --target x86_64-unknown-linux-musl --no-default-features --features mem-stats,native,js-hash,js-crypto,js-http-listen,js-wasm
+	cargo build --target x86_64-unknown-linux-musl --no-default-features --features mem-stats,native,js-hash,js-crypto,js-wasm
 	cp target/x86_64-unknown-linux-musl/debug/wapojs ./
 
 install: native

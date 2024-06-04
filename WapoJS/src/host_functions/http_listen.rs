@@ -34,6 +34,7 @@ fn http_listen(service: ServiceRef, _this: js::Value, callback: OwnedJsValue) {
     service.set_http_listener(callback)
 }
 
+#[cfg(feature = "js-http-listen")]
 pub(crate) fn try_accept_http_request(
     service: ServiceRef,
     request: crate::runtime::HttpRequest,

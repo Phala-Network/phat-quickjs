@@ -105,6 +105,7 @@ fn exit(service: ServiceRef, _this: js::Value) {
 }
 
 /// This function returns the value of f2 and infer it's type as the return type of f1.
+#[allow(dead_code)]
 fn valueof_f2_as_typeof_f1<F1, I1, F2, O>(f1: F1, f2: F2) -> Option<O>
 where
     F1: FnOnce(I1) -> O,

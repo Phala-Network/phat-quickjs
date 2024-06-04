@@ -80,7 +80,7 @@ impl GlobalStore {
 
 impl js::FromJsContext for GlobalStore {
     fn from_js_context(ctx: &js::Context) -> js::Result<Self> {
-        let inner = ctx.get_qjsbind_object("wasm.globalStore", || {
+        let inner = ctx.get_qjsbind_object("wasm.global_store", || {
             let store = Store {
                 store: wasmi::Store::default(),
             };
