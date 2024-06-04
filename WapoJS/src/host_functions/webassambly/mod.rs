@@ -3,19 +3,14 @@ use js::FromJsContext;
 
 mod engine;
 mod global;
-mod module;
+mod instance;
 mod memory;
+mod module;
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     let ctx = ns.context()?;
     let wasm_ns = ctx.new_object("WebAssembly");
     ns.set_property("WebAssembly", &wasm_ns)?;
-
-    module::setup(&wasm_ns)?;
-    global::setup(&wasm_ns)?;
-    memory::setup(&wasm_ns)?;
-    wasm_ns.define_property_fn("validate", validate)?;
-    wasm_ns.define_property_fn("parseWat", parse_wat)?;
     ctx.eval(&js::Code::Bytecode(qjsc::compiled!(
         r#"
         WebAssembly.compile = async function (source) {
@@ -31,9 +26,31 @@ pub(crate) fn setup(ns: &js::Value) -> Result<()> {
             }
             return WebAssembly.compile(wasm);
         };
+        WebAssembly.instantiate = async function (moduleOrBytes, imports) {
+            if (moduleOrBytes instanceof WebAssembly.Module) {
+                return new WebAssembly.Instance(moduleOrBytes, imports);
+            } else {
+                const module = await WebAssembly.compile(moduleOrBytes);
+                const instance = await WebAssembly.instantiate(module, imports);
+                return { module, instance };
+            }
+        };
+        WebAssembly.instantiateStreaming = async function (source, imports) {
+            const module = await WebAssembly.compileStreaming(source);
+            const instance = await WebAssembly.instantiate(module, imports);
+            return { module, instance };
+        };
     "#
     )))
     .map_err(js::Error::msg)?;
+
+    module::setup(&wasm_ns)?;
+    global::setup(&wasm_ns)?;
+    memory::setup(&wasm_ns)?;
+    instance::setup(&wasm_ns)?;
+
+    wasm_ns.define_property_fn("validate", validate)?;
+    wasm_ns.define_property_fn("parseWat", parse_wat)?;
     Ok(())
 }
 

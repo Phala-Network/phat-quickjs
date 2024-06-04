@@ -19,7 +19,7 @@ mod bind {
     #[qjs(class)]
     pub struct Module {
         #[gc(skip)]
-        module: wasmi::Module,
+        pub(crate) module: wasmi::Module,
     }
 
     #[derive(js::ToJsValue)]
@@ -80,7 +80,7 @@ mod bind {
         }
     }
 
-    fn extern_type_kind(ty: &ExternType) -> &'static str {
+    pub fn extern_type_kind(ty: &ExternType) -> &'static str {
         match ty {
             ExternType::Global(_) => "global",
             ExternType::Table(_) => "table",

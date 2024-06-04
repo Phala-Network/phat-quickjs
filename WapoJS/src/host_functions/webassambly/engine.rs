@@ -1,34 +1,51 @@
-use std::ops::{Deref, DerefMut};
+use std::sync::Weak;
 
-type Data = ();
+use anyhow::bail;
+
+#[derive(Default)]
+pub struct Data {
+    ref_js_values: Vec<Weak<js::Value>>,
+}
 
 pub struct Store {
     store: wasmi::Store<Data>,
 }
 
-impl js::GcMark for Store {
-    fn gc_mark(&self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
-        for buffer in self.store.iter_memory_buffers() {
-            buffer.gc_mark(rt, mark_fn);
-        }
+impl Store {
+    pub fn push_ref(&mut self, value: Weak<js::Value>) {
+        self.store.data_mut().ref_js_values.push(value);
     }
 }
 
-impl Deref for Store {
-    type Target = wasmi::Store<Data>;
-
-    fn deref(&self) -> &Self::Target {
+impl AsRef<wasmi::Store<Data>> for Store {
+    fn as_ref(&self) -> &wasmi::Store<Data> {
         &self.store
     }
 }
 
-impl DerefMut for Store {
-    fn deref_mut(&mut self) -> &mut Self::Target {
+impl AsMut<wasmi::Store<Data>> for Store {
+    fn as_mut(&mut self) -> &mut wasmi::Store<Data> {
         &mut self.store
     }
 }
 
-#[derive(js::FromJsValue)]
+impl js::GcMark for Store {
+    fn gc_mark(&mut self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
+        for buffer in self.store.iter_memory_buffers() {
+            buffer.gc_mark_ro(rt, mark_fn);
+        }
+        self.store.data_mut().ref_js_values.retain_mut(|value| {
+            if let Some(value) = value.upgrade() {
+                value.gc_mark_ro(rt, mark_fn);
+                true
+            } else {
+                false
+            }
+        });
+    }
+}
+
+#[derive(js::FromJsValue, js::GcMark, Clone)]
 pub struct GlobalStore(js::Native<Store>);
 
 impl From<GlobalStore> for js::Native<Store> {
@@ -44,20 +61,20 @@ impl GlobalStore {
         self.0.borrow().store.engine().clone()
     }
 
-    pub fn borrow(&self) -> js::NativeValueRef<'_, Store> {
-        self.0.borrow()
+    pub fn try_borrow(&self) -> js::Result<js::NativeValueRef<'_, Store>> {
+        let r = self.0.borrow();
+        if r.is_none() {
+            bail!("failed to borrow GlobalStore")
+        }
+        Ok(r)
     }
 
-    pub fn borrow_mut(&self) -> js::NativeValueRefMut<'_, Store> {
-        self.0.borrow_mut()
-    }
-
-    pub fn into_inner(self) -> js::Native<Store> {
-        self.0
-    }
-
-    pub fn inner(&self) -> &js::Native<Store> {
-        &self.0
+    pub fn try_borrow_mut(&self) -> js::Result<js::NativeValueRefMut<'_, Store>> {
+        let r = self.0.borrow_mut();
+        if r.is_none() {
+            bail!("failed to borrow GlobalStore")
+        }
+        Ok(r)
     }
 }
 

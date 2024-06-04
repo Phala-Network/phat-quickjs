@@ -12,13 +12,13 @@ mod bind {
     use js::NoStdContext;
     use wasmi::core::Pages;
 
-    use crate::host_functions::webassambly::engine::{GlobalStore, Store};
+    use crate::host_functions::webassambly::engine::GlobalStore;
 
     #[qjs(class(js_name = "WebAssembly.Memory"))]
     pub struct Memory {
         #[gc(skip)]
         memory: wasmi::Memory,
-        store: js::Native<Store>,
+        store: GlobalStore,
     }
 
     #[derive(js::FromJsValue, Debug)]
@@ -33,20 +33,19 @@ mod bind {
         #[qjs(constructor)]
         pub fn new(
             #[qjs(from_context)] js_ctx: js::Context,
-            #[qjs(from_context)] wasm_store: GlobalStore,
+            #[qjs(from_context)] store: GlobalStore,
             descriptor: MemoryDescriptor,
         ) -> js::Result<Self> {
             if descriptor.shared {
                 return Err(js::Error::msg("shared memory is not supported"));
             }
             let memory = {
-                let mut store = wasm_store.borrow_mut();
+                let mut store = store.try_borrow_mut()?;
                 let mem_ty = wasmi::MemoryType::new(descriptor.initial, descriptor.maximum)
                     .context("failed to create memory type")?;
-                wasmi::with_js_context(&js_ctx, || wasmi::Memory::new(&mut **store, mem_ty))
+                wasmi::with_js_context(&js_ctx, || wasmi::Memory::new(store.as_mut(), mem_ty))
                     .context("failed to create memory")?
             };
-            let store = wasm_store.into_inner();
             Ok(Self { memory, store })
         }
 
@@ -56,10 +55,10 @@ mod bind {
             #[qjs(from_context)] js_ctx: js::Context,
             delta: u32,
         ) -> js::Result<u32> {
-            let mut store = self.store.borrow_mut();
+            let mut store = self.store.try_borrow_mut()?;
             let additional_pages = Pages::new(delta).context("invalid number of pages")?;
             let prev_pages = wasmi::with_js_context(&js_ctx, || {
-                self.memory.grow(&mut **store, additional_pages)
+                self.memory.grow(store.as_mut(), additional_pages)
             })
             .context("failed to grow memory")?;
             Ok(prev_pages.into())
@@ -67,7 +66,17 @@ mod bind {
 
         #[qjs(getter)]
         pub fn buffer(&self) -> Option<js::JsArrayBuffer> {
-            self.memory.js_buffer(&**self.store.borrow_mut()).cloned()
+            self.memory
+                .js_buffer(self.store.try_borrow_mut().ok()?.as_mut())
+                .cloned()
+        }
+
+        pub fn raw_memory(&self) -> &wasmi::Memory {
+            &self.memory
+        }
+
+        pub fn from_raw(memory: wasmi::Memory, store: GlobalStore) -> Self {
+            Self { memory, store }
         }
     }
 }
