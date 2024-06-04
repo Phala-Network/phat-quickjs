@@ -22,6 +22,8 @@ mod bind {
         #[gc(skip)]
         val: wasmi::Global,
         store: GlobalStore,
+        #[qjs(getter, setter)]
+        test: js::Value,
     }
 
     #[derive(js::FromJsValue, Debug)]
@@ -49,7 +51,7 @@ mod bind {
                 let fval = unsafe { core::mem::transmute::<u64, f64>(val.into()) };
                 fval.to_js_value(ctx)
             }
-            _ => bail!("invalid type"),
+            _ => bail!("unimplmemented wasm primitive type"),
         }
     }
 
@@ -108,27 +110,32 @@ mod bind {
             } else {
                 wasmi::Mutability::Const
             };
-            let val =
-                wasmi::Global::new(store.try_borrow_mut()?.as_mut(), initial_value, mutability);
-            Ok(Self { val, store })
+            let val = store.with(|store| wasmi::Global::new(store, initial_value, mutability))?;
+            Ok(Self {
+                val,
+                store,
+                test: js::Value::null(),
+            })
         }
 
         #[qjs(setter, js_name = "value")]
         fn set_value(&self, val: js::Value) -> js::Result<()> {
-            let ty = self.val.ty(self.store.try_borrow()?.as_ref());
-            if ty.mutability().is_const() {
-                bail!("global is immutable");
-            }
-            let new_value = decode_value_or_default(ty.content(), val)?;
-            self.val
-                .set(self.store.try_borrow_mut()?.as_mut(), new_value)
-                .context("failed to set value")?;
+            self.store.with(|store| -> js::Result<_> {
+                let ty = self.val.ty(&*store);
+                if ty.mutability().is_const() {
+                    bail!("global is immutable");
+                }
+                let new_value = decode_value_or_default(ty.content(), val)?;
+                self.val
+                    .set(&mut *store, new_value)
+                    .context("failed to set value")
+            })??;
             Ok(())
         }
 
         #[qjs(getter)]
         fn value(&self) -> js::Result<Val> {
-            let val = self.val.get(self.store.try_borrow()?.as_ref());
+            let val = self.store.with(|store| self.val.get(store))?;
             Ok(Val(val))
         }
 
@@ -142,7 +149,11 @@ mod bind {
         }
 
         pub fn from_raw(val: wasmi::Global, store: GlobalStore) -> Self {
-            Self { val, store }
+            Self {
+                val,
+                store,
+                test: js::Value::null(),
+            }
         }
     }
 }

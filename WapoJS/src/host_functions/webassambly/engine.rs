@@ -1,19 +1,25 @@
-use std::sync::Weak;
+use std::sync::{Mutex, Weak};
 
 use anyhow::bail;
 
+environmental::environmental!(wasmi_using_context: wasmi::Store<Data>);
+
+pub fn using_store<T>(store: &mut wasmi::Store<Data>, f: impl FnOnce() -> T) -> T {
+    wasmi_using_context::using(store, f)
+}
+
 #[derive(Default)]
 pub struct Data {
-    ref_js_values: Vec<Weak<js::Value>>,
+    ref_js_values: Mutex<Vec<Weak<js::Value>>>,
 }
 
 pub struct Store {
     store: wasmi::Store<Data>,
 }
 
-impl Store {
-    pub fn push_ref(&mut self, value: Weak<js::Value>) {
-        self.store.data_mut().ref_js_values.push(value);
+impl Data {
+    pub fn push_ref(&self, value: Weak<js::Value>) {
+        self.ref_js_values.lock().unwrap().push(value);
     }
 }
 
@@ -30,18 +36,23 @@ impl AsMut<wasmi::Store<Data>> for Store {
 }
 
 impl js::GcMark for Store {
-    fn gc_mark(&mut self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
+    fn gc_mark(&self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
         for buffer in self.store.iter_memory_buffers() {
-            buffer.gc_mark_ro(rt, mark_fn);
+            buffer.gc_mark(rt, mark_fn);
         }
-        self.store.data_mut().ref_js_values.retain_mut(|value| {
-            if let Some(value) = value.upgrade() {
-                value.gc_mark_ro(rt, mark_fn);
-                true
-            } else {
-                false
-            }
-        });
+        self.store
+            .data()
+            .ref_js_values
+            .lock()
+            .unwrap()
+            .retain_mut(|value| {
+                if let Some(value) = value.upgrade() {
+                    value.gc_mark(rt, mark_fn);
+                    true
+                } else {
+                    false
+                }
+            });
     }
 }
 
@@ -61,20 +72,22 @@ impl GlobalStore {
         self.0.borrow().store.engine().clone()
     }
 
-    pub fn try_borrow(&self) -> js::Result<js::NativeValueRef<'_, Store>> {
-        let r = self.0.borrow();
+    fn try_borrow_mut(&self) -> js::Result<js::NativeValueRefMut<'_, Store>> {
+        let r = self.0.borrow_mut();
         if r.is_none() {
             bail!("failed to borrow GlobalStore")
         }
         Ok(r)
     }
 
-    pub fn try_borrow_mut(&self) -> js::Result<js::NativeValueRefMut<'_, Store>> {
-        let r = self.0.borrow_mut();
-        if r.is_none() {
-            bail!("failed to borrow GlobalStore")
-        }
-        Ok(r)
+    pub fn with<T>(&self, f: impl FnOnce(&mut wasmi::Store<Data>) -> T) -> js::Result<T> {
+        let rv = if wasmi_using_context::with(|_| ()).is_some() {
+            wasmi_using_context::with(|ctx| f(ctx)).expect("should never fail")
+        } else {
+            let mut store = self.try_borrow_mut()?;
+            f(store.as_mut())
+        };
+        Ok(rv)
     }
 }
 

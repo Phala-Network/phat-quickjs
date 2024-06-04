@@ -40,11 +40,12 @@ mod bind {
                 return Err(js::Error::msg("shared memory is not supported"));
             }
             let memory = {
-                let mut store = store.try_borrow_mut()?;
                 let mem_ty = wasmi::MemoryType::new(descriptor.initial, descriptor.maximum)
                     .context("failed to create memory type")?;
-                wasmi::with_js_context(&js_ctx, || wasmi::Memory::new(store.as_mut(), mem_ty))
-                    .context("failed to create memory")?
+                store.with(|store| {
+                    wasmi::with_js_context(&js_ctx, || wasmi::Memory::new(store, mem_ty))
+                        .context("failed to create memory")
+                })??
             };
             Ok(Self { memory, store })
         }
@@ -55,20 +56,18 @@ mod bind {
             #[qjs(from_context)] js_ctx: js::Context,
             delta: u32,
         ) -> js::Result<u32> {
-            let mut store = self.store.try_borrow_mut()?;
             let additional_pages = Pages::new(delta).context("invalid number of pages")?;
-            let prev_pages = wasmi::with_js_context(&js_ctx, || {
-                self.memory.grow(store.as_mut(), additional_pages)
-            })
-            .context("failed to grow memory")?;
+            let prev_pages = self.store.with(|store| {
+                wasmi::with_js_context(&js_ctx, || self.memory.grow(store, additional_pages))
+                    .context("failed to grow memory")
+            })??;
             Ok(prev_pages.into())
         }
 
         #[qjs(getter)]
-        pub fn buffer(&self) -> Option<js::JsArrayBuffer> {
-            self.memory
-                .js_buffer(self.store.try_borrow_mut().ok()?.as_mut())
-                .cloned()
+        pub fn buffer(&self) -> js::Result<Option<js::JsArrayBuffer>> {
+            self.store
+                .with(|store| self.memory.js_buffer(store).cloned())
         }
 
         pub fn raw_memory(&self) -> &wasmi::Memory {
