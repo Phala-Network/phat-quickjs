@@ -4,15 +4,36 @@ use js::FromJsContext;
 mod engine;
 mod global;
 mod module;
+mod memory;
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
-    let wasm_ns = ns.context()?.new_object("WebAssembly");
+    let ctx = ns.context()?;
+    let wasm_ns = ctx.new_object("WebAssembly");
     ns.set_property("WebAssembly", &wasm_ns)?;
 
     module::setup(&wasm_ns)?;
     global::setup(&wasm_ns)?;
+    memory::setup(&wasm_ns)?;
     wasm_ns.define_property_fn("validate", validate)?;
     wasm_ns.define_property_fn("parseWat", parse_wat)?;
+    ctx.eval(&js::Code::Bytecode(qjsc::compiled!(
+        r#"
+        WebAssembly.compile = async function (source) {
+            return new WebAssembly.Module(new Uint8Array(source));
+        };
+        WebAssembly.compileStreaming = async function (source) {
+            let wasm = await source;
+            if (wasm instanceof Response) {
+                if (!wasm.ok) {
+                    throw new Error("failed to fetch wasm, status: " + wasm.status);
+                }
+                wasm = await wasm.arrayBuffer();
+            }
+            return WebAssembly.compile(wasm);
+        };
+    "#
+    )))
+    .map_err(js::Error::msg)?;
     Ok(())
 }
 

@@ -38,8 +38,9 @@ rand = { version = "0.8.5", optional = true }
 hyper-rustls = { version = "0.24.1", optional = true }
 bytes = "1.6.0"
 hex_fmt = "0.3.0"
-wasmi = { version = "0.32.0", optional = true }
+wasmi = { version = "0.32.0", optional = true, path = "./wasmi/crates/wasmi" }
 wat = { version = "1.209.1", optional = true }
+qjsc = { version = "0.1.0", path = "../qjs-sys/qjsc" }
 
 [dependencies.wapo]
 git = "https://github.com/Phala-Network/wapo"

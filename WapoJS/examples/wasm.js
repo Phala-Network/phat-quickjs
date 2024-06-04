@@ -6,13 +6,6 @@ function assertEqual(actual, expected) {
     }
 }
 
-function hexDecode(hex) {
-    // Remove all non-hexadecimal characters (like spaces and newlines)
-    hex = hex.replace(/[^0-9a-fA-F]/g, '');
-
-    return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-}
-
 const wats = {
     global: `
     (module
@@ -126,10 +119,35 @@ function test_load_module() {
     console.log('module.imports:', WebAssembly.Module.imports(module));
 }
 
-function main() {
+async function test_compile() {
+    console.log('# test_compile');
+    const url = 'https://files.kvin.wang:8443/tests/simple.wasm';
+    const module = await WebAssembly.compileStreaming(fetch(url));
+    console.log('module.exports:', WebAssembly.Module.exports(module));
+}
+
+async function test_memory() {
+    console.log('# test_memory');
+    let memory = new WebAssembly.Memory({ initial: 1 });
+    console.log('memory:', memory);
+    let buffer = memory.buffer;
+    console.log('buffer:', buffer.byteLength);
+    assertEqual(buffer.byteLength, 65536);
+    memory.grow(1);
+    console.log('buffer:', buffer.byteLength, buffer.detached);
+    assertEqual(buffer.byteLength, 0);
+    assertEqual(buffer.detached, true);
+    console.log('memory.buffer:', memory.buffer.byteLength);
+    assertEqual(memory.buffer.byteLength, 131072);
+}
+
+
+async function main() {
     test_global();
     test_validate();
     test_load_module();
+    await test_compile();
+    test_memory();
 }
 
-main();
+main()

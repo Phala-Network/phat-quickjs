@@ -11,6 +11,7 @@ pub fn setup(wasm_ns: &js::Value) -> js::Result<()> {
 mod bind {
     use anyhow::{bail, Context};
     use js::{Native, Result};
+    use log::info;
     use wasmi::ExternType;
 
     use crate::host_functions::webassambly::engine::GlobalStore;
@@ -37,6 +38,7 @@ mod bind {
     impl Module {
         #[qjs(constructor)]
         pub fn new(#[qjs(from_context)] store: GlobalStore, code: js::Bytes) -> Result<Self> {
+            info!(target: "js::wasm", "creating WASM module, code_length={}", code.len());
             let module = wasmi::Module::new(&store.engine(), &mut code.as_bytes())
                 .context("failed to parse module")?;
             Ok(Self { module })
