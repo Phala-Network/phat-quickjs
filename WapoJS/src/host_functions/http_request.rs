@@ -132,7 +132,8 @@ fn http_request(
     } else {
         None
     };
-    debug!(target: "js::httpc::header", "http_request: {req:#?}");
+    debug!(target: "js::httpc", "requesting: {}", req.url);
+    trace!(target: "js::httpc::header", "http_request: {req:#?}");
     let cancel_token = service.spawn(callback, do_http_request, (req, pipes));
     Ok(HttpRequestReceipt {
         cancel_token,
@@ -246,16 +247,16 @@ async fn do_http_request_inner(
                     break;
                 }
             }
-            if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+            if log_enabled!(target: "js::httpc::body", log::Level::Trace) {
                 if let Ok(body) = String::from_utf8(dbg_buf) {
-                    debug!(target: "js::httpc::body", "sent body to {url}:\n<<{body}>>\n");
+                    trace!(target: "js::httpc::body", "sent body to {url}:\n<<{body}>>\n");
                 }
             }
         });
     }
     {
         let response = client.request(request).await?;
-        debug!(target: "js::httpc::header", "response head: {response:#?}");
+        trace!(target: "js::httpc::header", "response head: {response:#?}");
         let head = {
             let headers = response
                 .headers()
@@ -280,7 +281,7 @@ async fn do_http_request_inner(
                         break;
                     };
                     trace!(target: "js::httpc::chunk", "received chunk: {}", hex_fmt::HexFmt(&chunk));
-                    if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+                    if log_enabled!(target: "js::httpc::body", log::Level::Trace) {
                         if dbg_buf.len() + chunk.len() <= MAX_DBG_BODY_SIZE {
                             dbg_buf.extend_from_slice(&chunk);
                         }
@@ -290,9 +291,9 @@ async fn do_http_request_inner(
                         break;
                     }
                 }
-                if log_enabled!(target: "js::httpc::body", log::Level::Debug) {
+                if log_enabled!(target: "js::httpc::body", log::Level::Trace) {
                     if let Ok(body) = String::from_utf8(dbg_buf) {
-                        debug!(target: "js::httpc::body", "received body from {url}:\n<<{body}>>\n");
+                        trace!(target: "js::httpc::body", "received body from {url}:\n<<{body}>>\n");
                     }
                 }
                 duplex_up_tx.shutdown().await.ok();

@@ -1,5 +1,5 @@
 use js::{FromJsValue, ToJsValue};
-use log::{debug, info};
+use log::{debug, info, trace};
 
 use super::http_request::Headers;
 use super::*;
@@ -43,7 +43,7 @@ pub(crate) fn try_accept_http_request(
         debug!(target: "js::https", "no http listener, ignoring request");
         return Ok(());
     };
-    debug!(target: "js::https", "accepting http request: {:#?}", request.head);
+    trace!(target: "js::https", "accepting http request: {:#?}", request.head);
     let (input_stream, output_stream) = tokio::io::split(request.io_stream);
     let req = HttpRequest {
         method: request.head.method.clone(),
@@ -73,7 +73,7 @@ pub(crate) fn try_accept_http_request(
 
 #[js::host_call]
 fn http_send_response_head(tx: js::Value, response: HttpResponseHead) {
-    debug!(target: "js::https", "sending http response: {response:#?}");
+    trace!(target: "js::https", "sending http response: {response:#?}");
     let Some(response_tx) = super::valueof_f2_as_typeof_f1(
         |req: crate::runtime::HttpRequest| req.response_tx,
         || tx.opaque_object_take_data(),
