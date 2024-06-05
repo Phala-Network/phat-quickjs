@@ -22,8 +22,6 @@ mod bind {
         #[gc(skip)]
         val: wasmi::Global,
         store: GlobalStore,
-        #[qjs(getter, setter)]
-        test: js::Value,
     }
 
     #[derive(js::FromJsValue, Debug)]
@@ -62,7 +60,7 @@ mod bind {
             "i64" => I64,
             "f32" => F32,
             "f64" => F64,
-            "funcref" => FuncRef,
+            "anyfunc" => FuncRef,
             "externref" => ExternRef,
             _ => bail!("invalid type"),
         };
@@ -111,11 +109,7 @@ mod bind {
                 wasmi::Mutability::Const
             };
             let val = store.with(|store| wasmi::Global::new(store, initial_value, mutability))?;
-            Ok(Self {
-                val,
-                store,
-                test: js::Value::null(),
-            })
+            Ok(Self { val, store })
         }
 
         #[qjs(setter, js_name = "value")]
@@ -149,11 +143,7 @@ mod bind {
         }
 
         pub fn from_raw(val: wasmi::Global, store: GlobalStore) -> Self {
-            Self {
-                val,
-                store,
-                test: js::Value::null(),
-            }
+            Self { val, store }
         }
     }
 }
