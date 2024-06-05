@@ -166,9 +166,19 @@
                 (cmd, data) => {
                     if (cmd == "head") {
                         if (redirect == "follow" && [301, 302, 307, 308].includes(data.status)) {
-                            const location = data.headers['Location'];
+                            const headers = new Headers(data.headers);
+                            const location = headers.get('Location');
                             if (location) {
-                                g.fetch(location, options).then(resolve).catch(reject);
+                                let url;
+                                if (location.startsWith("http")) {
+                                    url = location;
+                                } else if (location.startsWith("//")) {
+                                    const base = new URL(request.url);
+                                    url = base.protocol + location;
+                                } else {
+                                    url = new URL(location, request.url).href;
+                                }
+                                g.fetch(url, options).then(resolve).catch(reject);
                                 return;
                             }
                         }
