@@ -16,18 +16,11 @@ const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 const MINIMAX_GROUP_ID = process.env.MINIMAX_GROUP_ID;
 
 async function main() {
-    if (!OPENAI_API_KEY) {
-        console.error("Please set the OPENAI_API_KEY environment variable");
-        return;
-    }
-    console.log("BASE_URL:", OPENAI_BASE_URL);
-
-    const url = "https://files.kvin.wang:8443/test-docs";
+    const docsUrl = "https://files.kvin.wang:8443/test-docs/";
 
     console.log("compiling html-to-text");
     const compiledConvert = compile({ wordwrap: 130 }); // returns (text: string) => string;
-
-    const loader = new RecursiveUrlLoader(url, {
+    const loader = new RecursiveUrlLoader(docsUrl, {
         // extractor: compiledConvert,
         extractor: t => t,
         maxDepth: 1,

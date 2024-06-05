@@ -3,11 +3,11 @@ use alloc::{
     collections::BTreeMap,
     rc::{Rc, Weak},
 };
-use core::{any::Any, cell::RefCell, ops::Deref};
+use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
 use log::{debug, error};
 use std::{future::Future, sync::Mutex};
 
-use crate::host_functions::setup_host_functions;
+use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
 use js::{c, Code, Error as ValueError, ToArgs};
 use tokio::sync::broadcast;
@@ -318,6 +318,14 @@ impl Service {
     pub fn to_owned_value(&self, js_value: &js::Value) -> OwnedJsValue {
         self.runtime.to_owned_value(js_value)
     }
+
+    /// Need to be called before dropping the service, this will drop all resources and
+    /// wait for a while for their async tasks to finish so that the JS objects retained
+    /// by the tasks are released before dropping the JS runtime.
+    pub async fn shutdown(&self) {
+        *self.state.borrow_mut() = Default::default();
+        runtime::time::sleep(Duration::from_millis(10)).await;
+    }
 }
 
 pub(crate) fn close(weak_service: ServiceWeakRef, id: u64) {
@@ -344,8 +352,9 @@ pub fn js_context_get_runtime(ctx: &js::Context) -> Option<Rc<JsEngine>> {
 impl Drop for Service {
     fn drop(&mut self) {
         unsafe {
-            // release all js resources before destroy the runtime
-            *self.state.borrow_mut() = Default::default();
+            if !self.state.borrow().recources.is_empty() {
+                error!(target: "js::rt", "service dropped without explicit shutdown");
+            }
             let pname = c::JS_GetContextOpaque(self.context().as_ptr()) as *mut ServiceWeakRef;
             drop(Box::from_raw(pname));
         }

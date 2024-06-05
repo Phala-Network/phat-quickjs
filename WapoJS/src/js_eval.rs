@@ -1,6 +1,6 @@
 use js::ToJsValue;
 
-use crate::Service;
+use crate::{service::ServiceRef, Service};
 use anyhow::{anyhow, bail, Context, Result};
 
 use pink_types::js::{JsCode, JsValue};
@@ -38,7 +38,8 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code_hash = iter
                         .next()
                         .ok_or(anyhow!("missing value after --code-hash"))?;
-                    let code = load_code(&code_hash).context("failed to load code with given hash")?;
+                    let code =
+                        load_code(&code_hash).context("failed to load code with given hash")?;
                     codes.push(JsCode::Source(code));
                 }
                 "-c" => {
@@ -76,8 +77,17 @@ fn print_usage() {
 }
 
 pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
-    let args = parse_args(args)?;
     let service = Service::new_ref();
+    let rv = run_with_service(service.clone(), args).await;
+    service.shutdown().await;
+    rv
+}
+
+async fn run_with_service(
+    service: ServiceRef,
+    args: impl Iterator<Item = String>,
+) -> Result<JsValue> {
+    let args = parse_args(args)?;
     let js_ctx = service.context();
     let js_args = args
         .js_args
