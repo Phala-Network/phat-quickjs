@@ -17,10 +17,12 @@ mod bind {
     use wasmi::{AsContextMut, ExternType, FuncType};
 
     use crate::host_functions::webassambly::{
-        engine::{using_store, Data, GlobalStore},
-        global::{decode_value_or_default, encode_value, Global},
+        engine::{using_store, Data, EngineStore, GlobalStore},
+        externals::{decode_value_or_default, encode_value},
+        global::Global,
         memory::Memory,
         module::Module,
+        table::Table,
     };
 
     #[qjs(class(js_name = "WebAssembly.Instance"))]
@@ -40,19 +42,19 @@ mod bind {
     unsafe impl Sync for JsFn {}
 
     impl JsFn {
-        fn new(
-            name: String,
-            store: &mut wasmi::Store<Data>,
-            ty: FuncType,
-            callback: js::Value,
-        ) -> Self {
+        fn new(name: String, store: &mut EngineStore, ty: FuncType, callback: js::Value) -> Self {
             let callback = Arc::new(callback);
             let weak = Arc::downgrade(&callback);
             store.data().push_ref(weak);
             Self { name, ty, callback }
         }
 
-        fn call(&self, args: &[wasmi::Val], outputs: &mut [wasmi::Val]) -> js::Result<()> {
+        fn call(
+            &self,
+            mut caller: wasmi::Caller<'_, Data>,
+            args: &[wasmi::Val],
+            outputs: &mut [wasmi::Val],
+        ) -> js::Result<()> {
             trace!(target: "js::wasm", "calling ext function: {}", self.name);
             if outputs.len() != self.ty.results().len() {
                 bail!(
@@ -64,28 +66,42 @@ mod bind {
             let ctx = self.callback.context()?;
             let mut js_inputs = vec![];
             for arg in args {
-                js_inputs.push(encode_value(&ctx, arg.clone())?);
+                js_inputs.push(encode_value(
+                    &caller.as_context_mut().store,
+                    &ctx,
+                    arg.clone(),
+                )?);
             }
-            let js_output = self.callback.call(&js::Value::undefined(), &js_inputs)?;
-            let rm = log::trace!(target: "js::wasm", "js_output: {:?}", js_output);
+            let js_output = using_store(caller.as_context_mut().store, || {
+                self.callback.call(&js::Value::undefined(), &js_inputs)
+            })?;
+            log::trace!(target: "js::wasm", "js_output: {:?}", js_output);
             if self.ty.results().is_empty() {
                 return Ok(());
             }
             if self.ty.results().len() == 1 {
-                let val = decode_value_or_default(self.ty.results()[0], js_output)?;
+                let val = decode_value_or_default(
+                    &mut caller.as_context_mut().store,
+                    self.ty.results()[0],
+                    js_output,
+                )?;
                 outputs[0] = val;
                 return Ok(());
             }
             let js_outputs = <Vec<js::Value>>::from_js_value(js_output)?;
             for (i, val) in js_outputs.into_iter().enumerate() {
-                outputs[i] = decode_value_or_default(self.ty.results()[i], val)?;
+                outputs[i] = decode_value_or_default(
+                    &mut caller.as_context_mut().store,
+                    self.ty.results()[i],
+                    val,
+                )?;
             }
             Ok(())
         }
     }
 
-    #[qjs(class(js_name = "WebAssembly.HostFunction"))]
-    struct HostFn {
+    #[qjs(class(js_name = "WebAssembly.ExportedFunction"))]
+    pub struct WasmFn {
         name: String,
         #[gc(skip)]
         ty: FuncType,
@@ -93,8 +109,12 @@ mod bind {
         func: wasmi::Func,
     }
 
-    impl HostFn {
-        fn new(name: String, ty: FuncType, func: wasmi::Func) -> Self {
+    impl WasmFn {
+        pub fn flag_attr() -> &'static str {
+            "_funcref"
+        }
+
+        pub fn new(name: String, ty: FuncType, func: wasmi::Func) -> Self {
             Self { name, ty, func }
         }
 
@@ -108,31 +128,53 @@ mod bind {
             let mut inputs = vec![];
             let mut outputs = vec![];
             let mut args_iter = args.into_iter();
-            for ty in self.ty.params().iter() {
-                let arg = args_iter.next().unwrap_or(js::Value::undefined());
-                inputs.push(decode_value_or_default(*ty, arg)?);
-            }
+            store.with(|store| -> js::Result<_> {
+                for ty in self.ty.params().iter() {
+                    let arg = args_iter.next().unwrap_or(js::Value::undefined());
+                    inputs.push(decode_value_or_default(store, *ty, arg)?);
+                }
+                Ok(())
+            })??;
             for t in self.ty.results() {
                 outputs.push(wasmi::Val::default(*t));
             }
             trace!(target: "js::wasm", "{} inputs : {:?}", self.name, inputs);
-            store.with(|store| -> js::Result<_> {
+            let js_outputs = store.with(|store| -> js::Result<_> {
                 wasmi::with_js_context(&ctx, || -> js::Result<_> {
                     self.func
-                        .call(store, &inputs, &mut outputs[..])
+                        .call(&mut *store, &inputs, &mut outputs[..])
                         .context("failed to call host function")
-                })
+                })?;
+                trace!(target: "js::wasm", "{} outputs: {:?}", self.name, outputs);
+                outputs
+                    .into_iter()
+                    .map(|val| encode_value(store, &ctx, val))
+                    .collect::<js::Result<Vec<_>>>()
             })??;
-            trace!(target: "js::wasm", "{} outputs: {:?}", self.name, outputs);
-            let js_outputs = outputs
-                .into_iter()
-                .map(|val| encode_value(&ctx, val))
-                .collect::<js::Result<Vec<_>>>()?;
             match js_outputs.len() {
                 0 => Ok(js::Value::undefined()),
                 1 => js_outputs[0].to_js_value(&ctx),
                 _ => js_outputs.to_js_value(&ctx),
             }
+        }
+
+        pub fn wrapped(self, ctx: &js::Context) -> js::Result<js::Value> {
+            let value = ctx.wrap_native(self)?.to_js_value(&ctx)?;
+            let wrapper = ctx
+                .get_qjsbind_object("wasm.host_fn_wrapper", || {
+                    ctx.eval(&js::Code::Source(
+                        r#"(function (fn) { return function(...args){return fn.call(args);}; })"#,
+                    ))
+                    .map_err(js::Error::msg)
+                })
+                .context("failed to create host function wrapper")?;
+            let wrapped = wrapper.call(&js::Value::null(), &[value.clone()])?;
+            wrapped.set_property(WasmFn::flag_attr(), &value)?;
+            Ok(wrapped)
+        }
+
+        pub fn func(&self) -> &wasmi::Func {
+            &self.func
         }
     }
 
@@ -153,7 +195,7 @@ mod bind {
 
         pub fn new2(
             ctx: js::Context,
-            store: &mut wasmi::Store<Data>,
+            store: &mut EngineStore,
             module: js::Native<Module>,
             imports: js::Value,
         ) -> js::Result<wasmi::Instance> {
@@ -172,15 +214,21 @@ mod bind {
                     match import.ty().clone() {
                         ExternType::Global(_) => {
                             let global = <js::Native<Global>>::from_js_value(obj)?;
-                            let wasmi_global = global.borrow().raw_global().clone();
+                            let wasmi_global = global.borrow().raw_value().clone();
                             linker
                                 .define(module_name, field_name, wasmi_global)
                                 .context("failed to define global")?;
                         }
-                        ExternType::Table(_) => todo!(),
+                        ExternType::Table(_) => {
+                            let table = <js::Native<Table>>::from_js_value(obj)?;
+                            let wasmi_table = table.borrow().raw_value().clone();
+                            linker
+                                .define(module_name, field_name, wasmi_table)
+                                .context("failed to define table")?;
+                        }
                         ExternType::Memory(_) => {
                             let memory = <js::Native<Memory>>::from_js_value(obj)?;
-                            let wasmi_memory = memory.borrow().raw_memory().clone();
+                            let wasmi_memory = memory.borrow().raw_value().clone();
                             linker
                                 .define(module_name, field_name, wasmi_memory)
                                 .context("failed to define memory")?;
@@ -195,12 +243,10 @@ mod bind {
                                 module_name,
                                 field_name,
                                 ty,
-                                move |mut caller, args, rets| {
-                                    using_store(caller.as_context_mut().store, || {
-                                        js_fn.call(args, rets).map_err(|e| {
-                                            eprintln!("error calling imported function: {e}");
-                                            wasmi::Error::new(e.to_string())
-                                        })
+                                move |caller, args, rets| {
+                                    js_fn.call(caller, args, rets).map_err(|e| {
+                                        eprintln!("error calling imported function: {e}");
+                                        wasmi::Error::new(e.to_string())
                                     })
                                 },
                             )?;
@@ -226,30 +272,29 @@ mod bind {
             &self,
             #[qjs(from_context)] ctx: js::Context,
         ) -> js::Result<BTreeMap<String, js::Value>> {
-            let wrapper = ctx
-                .get_qjsbind_object("wasm.host_fn_wrapper", || {
-                    ctx.eval(&js::Code::Source(
-                        r#"(function (fn) { return function(...args){return fn.call(args);}; })"#,
-                    ))
-                    .map_err(js::Error::msg)
-                })
-                .context("failed to create host function wrapper")?;
             self.store.with(|store| -> js::Result<_> {
                 let mut output = BTreeMap::new();
                 for entry in self.instance.exports(&*store) {
                     let name = entry.name().to_string();
                     match entry.ty(&*store) {
                         ExternType::Global(_) => {
-                            let Some(global) = self.instance.get_global(&*store, &name) else {
+                            let Some(global) = entry.into_global() else {
                                 continue;
                             };
                             let global = Global::from_raw(global, self.store.clone());
                             let js_global = ctx.wrap_native(global)?.to_js_value(&ctx)?;
                             output.insert(name, js_global);
                         }
-                        ExternType::Table(todo) => {}
+                        ExternType::Table(_) => {
+                            let Some(table) = entry.into_table() else {
+                                continue;
+                            };
+                            let table = Table::from_raw(table);
+                            let js_table = ctx.wrap_native(table)?.to_js_value(&ctx)?;
+                            output.insert(name, js_table);
+                        }
                         ExternType::Memory(_) => {
-                            let Some(memory) = self.instance.get_memory(&*store, &name) else {
+                            let Some(memory) = entry.into_memory() else {
                                 continue;
                             };
                             let memory = Memory::from_raw(memory, self.store.clone());
@@ -257,11 +302,10 @@ mod bind {
                             output.insert(name, js_memory);
                         }
                         ExternType::Func(ty) => {
-                            let f = entry.into_func().expect("must be a function");
-                            let value = ctx
-                                .wrap_native(HostFn::new(name.to_string(), ty, f))?
-                                .to_js_value(&ctx)?;
-                            let js_fn = wrapper.call(&js::Value::null(), &[value])?;
+                            let Some(f) = entry.into_func() else {
+                                continue;
+                            };
+                            let js_fn = WasmFn::new(name.to_string(), ty, f).wrapped(&ctx)?;
                             output.insert(name, js_fn);
                         }
                     }

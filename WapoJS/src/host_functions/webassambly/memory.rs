@@ -70,7 +70,7 @@ mod bind {
                 .with(|store| self.memory.js_buffer(store).cloned())
         }
 
-        pub fn raw_memory(&self) -> &wasmi::Memory {
+        pub fn raw_value(&self) -> &wasmi::Memory {
             &self.memory
         }
 

@@ -2,9 +2,13 @@ use std::sync::{Mutex, Weak};
 
 use anyhow::bail;
 
-environmental::environmental!(wasmi_using_context: wasmi::Store<Data>);
+use super::externals::ExternObject;
 
-pub fn using_store<T>(store: &mut wasmi::Store<Data>, f: impl FnOnce() -> T) -> T {
+pub type EngineStore = wasmi::Store<Data>;
+
+environmental::environmental!(wasmi_using_context: EngineStore);
+
+pub fn using_store<T>(store: &mut EngineStore, f: impl FnOnce() -> T) -> T {
     wasmi_using_context::using(store, f)
 }
 
@@ -14,7 +18,7 @@ pub struct Data {
 }
 
 pub struct Store {
-    store: wasmi::Store<Data>,
+    store: EngineStore,
 }
 
 impl Data {
@@ -23,14 +27,14 @@ impl Data {
     }
 }
 
-impl AsRef<wasmi::Store<Data>> for Store {
-    fn as_ref(&self) -> &wasmi::Store<Data> {
+impl AsRef<EngineStore> for Store {
+    fn as_ref(&self) -> &EngineStore {
         &self.store
     }
 }
 
-impl AsMut<wasmi::Store<Data>> for Store {
-    fn as_mut(&mut self) -> &mut wasmi::Store<Data> {
+impl AsMut<EngineStore> for Store {
+    fn as_mut(&mut self) -> &mut EngineStore {
         &mut self.store
     }
 }
@@ -39,6 +43,11 @@ impl js::GcMark for Store {
     fn gc_mark(&self, rt: *mut js::c::JSRuntime, mark_fn: js::c::JS_MarkFunc) {
         for buffer in self.store.iter_memory_buffers() {
             buffer.gc_mark(rt, mark_fn);
+        }
+        for ext in self.store.iter_extern_objects() {
+            if let Some(ext) = ext.downcast_ref::<ExternObject>() {
+                ext.gc_mark(rt, mark_fn);
+            }
         }
         self.store
             .data()
@@ -80,7 +89,7 @@ impl GlobalStore {
         Ok(r)
     }
 
-    pub fn with<T>(&self, f: impl FnOnce(&mut wasmi::Store<Data>) -> T) -> js::Result<T> {
+    pub fn with<T>(&self, f: impl FnOnce(&mut EngineStore) -> T) -> js::Result<T> {
         let rv = if wasmi_using_context::with(|_| ()).is_some() {
             wasmi_using_context::with(|ctx| f(ctx)).expect("should never fail")
         } else {

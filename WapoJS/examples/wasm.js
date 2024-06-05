@@ -79,7 +79,7 @@ const wats = {
     `,
   table2: `
     (module
-        (import "js" "tbl" (table 2 anyfunc))
+        (import "js" "tbl" (table 2 funcref))
         (func $f42 (result i32) i32.const 42)
         (func $f83 (result i32) i32.const 83)
         (elem (i32.const 0) $f42 $f83)
@@ -158,30 +158,27 @@ function test_instance() {
   console.log('invoke ret:', instance.exports.exported_func(1, 2, 3));
 }
 
-function test_instance_global() {
+async function test_instance_global() {
 
   const global = new WebAssembly.Global({ value: "i32", mutable: true }, 0);
 
-  WebAssembly.instantiateStreaming(WebAssembly.parseWat(wats.global), { js: { global } }).then(
-    ({ instance }) => {
-      assertEq(
-        instance.exports.getGlobal(),
-        0,
-        "getting initial value from wasm",
-      );
-      global.value = 42;
-      assertEq(
-        instance.exports.getGlobal(),
-        42,
-        "getting JS-updated value from wasm",
-      );
-      instance.exports.incGlobal();
-      assertEq(global.value, 43,
-        "getting wasm-updated value from JS",
-      );
-      console.log('final global:', global.value, instance.exports.getGlobal());
-    },
+  const { instance } = await WebAssembly.instantiateStreaming(WebAssembly.parseWat(wats.global), { js: { global } });
+  assertEq(
+    instance.exports.getGlobal(),
+    0,
+    "getting initial value from wasm",
   );
+  global.value = 42;
+  assertEq(
+    instance.exports.getGlobal(),
+    42,
+    "getting JS-updated value from wasm",
+  );
+  instance.exports.incGlobal();
+  assertEq(global.value, 43,
+    "getting wasm-updated value from JS",
+  );
+  console.log('final global:', global.value, instance.exports.getGlobal());
 }
 
 async function test_fail() {
@@ -194,15 +191,71 @@ async function test_fail() {
   }
 }
 
+function test_table_grow() {
+  console.log('# test_table_grow');
+
+  {
+    const table = new WebAssembly.Table({
+      element: "anyfunc",
+      initial: 2,
+      maximum: 10,
+    });
+
+    console.log(table.length); // 2
+    assertEq(table.length, 2);
+    table.grow(1);
+    console.log(table.length); // 3
+    assertEq(table.length, 3);
+
+  }
+  {
+    const myObject = { hello: "world" };
+
+    const table = new WebAssembly.Table({
+      element: "externref",
+      initial: 0,
+      maximum: 4,
+    });
+
+    table.grow(4, myObject);
+    console.log(myObject === table.get(2)); // true
+    assertEq(myObject === table.get(2), true);
+  }
+
+}
+
+async function test_table_instance() {
+  const tbl = new WebAssembly.Table({ initial: 2, element: "anyfunc" });
+  console.log(tbl.length); // "2"
+  console.log(tbl.get(0)); // "null"
+  console.log(tbl.get(1)); // "null"
+  const importObj = {
+    js: { tbl },
+  };
+
+  await WebAssembly.instantiate(WebAssembly.parseWat(wats.table2), importObj);
+
+  console.log(tbl.length);
+  console.log(tbl.get(0)());
+  assertEq(tbl.get(0)(), 42);
+  console.log(tbl.get(1)());
+  assertEq(tbl.get(1)(), 83);
+  tbl.set(0, tbl.get(1));
+  console.log(tbl.get(0)());
+  assertEq(tbl.get(0)(), 83);
+}
+
 async function main() {
-  test_global();
-  test_validate();
-  test_load_module();
+  await test_global();
+  await test_validate();
+  await test_load_module();
   await test_compile();
-  test_memory();
-  test_instance();
-  test_instance_global();
+  await test_memory();
+  await test_instance();
+  await test_instance_global();
   await test_fail();
+  await test_table_grow();
+  await test_table_instance();
 }
 
 main().catch(console.error);

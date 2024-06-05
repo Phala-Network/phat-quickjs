@@ -6,6 +6,8 @@ mod global;
 mod instance;
 mod memory;
 mod module;
+mod table;
+mod externals;
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     let ctx = ns.context()?;
@@ -48,6 +50,7 @@ pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     global::setup(&wasm_ns)?;
     memory::setup(&wasm_ns)?;
     instance::setup(&wasm_ns)?;
+    table::setup(&wasm_ns)?;
 
     wasm_ns.define_property_fn("validate", validate)?;
     wasm_ns.define_property_fn("parseWat", parse_wat)?;
