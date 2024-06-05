@@ -27,6 +27,9 @@
         return Wapo.close(id);
     };
     g.clearInterval = g.clearTimeout;
+    g.setImmediate = function (f) {
+        return Wapo.setTimeout(f, 0);
+    };
     g.Wapo.inspect = function (...obj) {
         return Wapo.print(2, obj, {
             indent: '  ',
@@ -57,6 +60,25 @@
         get argv() {
             return ["wapojs", "<eval>", ...scriptArgs];
         },
+        version: "v0.9.0",
+        nextTick: g.setImmediate,
+    };
+    g.performance = {
+        now() {
+            return new Date().getTime();
+        }
+    };
+    g.localStorage = {
+        _data: {},
+        getItem(key) {
+            return this._data[key];
+        },
+        setItem(key, value) {
+            this._data[key] = value;
+        },
+        removeItem(key) {
+            delete this._data[key];
+        }
     };
 }(globalThis))
 
