@@ -1,3 +1,4 @@
+import "./polyfill-dom-basic";
 import "./polyfill-textencoding";
 import "./polyfill-streams";
 import "./polyfill-fetch";
