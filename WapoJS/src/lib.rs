@@ -37,11 +37,116 @@ pub mod runtime {
 
 #[cfg(feature = "native")]
 pub mod runtime {
+    use std::sync::{Arc, OnceLock};
+
+    use anyhow::{Context, Result};
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
     use tokio::io::DuplexStream;
-    pub use tokio::net::TcpStream;
+    use tokio_rustls::rustls::ClientConfig;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
+
+    fn default_client_config() -> Arc<ClientConfig> {
+        static CLIENT_CONFIG: OnceLock<Arc<ClientConfig>> = OnceLock::new();
+        CLIENT_CONFIG
+            .get_or_init(|| {
+                let root_store = tokio_rustls::rustls::RootCertStore::from_iter(
+                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+                );
+                let config = ClientConfig::builder()
+                    .with_root_certificates(root_store)
+                    .with_no_client_auth();
+                Arc::new(config)
+            })
+            .clone()
+    }
+
+    pub enum TcpStream {
+        TcpStream(tokio::net::TcpStream),
+        TlsSteam(tokio_rustls::client::TlsStream<tokio::net::TcpStream>),
+    }
+
+    impl TcpStream {
+        pub async fn connect(host: &str, port: u16, enable_tls: bool) -> Result<TcpStream> {
+            let stream = tokio::net::TcpStream::connect((host, port)).await?;
+            if enable_tls {
+                let connector = tokio_rustls::TlsConnector::from(default_client_config());
+                let server_name = host.to_string().try_into().context("invalid server name")?;
+                let stream = connector.connect(server_name, stream).await?;
+                Ok(TcpStream::TlsSteam(stream))
+            } else {
+                Ok(TcpStream::TcpStream(stream))
+            }
+        }
+    }
+
+    impl tokio::io::AsyncRead for TcpStream {
+        fn poll_read(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+            buf: &mut tokio::io::ReadBuf<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            match self.get_mut() {
+                TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
+                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
+            }
+        }
+    }
+
+    impl tokio::io::AsyncWrite for TcpStream {
+        fn poll_write_vectored(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+            bufs: &[std::io::IoSlice<'_>],
+        ) -> std::task::Poll<Result<usize, std::io::Error>> {
+            match self.get_mut() {
+                TcpStream::TcpStream(stream) => {
+                    std::pin::Pin::new(stream).poll_write_vectored(cx, bufs)
+                }
+                TcpStream::TlsSteam(stream) => {
+                    std::pin::Pin::new(stream).poll_write_vectored(cx, bufs)
+                }
+            }
+        }
+
+        fn is_write_vectored(&self) -> bool {
+            match self {
+                TcpStream::TcpStream(stream) => stream.is_write_vectored(),
+                TcpStream::TlsSteam(stream) => stream.is_write_vectored(),
+            }
+        }
+
+        fn poll_write(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+            buf: &[u8],
+        ) -> std::task::Poll<Result<usize, std::io::Error>> {
+            match self.get_mut() {
+                TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
+                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
+            }
+        }
+
+        fn poll_flush(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<Result<(), std::io::Error>> {
+            match self.get_mut() {
+                TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_flush(cx),
+                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_flush(cx),
+            }
+        }
+
+        fn poll_shutdown(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<Result<(), std::io::Error>> {
+            match self.get_mut() {
+                TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
+                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
+            }
+        }
+    }
 
     pub struct HttpRequest {
         /// The HTTP request head.

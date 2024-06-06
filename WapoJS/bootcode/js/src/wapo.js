@@ -51,6 +51,8 @@
         }
     }
     g.print = g.console.log;
+    g.btoa = s => Wapo.base64Encode(s, true);
+    g.atob = d => Wapo.base64Decode(d, true);
     g.global = g;
     g.window = g;
     g.SCALE = Wapo.SCALE;

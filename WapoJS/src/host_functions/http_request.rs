@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Context};
 use log::{debug, info, log_enabled, trace, warn};
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
 use tokio::io::{AsyncReadExt, DuplexStream, ReadHalf, WriteHalf};
 
-use crate::{runtime::time::sleep, service::OwnedJsValue};
+use crate::service::OwnedJsValue;
 use js::{Error as ValueError, FromJsValue, ToJsValue};
 
 use super::*;
@@ -69,8 +69,6 @@ pub struct HttpRequest {
     body: js::BytesOrString,
     #[qjs(default)]
     stream_body: bool,
-    #[qjs(default = "default_timeout")]
-    timeout_ms: u64,
 }
 
 #[derive(ToJsValue, Debug)]
@@ -145,22 +143,13 @@ fn default_method() -> String {
     "GET".into()
 }
 
-fn default_timeout() -> u64 {
-    u64::MAX
-}
-
 async fn do_http_request(
     weak_service: ServiceWeakRef,
     id: u64,
     (req, pipes): (HttpRequest, Pipes),
 ) {
     let url = req.url.clone();
-    let result = tokio::select! {
-        _ = sleep(Duration::from_millis(req.timeout_ms)) => {
-            Err(anyhow!("timed out"))
-        }
-        result = do_http_request_inner(weak_service.clone(), id, req, pipes) => result,
-    };
+    let result = do_http_request_inner(weak_service.clone(), id, req, pipes).await;
     if let Err(err) = result {
         warn!(target: "js::httpc", "failed to request `{url}`: {err:?}");
         invoke_callback(

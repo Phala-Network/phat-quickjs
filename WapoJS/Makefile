@@ -6,6 +6,7 @@ BUILD_OUTPUT=$(addsuffix .wasm, $(TARGETS))
 OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 OPT?=0
+COMMON_FEATURES=mem-stats,js-hash,js-crypto,js-wasm,js-websocket
 
 .PHONY: all clean opt deep-clean install run test wasi rs
 
@@ -16,7 +17,7 @@ $(BUILD_OUTPUT): rs
 wasi: $(BUILD_OUTPUT)
 
 %.wasm:
-	cargo build --release --target wasm32-wasi --no-default-features --features js-hash,wapo,js-http-listen,js-crypto,js-wasm
+	cargo build --release --target wasm32-wasi --no-default-features --features wapo,js-http-listen,$(COMMON_FEATURES)
 	cp $(BUILD_OUTPUT_DIR)/$@ $@
 
 opt: all $(OPTIMIZED_OUTPUT)
@@ -27,7 +28,7 @@ opt: all $(OPTIMIZED_OUTPUT)
 	wasm-tools strip $@ -o $@
 
 native:
-	cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features mem-stats,native,js-hash,js-crypto,js-wasm
+	cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features native,$(COMMON_FEATURES)
 	cp target/x86_64-unknown-linux-musl/release/wapojs ./
 
 install: native

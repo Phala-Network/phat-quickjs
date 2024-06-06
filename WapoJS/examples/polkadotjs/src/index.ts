@@ -1,4 +1,4 @@
-import { Keyring, ApiPromise, HttpProvider } from '@polkadot/api';
+import { Keyring, ApiPromise, WsProvider } from '@polkadot/api';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { stringToU8a, u8aToHex } from '@polkadot/util';
 
@@ -17,8 +17,8 @@ async function main() {
     console.log(`The signature ${u8aToHex(signature)}, is ${isValid ? '' : 'in'}valid`);
 
     /// RPC
-    const url = 'https://poc6.phala.network/ws';
-    const provider = new HttpProvider(url);
+    const url = 'wss://poc6.phala.network/ws';
+    const provider = new WsProvider(url);
     console.log(`connecting to ${url}`);
     const api = await ApiPromise.create({ provider });
     console.log('genesis hash:', api.genesisHash.toHex());

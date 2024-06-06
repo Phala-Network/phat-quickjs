@@ -43,6 +43,12 @@ wasmi = { version = "0.32.0", optional = true, path = "./wasmi/crates/wasmi" }
 wat = { version = "1.209.1", optional = true }
 qjsc = { version = "0.1.0", path = "../qjs-sys/qjsc" }
 environmental = "1.1.4"
+async-tungstenite = { version = "0.26.0", optional = true }
+tokio-rustls = { version = "0.26.0", optional = true }
+webpki-roots = { version = "0.26.2", optional = true }
+http = { version = "1.1.0", optional = true }
+futures = { version = "0.3.30", optional = true }
+tokio-util = { version = "0.7.11", optional = true, features = ["compat"] }
 
 [dependencies.wapo]
 git = "https://github.com/Phala-Network/wapo"
@@ -53,7 +59,7 @@ optional = true
 features = ['console']
 
 [features]
-default = ["wapo", "js-url", "js-http-listen", "js-hash", "js-crypto", "js-wasm"]
+default = ["native", "js-url", "js-hash", "js-crypto", "js-wasm", "js-websocket"]
 sanitize-address = ["js/sanitize-address"]
 js-url = []
 js-http-listen = []
@@ -66,10 +72,13 @@ mem-stats = ["phala-allocator", "js/pink-allocator"]
 
 native = [
   "tokio/full",
+  "tokio-rustls",
   "tracing-subscriber",
   "rand",
   "hyper/runtime",
   "hyper/tcp",
   "hyper-rustls/webpki-roots",
+  "webpki-roots",
 ]
 js-wasm = ["dep:wasmi", "dep:wat"]
+js-websocket = ["dep:async-tungstenite", "dep:http", "dep:futures", "dep:tokio-util"]

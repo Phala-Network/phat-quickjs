@@ -31,6 +31,9 @@ mod stream;
 #[cfg(feature = "js-wasm")]
 mod webassambly;
 
+#[cfg(feature = "js-websocket")]
+mod websocket;
+
 #[cfg(feature = "js-hash")]
 mod hash;
 
@@ -67,6 +70,9 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
     #[cfg(feature = "js-wasm")]
     webassambly::setup(&ctx.get_global_object())?;
+
+    #[cfg(feature = "js-websocket")]
+    websocket::setup(&ns)?;
 
     Ok(())
 }

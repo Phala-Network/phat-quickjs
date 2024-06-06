@@ -8,6 +8,7 @@ import "./wapo";
 import "./polyfill-abortcontroller";
 import "./polyfill-abortsignal-more";
 import "./polyfill-blob";
+import "./polyfill-websocket";
 
 import { Headers } from "headers-polyfill";
 globalThis.Headers = Headers;
