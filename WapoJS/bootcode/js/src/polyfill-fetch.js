@@ -162,6 +162,9 @@
                 timeout: options.timeout,
                 body: options.body || "",
             };
+            if (request.headers instanceof Headers) {
+                request.headers = Object.fromEntries(options.headers.entries());
+            }
             Wapo.httpRequest(request,
                 (cmd, data) => {
                     if (cmd == "head") {

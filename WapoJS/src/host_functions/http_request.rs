@@ -195,6 +195,9 @@ async fn do_http_request_inner(
     if !headers_map.contains_key("User-Agent") {
         headers_map.insert("User-Agent", "WapoJS/0.1.0".parse()?);
     }
+    // Remove unsupported headers
+    headers_map.remove("Accept-Encoding");
+
     let (body_tx, body);
     if req.stream_body {
         let (tx, b) = Body::channel();

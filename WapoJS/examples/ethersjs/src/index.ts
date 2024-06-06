@@ -13,7 +13,7 @@ async function createWallet(key: string | SigningKey, provider: Provider): Promi
 }
 
 async function main() {
-    const provider = new ethers.JsonRpcProvider("https://rpc-mumbai.maticvigil.com");
+    const provider = new ethers.JsonRpcProvider("https://polygon-mumbai.api.onfinality.io/public");
     const block = await provider.getBlockNumber();
     console.log("Current block number: " + block);
 

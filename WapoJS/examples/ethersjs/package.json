@@ -4,6 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
+    "build:debug": "webpack --mode=development",
     "test": "webpack && wapo-quickjs dist/index.js"
   },
   "license": "Apache-2.0",
