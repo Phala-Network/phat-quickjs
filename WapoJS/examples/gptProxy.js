@@ -1,4 +1,5 @@
 (async function () {
+    // The private key is kept in the host side. Js code can only access the public key.
     const ecdhKey = await crypto.subtle.generateKey(
         {
             name: "ECDH",
