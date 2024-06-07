@@ -2382,7 +2382,7 @@ dependencies = [
 [[package]]
 name = "wapo"
 version = "0.1.1"
-source = "git+https://github.com/Phala-Network/wapo#4317cb81003a305e0ee61453bca602600a6a0269"
+source = "git+https://github.com/Phala-Network/wapo#3e970c2946eaec2b6b08d2a3616863e0945dcfd9"
 dependencies = [
  "derive_more",
  "env_filter",
@@ -2402,7 +2402,7 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#4317cb81003a305e0ee61453bca602600a6a0269"
+source = "git+https://github.com/Phala-Network/wapo#3e970c2946eaec2b6b08d2a3616863e0945dcfd9"
 dependencies = [
  "derive_more",
  "futures",
@@ -2416,7 +2416,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#4317cb81003a305e0ee61453bca602600a6a0269"
+source = "git+https://github.com/Phala-Network/wapo#3e970c2946eaec2b6b08d2a3616863e0945dcfd9"
 dependencies = [
  "heck",
  "proc-macro-crate",
