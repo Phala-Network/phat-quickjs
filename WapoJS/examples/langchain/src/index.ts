@@ -64,6 +64,7 @@ async function main() {
 Question: {input}`);
 
     const chatModel = new ChatOpenAI({
+        modelName: "gpt-4o",
         openAIApiKey: OPENAI_API_KEY,
         configuration: {
             baseURL: OPENAI_BASE_URL,
@@ -85,13 +86,16 @@ Question: {input}`);
     });
 
     const question = "Give me the code to calculate sha256 hash of `Hello, world` using wapo js.";
-    console.log("Asking question:", question);
+    console.log("==================[Question]====================");
+    console.log(question);
+    console.log("================================================");
     const result = await retrievalChain.invoke({
         input: question,
     });
-    console.log("================================================");
+    console.log("===================[Answer]=====================");
     console.log("Answer:");
     console.log(result.answer);
+    console.log("================================================");
 
     if (process.env.LANGCHAIN_TRACING_V2 == "true") {
         console.log("\n\nGive some time for langsmith to report the tracing data.");
