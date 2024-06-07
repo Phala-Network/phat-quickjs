@@ -230,7 +230,7 @@ function addEventListener(type, callback) {
                             });
                             if (response._opaqueBodyStream) {
                                 // offload to host for better performance
-                                Wapo.ioBridge({
+                                Wapo.streamBridge({
                                     input: response._opaqueBodyStream,
                                     output: req.opaqueOutputStream,
                                 });
