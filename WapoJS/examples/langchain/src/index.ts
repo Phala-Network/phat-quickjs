@@ -21,8 +21,13 @@ async function main() {
     console.log("compiling html-to-text");
     const compiledConvert = compile({ wordwrap: 130 }); // returns (text: string) => string;
     const loader = new RecursiveUrlLoader(docsUrl, {
-        // extractor: compiledConvert,
-        extractor: t => t,
+        extractor: doc => {
+            if (doc.startsWith("<!DOCTYPE html>")) {
+                return compiledConvert(doc);
+            } else {
+                return doc;
+            }
+        },
         maxDepth: 1,
         excludeDirs: ["about:"],
         preventOutside: true,
@@ -87,6 +92,11 @@ Question: {input}`);
     console.log("================================================");
     console.log("Answer:");
     console.log(result.answer);
+
+    if (process.env.LANGCHAIN_TRACING_V2 == "true") {
+        console.log("\n\nGive some time for langsmith to report the tracing data.");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
 }
 
 main().catch(console.error).finally(() => process.exit());
