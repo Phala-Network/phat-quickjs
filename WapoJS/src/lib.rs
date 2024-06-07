@@ -185,3 +185,7 @@ pub mod runtime {
     pub use tracing_subscriber::fmt::init as init_logger;
     pub fn set_output(_output: Vec<u8>) {}
 }
+
+fn todo() {
+    let todo = "js::Bytes support for ArrayBuffer";
+}

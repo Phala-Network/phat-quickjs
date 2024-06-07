@@ -29,6 +29,9 @@ pub struct Args {
     /// Port number for the user service to listen on.
     #[arg(long, short = 'p', default_value = "8002")]
     port: u16,
+    /// The wasmtime compiler to use
+    #[arg(long, short = 'c')]
+    wasm_compiler: Option<String>,
     /// The WASM file of the JS engine
     #[arg(long, short = 'e')]
     engine: Option<String>,
@@ -62,13 +65,20 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     <Config as WorkerConfig>::Paths::create_dirs_if_needed()
         .context("failed to create directories")?;
-
+    let use_winch = match args.wasm_compiler.as_deref() {
+        Some("winch") => true,
+        Some("cranelift") => false,
+        Some("auto") => false,
+        None => true,
+        _ => return Err(anyhow!("invalid wasm compiler")),
+    };
     let worker_args = WorkerArgs::builder()
         .instance_memory_size(args.memory_size)
         .max_instances(1)
         .module_cache_size(1)
         .no_mem_pool(true)
-        .use_winch(true)
+        .use_winch(use_winch)
+        .tcp_listen_port_range(0..=65535)
         .build();
     let Some(engine_file) = args.engine.clone().or_else(config::read_default_engine) else {
         return Err(anyhow!(
