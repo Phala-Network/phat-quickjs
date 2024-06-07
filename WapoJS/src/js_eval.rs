@@ -123,13 +123,13 @@ async fn run_with_service(
                 };
                 crate::host_functions::try_accept_query(service.clone(), query)?;
             }
-            connection = wapo::channel::incoming_http_connections().next() => {
-                let Some(connection) = connection else {
+            request = wapo::channel::incoming_http_requests().next() => {
+                let Some(request) = request else {
                     log::info!(target: "js", "host dropped the channel, exiting...");
                     break;
                 };
                 #[cfg(feature = "js-http-listen")]
-                crate::host_functions::try_accept_http_request(service.clone(), connection)?;
+                crate::host_functions::try_accept_http_request(service.clone(), request)?;
             }
         }
     }
