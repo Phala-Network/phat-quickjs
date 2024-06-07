@@ -144,10 +144,10 @@ async function readAll(stream) {
 
 async function signPublicKey(publicKey) {
     const ecdhPublicKey = toHexString(await crypto.subtle.exportKey("raw", publicKey));
-    const signedContent = Wapo.hash("sha256", "ecdhPublicKey:" + ecdhPublicKey);
-    const signature = Wapo.workerSign(signedContent);
+    const contentToSign = Wapo.hash("sha256", "ecdhPublicKey:" + ecdhPublicKey);
+    const signature = Wapo.workerSign(contentToSign);
     const workerPublicKey = Wapo.workerPublicKey();
-    const sgxQuote = Wapo.sgxQuote(signedContent);
+    const sgxQuote = Wapo.sgxQuote(contentToSign);
 
     return JSON.stringify({
         ecdhPublicKey,
