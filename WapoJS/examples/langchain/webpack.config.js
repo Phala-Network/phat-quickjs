@@ -39,9 +39,8 @@ module.exports = {
       os: require.resolve("os-browserify/browser"),
       zlib: require.resolve("browserify-zlib"),
       stream: require.resolve("stream-browserify"),
-      // crypto: require.resolve("crypto-browserify"),
       path: require.resolve("path-browserify"),
-      crypto: false,
+      crypto: require.resolve("crypto-browserify"),
     },
   },
   plugins: [

@@ -19,11 +19,11 @@ async function main() {
     const docsUrl = "https://files.kvin.wang:8443/test-docs/";
 
     console.log("compiling html-to-text");
-    const compiledConvert = compile({ wordwrap: 130 }); // returns (text: string) => string;
+    const htmlToText = compile({ wordwrap: 130 }); // returns (text: string) => string;
     const loader = new RecursiveUrlLoader(docsUrl, {
         extractor: doc => {
-            if (doc.startsWith("<!DOCTYPE html>")) {
-                return compiledConvert(doc);
+            if (doc.trimStart().startsWith("<!DOCTYPE html>")) {
+                return htmlToText(doc)
             } else {
                 return doc;
             }
