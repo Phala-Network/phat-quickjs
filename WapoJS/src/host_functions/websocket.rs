@@ -73,27 +73,27 @@ impl From<Message> for WsMessage {
         match value {
             Message::Text(text) => Self {
                 kind: "text".to_string(),
-                data: js::BytesOrString::String(text),
+                data: js::BytesOrString::String(text.into()),
             },
             Message::Binary(bin) => Self {
                 kind: "binary".to_string(),
-                data: js::BytesOrString::Bytes(bin),
+                data: js::BytesOrString::Bytes(bin.into()),
             },
             Message::Ping(data) => Self {
                 kind: "ping".to_string(),
-                data: js::BytesOrString::Bytes(data),
+                data: js::BytesOrString::Bytes(data.into()),
             },
             Message::Pong(data) => Self {
                 kind: "pong".to_string(),
-                data: js::BytesOrString::Bytes(data),
+                data: js::BytesOrString::Bytes(data.into()),
             },
             Message::Close(_) => Self {
                 kind: "close".to_string(),
-                data: js::BytesOrString::String("".to_string()),
+                data: js::BytesOrString::String("".into()),
             },
             Message::Frame(data) => Self {
                 kind: "frame".to_string(),
-                data: js::BytesOrString::Bytes(data.into_data()),
+                data: js::BytesOrString::Bytes(data.into_data().into()),
             },
         }
     }
