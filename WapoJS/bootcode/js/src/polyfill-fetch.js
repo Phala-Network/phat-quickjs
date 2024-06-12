@@ -154,7 +154,7 @@
         }
         options = options || {};
         const redirect = options.redirect || "follow";
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const request = {
                 url,
                 method: options.method || "GET",
@@ -162,6 +162,9 @@
                 timeout: options.timeout,
                 body: options.body || "",
             };
+            if (request.body instanceof Blob) {
+                request.body = await request.body.arrayBuffer();
+            }
             if (request.headers instanceof Headers) {
                 request.headers = Object.fromEntries(options.headers.entries());
             }
