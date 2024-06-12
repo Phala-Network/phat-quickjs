@@ -44,7 +44,7 @@
             }
         }
         async text() {
-            return new TextDecoder().decode(await this.bytes());
+            return Wapo.utf8Decode(await this.bytes());
         }
         async json() {
             return JSON.parse(await this.text());
