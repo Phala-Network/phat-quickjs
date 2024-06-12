@@ -7,3 +7,8 @@ edition = "2021"
 
 [build-dependencies]
 qjsbind = { path = "../../qjs-sys/qjsbind", features = ["with-polyfills"] }
+
+[features]
+default = ["browser"]
+browser = []
+nodejs = []

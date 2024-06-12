@@ -1,7 +1,10 @@
 fn main() {
     yarn_build();
 
-    let src_file = std::path::PathBuf::from("js/dist/index.js");
+    #[cfg(feature = "browser")]
+    let src_file = std::path::PathBuf::from("js/dist/browser.js");
+    #[cfg(feature = "nodejs")]
+    let src_file = std::path::PathBuf::from("js/dist/nodejs.js");
     let src = std::fs::read_to_string(&src_file).expect("failed to read bootcode.js");
     let outdir = std::env::var("OUT_DIR").expect("Missing OUT_DIR");
     let outdir = std::path::PathBuf::from(outdir);

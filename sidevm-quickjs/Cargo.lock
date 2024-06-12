@@ -205,6 +205,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "block-padding"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8894febbff9f758034a5b8e12d87918f56dfc64a8e1fe757d65e29041538d93"
+dependencies = [
+ "generic-array",
+]
+
+[[package]]
 name = "bootcode"
 version = "0.1.0"
 dependencies = [
@@ -250,6 +259,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2bd12c1caf447e69cd4528f47f94d203fd2582878ecb9e9465484c4148a8223"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "cbc"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26b52a9543ae338f279b96b0b9fed9c8093744685043739079ce85cd58f289a6"
+dependencies = [
+ "cipher",
 ]
 
 [[package]]
@@ -1062,6 +1080,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0c10553d664a4d0bcff9f4215d0aac67a639cc68ef660840afe309b807bc9f5"
 dependencies = [
+ "block-padding",
  "generic-array",
 ]
 
@@ -1691,11 +1710,15 @@ dependencies = [
 name = "qjs-extensions"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "aes-gcm",
  "anyhow",
  "base64",
  "blake2",
+ "cbc",
  "chumsky",
+ "cipher",
+ "ctr",
  "hex",
  "hex_fmt",
  "p256",

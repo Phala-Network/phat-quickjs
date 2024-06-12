@@ -19,7 +19,7 @@ tokio = { version = "1", features = ["sync", "macros", "io-util"] }
 hyper = { version = "0.14", features = ["client", "http1"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-bootcode = { path = "bootcode" }
+bootcode = { path = "bootcode", default-features = false }
 log = "0.4"
 anyhow = "1.0"
 url = "2.4.0"
@@ -59,7 +59,9 @@ optional = true
 features = ['console']
 
 [features]
-default = ["native", "js-url", "js-hash", "js-crypto", "js-wasm", "js-websocket"]
+default = ["native", "js-url", "js-hash", "js-crypto", "js-wasm", "js-websocket", "env-nodejs"]
+env-nodejs = ["bootcode/nodejs"]
+env-browser = ["bootcode/browser"]
 sanitize-address = ["js/sanitize-address"]
 js-url = []
 js-http-listen = []
