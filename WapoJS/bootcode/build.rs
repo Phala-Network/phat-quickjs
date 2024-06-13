@@ -15,6 +15,8 @@ fn main() {
 
 fn yarn_build() {
     println!("cargo:rerun-if-changed=js/src");
+    println!("cargo:rerun-if-changed=js/package.json");
+    println!("cargo:rerun-if-env-changed=PROFILE");
     let mut cmd = std::process::Command::new("bash");
     if std::env::var("PROFILE").unwrap() == "release" {
         cmd.arg("-c").arg("cd js && yarn && yarn build");
