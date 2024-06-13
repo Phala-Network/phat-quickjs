@@ -69,16 +69,21 @@
         host: "localhost",
     };
     patchHttpAgent();
-}(globalThis))
+    patchWebCrypto(g);
 
-function patchHttpAgent() {
-    const http = require("http");
-    http.Agent = class Agent {
-        constructor(options) {
-            this.options = options || {};
+    function patchHttpAgent() {
+        const http = nodeRequire("http");
+        http.Agent = class Agent {
+            constructor(options) {
+                this.options = options || {};
+            }
+            on() { }
         }
-        on() { }
+        http.Agent.defaultMaxSockets = 4
+        http.globalAgent = new http.Agent()
     }
-    http.Agent.defaultMaxSockets = 4
-    http.globalAgent = new http.Agent()
-}
+
+    function patchWebCrypto(g) {
+        nodeRequire("node:crypto").webcrypto = g.crypto;
+    }
+}(globalThis))

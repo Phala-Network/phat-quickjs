@@ -30,7 +30,7 @@ module.exports = {
       cluster: jspm_module('cluster.js'),
       console: jspm_module('console.js'),
       constants: jspm_module('constants.js'),
-      crypto: jspm_module('crypto.js'),
+      crypto: require.resolve('crypto-browserify'),
       diagnostics_channel: jspm_module('diagnostics_channel.js'),
       dns: jspm_module('dns.js'),
       domain: jspm_module('domain.js'),

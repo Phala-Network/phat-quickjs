@@ -6,7 +6,7 @@ BUILD_OUTPUT=$(addsuffix .wasm, $(TARGETS))
 OPTIMIZED_OUTPUT=$(addsuffix -stripped.wasm, $(TARGETS))
 WEB_BUILD_OUTPUT_DIR=target/wasm32-unknown-unknown/release
 OPT?=0
-COMMON_FEATURES=mem-stats,js-hash,js-crypto,js-wasm,js-websocket,env-nodejs
+COMMON_FEATURES=mem-stats,js-hash,js-crypto,js-wasm,js-websocket,js-crypto,env-nodejs
 
 .PHONY: all clean opt deep-clean install run test wasi rs
 
