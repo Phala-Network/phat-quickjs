@@ -16,6 +16,10 @@ fn main() {
 fn yarn_build() {
     println!("cargo:rerun-if-changed=js/src");
     let mut cmd = std::process::Command::new("bash");
-    cmd.arg("-c").arg("cd js && yarn && yarn build:debug");
+    if std::env::var("PROFILE").unwrap() == "release" {
+        cmd.arg("-c").arg("cd js && yarn && yarn build");
+    } else {
+        cmd.arg("-c").arg("cd js && yarn && yarn build:debug");
+    }
     cmd.status().expect("failed to run yarn");
 }
