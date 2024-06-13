@@ -5,7 +5,7 @@ use alloc::{
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
 use log::{debug, error};
-use std::{future::Future, sync::Mutex};
+use std::{borrow::Cow, future::Future, sync::Mutex};
 
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
@@ -144,8 +144,22 @@ impl Service {
         let boxed_self = Box::into_raw(Box::new(weak_self));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
         setup_host_functions(&ctx).expect("failed to setup host functions");
-        let bootcode = Code::Bytecode(bootcode::BOOT_CODE);
+
+        #[cfg(feature = "external-bootcode")]
+        let bootcode: Cow<'_, [u8]> = if let Ok(bootcode_path) = std::env::var("WAPOJS_BOOTCODE") {
+            let source = std::fs::read_to_string(bootcode_path).expect("failed to read bootcode");
+            let code = js::compile(&source, "<bootcode>").expect("failed to compile bootcode");
+
+            Cow::Owned(code)
+        } else {
+            Cow::Borrowed(bootcode::BOOT_CODE)
+        };
+        #[cfg(not(feature = "external-bootcode"))]
+        let bootcode = Cow::Borrowed(bootcode::BOOT_CODE);
+
+        let bootcode = Code::Bytecode(&bootcode);
         ctx.eval(&bootcode).expect("failed to eval bootcode");
+
         if let Ok(v) = std::env::var("WAPO_RT_FLAGS") {
             if let Ok(v) = v.parse::<u32>() {
                 runtime.set_debug_flags(v);

@@ -81,6 +81,8 @@ native = [
   "hyper/tcp",
   "hyper-rustls/webpki-roots",
   "webpki-roots",
+  "external-bootcode",
 ]
 js-wasm = ["dep:wasmi", "dep:wat"]
 js-websocket = ["dep:async-tungstenite", "dep:http", "dep:futures", "dep:tokio-util"]
+external-bootcode = []
