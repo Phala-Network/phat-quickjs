@@ -1,7 +1,10 @@
 import { createVerifiedFetch } from '@helia/verified-fetch'
 
-function addListener(callback) {
+console.log = Wapo.inspect
+
+function addEventListener(callback) {
     Wapo.httpListen(req => {
+        console.log('incoming httpListen request')
         const request = {
             url: req.url,
             method: req.method,
@@ -15,21 +18,57 @@ function addListener(callback) {
                 response = await response;
                 Wapo.httpSendResponseHead(req.opaqueResponseTx, {
                     status: response.status,
-                    headers: Array.from(response.headers.entries()),
+                    headers: response.headers,
                 });
-                if (response._opaqueBodyStream) {
-                    // offload to host for better performance
-                    Wapo.streamBridge({
-                        input: response._opaqueBodyStream,
-                        output: req.opaqueOutputStream,
-                    });
-                } else {
-                    const writer = toWritableStream(req.opaqueOutputStream);
-                    response.body.pipeTo(writer);
-                }
+                const writer = toWritableStream(req.opaqueOutputStream);
+                response.body.pipeTo(writer);
             }
         }
         callback(event);
+    });
+}
+
+
+function toReadableStream(body) {
+    return new ReadableStream({
+        start(controller) {
+            Wapo.streamOpenRead(body, (cmd, data) => {
+                switch (cmd) {
+                    case "data":
+                        controller.enqueue(data);
+                        break;
+                    case "end":
+                        controller.close();
+                        break;
+                    case "error":
+                        controller.error(data);
+                        break;
+                    default:
+                        console.log("unknown cmd:", cmd);
+                        break;
+                }
+            });
+        }
+    });
+}
+
+function toWritableStream(streamId) {
+    const writer = Wapo.streamOpenWrite(streamId);
+    return new WritableStream({
+        write(chunk) {
+            return new Promise((resolve, reject) => {
+                Wapo.streamWriteChunk(writer, chunk, (suc, err) => {
+                    if (suc) {
+                        resolve();
+                    } else {
+                        reject(err);
+                    }
+                });
+            });
+        },
+        close() {
+            Wapo.streamClose(writer);
+        }
     });
 }
 
@@ -39,18 +78,19 @@ function addListener(callback) {
     })
     const resp = await verifiedFetch('ipfs://baguqeeradnk3742vd3jxhurh22rgmlpcbzxvsy3vc5bzakwiktdeplwer6pa');
     console.log(await resp.text());
-    console.log(Wapo);
+    console.log('keys:', Object.keys(Wapo));
     console.log(Wapo.httpListen);
     
-    addListener(async event => {
+    addEventListener(async event => {
+        console.log('incoming request')
         const request = event.request;
         const url = new URL(request.url);
         switch (url.pathname) {
         case "/":
-            event.respondWith("Hello, World!");
+            event.respondWith(new Response("Hello, World!"));
             break;
         default:
-            event.respondWith("404");
+            event.respondWith(new Response("404"));
             break;
 	}
     });
