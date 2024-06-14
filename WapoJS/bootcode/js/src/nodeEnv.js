@@ -70,6 +70,7 @@
     };
     patchHttpAgent();
     patchWebCrypto(g);
+    patchTextCoders(g);
 
     function patchHttpAgent() {
         const http = nodeRequire("http");
@@ -85,5 +86,11 @@
 
     function patchWebCrypto(g) {
         nodeRequire("node:crypto").webcrypto = g.crypto;
+    }
+
+    function patchTextCoders(g) {
+        const util = nodeRequire("node:util");
+        util.TextEncoder = g.TextEncoder;
+        util.TextDecoder = g.TextDecoder;
     }
 }(globalThis))
