@@ -12,6 +12,7 @@ mod bind {
     use anyhow::{bail, Context};
     use js::{Native, Result};
     use log::debug;
+    use qjs_extensions::base64::b64_decode;
     use wasmi::ExternType;
 
     use crate::host_functions::webassambly::engine::GlobalStore;
@@ -39,8 +40,16 @@ mod bind {
         #[qjs(constructor)]
         pub fn new(#[qjs(from_context)] store: GlobalStore, code: js::Bytes) -> Result<Self> {
             debug!(target: "js::wasm", "creating WASM module, code_length={}", code.len());
-            let module = wasmi::Module::new(&store.engine(), &mut code.as_bytes())
-                .context("failed to parse module")?;
+            let base64_prefix = b"data:application/wasm;base64,";
+            let mut code = if code.as_bytes().starts_with(base64_prefix) {
+                let encoded = &code.as_bytes()[base64_prefix.len()..];
+                let decoded = b64_decode(encoded, true).context("failed to decode base64")?;
+                &{ decoded }
+            } else {
+                code.as_bytes()
+            };
+            let module =
+                wasmi::Module::new(&store.engine(), &mut code).context("failed to parse module")?;
             Ok(Self { module })
         }
 
