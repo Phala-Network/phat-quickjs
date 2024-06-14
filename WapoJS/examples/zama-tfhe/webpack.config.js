@@ -22,11 +22,6 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
-    fallback: {
-      "util": require.resolve("util/"),
-      "path": require.resolve("path-browserify"),
-      "fs": false
-    }
   },
   target: 'node',
   devtool: 'source-map',

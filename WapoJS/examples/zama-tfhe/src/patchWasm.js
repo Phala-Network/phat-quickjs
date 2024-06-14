@@ -1,3 +1,7 @@
 const fs = require("fs");
 
-fs.writeFileSync("/tfhe_bg.wasm", require("node-tfhe/tfhe_bg.wasm"));
+function toBytes(s) {
+    return new TextEncoder().encode(s);
+}
+
+fs.writeFileSync("/tfhe_bg.wasm", toBytes(require("node-tfhe/tfhe_bg.wasm")));
