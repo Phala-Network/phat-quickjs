@@ -24,6 +24,6 @@ module.exports = {
       "fs": false
     }
   },
-  target: 'web',
+  target: 'node',
   devtool: 'source-map',
 };
