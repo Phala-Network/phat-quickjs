@@ -1,3 +1,4 @@
+import "./patchWasm"
 import {
     CompactFheUint8List,
     TfheCompactPublicKey,
@@ -42,4 +43,8 @@ function main() {
     });
 }
 
-main();
+try {
+  main()
+} finally {
+  process.exit(0)
+}
