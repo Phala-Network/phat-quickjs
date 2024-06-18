@@ -6,6 +6,8 @@ use anyhow::{anyhow, bail, Context, Result};
 use pink_types::js::{JsCode, JsValue};
 
 struct Args {
+    #[cfg(feature = "native")]
+    tls_port: u16,
     codes: Vec<JsCode>,
     js_args: Vec<String>,
 }
@@ -27,6 +29,8 @@ fn load_code(code_hash: &str) -> Result<String> {
 fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
     let mut codes = vec![];
     let mut iter = args.skip(1);
+    #[cfg(feature = "native")]
+    let mut tls_port = 443_u16;
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
             if arg == "--" {
@@ -41,6 +45,13 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code =
                         load_code(&code_hash).context("failed to load code with given hash")?;
                     codes.push(JsCode::Source(code));
+                }
+                #[cfg(feature = "native")]
+                "--tls-port" => {
+                    tls_port = iter
+                        .next()
+                        .ok_or(anyhow!("missing value after --tls-port"))?
+                        .parse()?;
                 }
                 "-c" => {
                     let code = iter.next().ok_or(anyhow!("missing code after -c"))?;
@@ -62,7 +73,12 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         bail!("no script file provided");
     }
     let js_args = iter.collect();
-    Ok(Args { codes, js_args })
+    Ok(Args {
+        codes,
+        js_args,
+        #[cfg(feature = "native")]
+        tls_port,
+    })
 }
 
 fn print_usage() {
@@ -73,6 +89,8 @@ fn print_usage() {
     println!("  -c <code>        Execute code");
     #[cfg(feature = "wapo")]
     println!("  --code-hash <code_hash>  Execute code");
+    #[cfg(feature = "native")]
+    println!("  --tls-port <port>  TLS listen port (default: 443)");
     println!("  --               Stop processing options");
 }
 
@@ -88,6 +106,10 @@ async fn run_with_service(
     args: impl Iterator<Item = String>,
 ) -> Result<JsValue> {
     let args = parse_args(args)?;
+    #[cfg(feature = "native")]
+    {
+        crate::runtime::set_sni_tls_port(args.tls_port);
+    }
     let js_ctx = service.context();
     let js_args = args
         .js_args
@@ -133,7 +155,7 @@ async fn run_with_service(
             }
         }
     }
-    #[cfg(not(feature = "wapo"))]
+    #[cfg(feature = "native")]
     {
         service.wait_for_tasks().await;
     }

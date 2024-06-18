@@ -10,6 +10,7 @@ mod traits;
 
 #[cfg(feature = "wapo")]
 pub mod runtime {
+    use anyhow::Result;
     pub use wapo::channel::HttpRequest;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
     pub use wapo::net::TcpStream;
@@ -19,6 +20,7 @@ pub mod runtime {
     };
 
     pub use wapo::main;
+    pub use wapo::net::SniTlsListener as TlsListener;
 
     pub fn http_connector() -> HttpConnector {
         HttpConnector::new()
@@ -33,18 +35,65 @@ pub mod runtime {
     pub async fn run_local<F: core::future::Future>(fut: F) -> F::Output {
         fut.await
     }
+
+    pub fn sni_listen(sni: &str, cert: &str, key: &str) -> Result<TlsListener> {
+        let tls_config = wapo::env::tls::TlsServerConfig::V0 {
+            cert: cert.to_string(),
+            key: key.to_string(),
+        };
+        Ok(TlsListener::bind(sni, tls_config)?)
+    }
 }
 
 #[cfg(feature = "native")]
 pub mod runtime {
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicU16, Ordering};
     use std::sync::{Arc, OnceLock};
 
-    use anyhow::{Context, Result};
+    use anyhow::{anyhow, Context, Result};
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+    use sni_tls_listener::{SniTlsListener, Subscription};
     use tokio::io::DuplexStream;
     use tokio_rustls::rustls::ClientConfig;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
+
+    static WAPO_SNI_TLS_PORT: AtomicU16 = AtomicU16::new(443);
+
+    pub fn set_sni_tls_port(port: u16) {
+        WAPO_SNI_TLS_PORT.store(port, Ordering::Relaxed);
+    }
+
+    pub struct TlsListener(Subscription);
+
+    fn global_sni_listener() -> Result<&'static SniTlsListener> {
+        static GLOBAL_SNI_LISTENER: OnceLock<Result<SniTlsListener>> = OnceLock::new();
+        let sni_tls_port = WAPO_SNI_TLS_PORT.load(Ordering::Relaxed);
+        let listener = GLOBAL_SNI_LISTENER.get_or_init(|| {
+            SniTlsListener::install_ring_provider();
+            futures::executor::block_on(SniTlsListener::bind("0.0.0.0", sni_tls_port))
+        });
+        match listener {
+            Ok(listener) => Ok(listener),
+            Err(err) => Err(anyhow!("failed to bind SNI listener: {err}")),
+        }
+    }
+
+    pub fn sni_listen(sni: &str, cert: &str, key: &str) -> Result<TlsListener> {
+        let listener = global_sni_listener()?;
+        let key = sni_tls_listener::wrap_certified_key(cert.as_bytes(), key.as_bytes())
+            .context("invalid cert or key")?;
+        let subscription = listener.subscribe(sni, key)?;
+        Ok(TlsListener(subscription))
+    }
+
+    impl TlsListener {
+        pub async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)> {
+            let (stream, addr) = self.0.next().await.ok_or(anyhow!("listener closed"))?;
+            Ok((TcpStream::ServerTlsSteam(stream), addr))
+        }
+    }
 
     fn default_client_config() -> Arc<ClientConfig> {
         static CLIENT_CONFIG: OnceLock<Arc<ClientConfig>> = OnceLock::new();
@@ -63,7 +112,8 @@ pub mod runtime {
 
     pub enum TcpStream {
         TcpStream(tokio::net::TcpStream),
-        TlsSteam(tokio_rustls::client::TlsStream<tokio::net::TcpStream>),
+        ClientTlsSteam(tokio_rustls::client::TlsStream<tokio::net::TcpStream>),
+        ServerTlsSteam(tokio_rustls::server::TlsStream<tokio::net::TcpStream>),
     }
 
     impl TcpStream {
@@ -73,7 +123,7 @@ pub mod runtime {
                 let connector = tokio_rustls::TlsConnector::from(default_client_config());
                 let server_name = host.to_string().try_into().context("invalid server name")?;
                 let stream = connector.connect(server_name, stream).await?;
-                Ok(TcpStream::TlsSteam(stream))
+                Ok(TcpStream::ClientTlsSteam(stream))
             } else {
                 Ok(TcpStream::TcpStream(stream))
             }
@@ -88,7 +138,8 @@ pub mod runtime {
         ) -> std::task::Poll<std::io::Result<()>> {
             match self.get_mut() {
                 TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
-                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
+                TcpStream::ClientTlsSteam(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
+                TcpStream::ServerTlsSteam(stream) => std::pin::Pin::new(stream).poll_read(cx, buf),
             }
         }
     }
@@ -103,7 +154,10 @@ pub mod runtime {
                 TcpStream::TcpStream(stream) => {
                     std::pin::Pin::new(stream).poll_write_vectored(cx, bufs)
                 }
-                TcpStream::TlsSteam(stream) => {
+                TcpStream::ClientTlsSteam(stream) => {
+                    std::pin::Pin::new(stream).poll_write_vectored(cx, bufs)
+                }
+                TcpStream::ServerTlsSteam(stream) => {
                     std::pin::Pin::new(stream).poll_write_vectored(cx, bufs)
                 }
             }
@@ -112,7 +166,8 @@ pub mod runtime {
         fn is_write_vectored(&self) -> bool {
             match self {
                 TcpStream::TcpStream(stream) => stream.is_write_vectored(),
-                TcpStream::TlsSteam(stream) => stream.is_write_vectored(),
+                TcpStream::ClientTlsSteam(stream) => stream.is_write_vectored(),
+                TcpStream::ServerTlsSteam(stream) => stream.is_write_vectored(),
             }
         }
 
@@ -123,7 +178,8 @@ pub mod runtime {
         ) -> std::task::Poll<Result<usize, std::io::Error>> {
             match self.get_mut() {
                 TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
-                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
+                TcpStream::ClientTlsSteam(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
+                TcpStream::ServerTlsSteam(stream) => std::pin::Pin::new(stream).poll_write(cx, buf),
             }
         }
 
@@ -133,7 +189,8 @@ pub mod runtime {
         ) -> std::task::Poll<Result<(), std::io::Error>> {
             match self.get_mut() {
                 TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_flush(cx),
-                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_flush(cx),
+                TcpStream::ClientTlsSteam(stream) => std::pin::Pin::new(stream).poll_flush(cx),
+                TcpStream::ServerTlsSteam(stream) => std::pin::Pin::new(stream).poll_flush(cx),
             }
         }
 
@@ -143,7 +200,8 @@ pub mod runtime {
         ) -> std::task::Poll<Result<(), std::io::Error>> {
             match self.get_mut() {
                 TcpStream::TcpStream(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
-                TcpStream::TlsSteam(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
+                TcpStream::ClientTlsSteam(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
+                TcpStream::ServerTlsSteam(stream) => std::pin::Pin::new(stream).poll_shutdown(cx),
             }
         }
     }

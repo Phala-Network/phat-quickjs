@@ -57,6 +57,12 @@ impl FromIterator<(String, String)> for Headers {
     }
 }
 
+impl Headers {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.pairs.iter().map(|(k, v)| (k, v))
+    }
+}
+
 #[derive(FromJsValue, Debug)]
 #[qjs(rename_all = "camelCase")]
 pub struct HttpRequest {

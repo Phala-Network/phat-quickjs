@@ -29,6 +29,9 @@ pub struct Args {
     /// Port number for the user service to listen on.
     #[arg(long, short = 'p', default_value = "8002")]
     port: u16,
+    /// Port number for the user service to listen on.
+    #[arg(long, default_value = "8443")]
+    tls_port: u16,
     /// The wasmtime compiler to use
     #[arg(long, short = 'c')]
     wasm_compiler: Option<String>,
@@ -79,6 +82,7 @@ async fn main() -> Result<()> {
         .no_mem_pool(true)
         .use_winch(use_winch)
         .tcp_listen_port_range(0..=65535)
+        .tls_port(Some(args.tls_port))
         .build();
     let Some(engine_file) = args.engine.clone().or_else(config::read_default_engine) else {
         return Err(anyhow!(
@@ -92,7 +96,9 @@ async fn main() -> Result<()> {
         config::save_default_engine(&engine_file)?;
     }
     let script = std::fs::read_to_string(&args.script).context("failed to read engine code")?;
-    let worker = Worker::crate_running(worker_args).context("failed to create worker state")?;
+    let worker = Worker::create_running(worker_args)
+        .await
+        .context("failed to create worker state")?;
     let hash_algorithm = "sha256".to_string();
 
     let mut instance_args = vec!["-c".to_string(), script];

@@ -6,6 +6,7 @@ use crate::service::{Service, ServiceRef, ServiceWeakRef};
 use crate::traits::ResultExt;
 
 #[cfg(feature = "js-http-listen")]
+#[allow(unused_imports)]
 pub(crate) use http_listen::try_accept_http_request;
 #[cfg(feature = "wapo")]
 pub(crate) use query_listen::try_accept_query;
@@ -14,6 +15,9 @@ mod debug;
 #[cfg(feature = "js-http-listen")]
 mod http_listen;
 mod http_request;
+
+#[cfg(feature = "js-https-listen")]
+mod https_listen;
 #[cfg(feature = "mem-stats")]
 mod mem_stats;
 mod print;
@@ -64,6 +68,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
+    #[cfg(feature = "js-https-listen")]
+    https_listen::setup(&ns)?;
 
     stream::setup(&ns)?;
     env::setup(&ns)?;
