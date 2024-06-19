@@ -19,11 +19,19 @@ OPT?=0
 COMMON_FEATURES=mem-stats,js-hash,js-crypto,js-wasm,js-websocket,js-crypto,env-nodejs,js-https-listen
 
 
-.PHONY: all clean opt deep-clean install run test wasi rs
+.PHONY: all clean opt deep-clean install run test wasi rs runner
 
-all: wasi
+all: wasi native runner
 
 $(BUILD_OUTPUT): rs
+
+runner: wapojs-run
+
+wapojs-run: runner/target/release/wapojs-run
+	cp $< $@
+
+runner/target/release/wapojs-run:
+	cd runner && cargo build --release
 
 wasi: $(BUILD_OUTPUT)
 
@@ -45,7 +53,7 @@ native:
 clean:
 	rm -rf $(BUILD_OUTPUT_DIR)/*.wasm
 	rm -rf *.wasm
-	rm -rf wapojs
+	rm -rf wapojs wapojs-run
 
 deep-clean: clean
 	cargo clean

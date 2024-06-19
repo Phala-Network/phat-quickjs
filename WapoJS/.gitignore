@@ -11,6 +11,7 @@ Cargo.lock
 .vscode
 /*.wasm
 /wapojs
+/wapojs-run
 /hash.txt
 node_modules
 yarn.lock
