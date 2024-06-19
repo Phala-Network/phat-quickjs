@@ -20,8 +20,8 @@ Opx/F0Tr1zhEpxNMhbZVY3Y9DUzV09pvj1s7sbI7z1QVkf7aQ5XY01vA
 
 const tlsConfig = {
     serverName: "localhost",
-    certificate: CERT,
-    key: KEY,
+    certificateChain: CERT,
+    privateKey: KEY,
 }
 
 Wapo.httpsListen(tlsConfig, async req => {

@@ -31,8 +31,8 @@ pub struct HttpRequest {
 #[qjs(rename_all = "camelCase")]
 pub struct ServerTlsConfig {
     server_name: js::JsString,
-    certificate: js::JsString,
-    key: js::JsString,
+    certificate_chain: js::JsString,
+    private_key: js::JsString,
 }
 
 #[derive(FromJsValue, Debug)]
@@ -55,7 +55,7 @@ fn https_listen(
     config: ServerTlsConfig,
     callback: OwnedJsValue,
 ) -> Result<u64> {
-    let listener = sni_listen(&config.server_name, &config.certificate, &config.key)?;
+    let listener = sni_listen(&config.server_name, &config.certificate_chain, &config.private_key)?;
     let res_id = service.spawn(callback, do_https_listen, listener);
     Ok(res_id)
 }

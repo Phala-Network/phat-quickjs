@@ -2024,7 +2024,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "sni-tls-listener"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#3d45b48d313c9f883b6678cf69e6c9668b6ee381"
+source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
 dependencies = [
  "anyhow",
  "rustls 0.23.9",
@@ -2033,6 +2033,7 @@ dependencies = [
  "tokio",
  "tokio-rustls 0.26.0",
  "tracing",
+ "webpki-roots 0.26.3",
 ]
 
 [[package]]
@@ -2460,7 +2461,7 @@ dependencies = [
 [[package]]
 name = "wapo"
 version = "0.1.1"
-source = "git+https://github.com/Phala-Network/wapo#3d45b48d313c9f883b6678cf69e6c9668b6ee381"
+source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
 dependencies = [
  "derive_more",
  "env_filter",
@@ -2480,7 +2481,7 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#3d45b48d313c9f883b6678cf69e6c9668b6ee381"
+source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
 dependencies = [
  "derive_more",
  "futures",
@@ -2494,7 +2495,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#3d45b48d313c9f883b6678cf69e6c9668b6ee381"
+source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -2542,7 +2543,7 @@ dependencies = [
  "wasmi",
  "wat",
  "web-sys",
- "webpki-roots 0.26.2",
+ "webpki-roots 0.26.3",
 ]
 
 [[package]]
@@ -2699,9 +2700,9 @@ checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.2"
+version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c452ad30530b54a4d8e71952716a212b08efd0f3562baa66c29a618b07da7c3"
+checksum = "bd7c23921eeb1713a4e851530e9b9756e4fb0e89978582942612524cf09f01cd"
 dependencies = [
  "rustls-pki-types",
 ]

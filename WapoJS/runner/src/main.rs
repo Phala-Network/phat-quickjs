@@ -32,6 +32,9 @@ pub struct Args {
     /// Port number for the user service to listen on.
     #[arg(long, default_value = "8443")]
     tls_port: u16,
+    /// Verify the server certificate chain when the guest tries to listen on an SNI.
+    #[arg(long)]
+    verify_cert: bool,
     /// The wasmtime compiler to use
     #[arg(long, short = 'c')]
     wasm_compiler: Option<String>,
@@ -83,6 +86,7 @@ async fn main() -> Result<()> {
         .use_winch(use_winch)
         .tcp_listen_port_range(0..=65535)
         .tls_port(Some(args.tls_port))
+        .verify_tls_server_cert(args.verify_cert)
         .build();
     let Some(engine_file) = args.engine.clone().or_else(config::read_default_engine) else {
         return Err(anyhow!(
