@@ -4,12 +4,12 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
-use log::{debug, error};
+use log::{debug, error, info};
 use std::{borrow::Cow, future::Future, sync::Mutex};
 
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
-use js::{c, Code, Error as ValueError, ToArgs};
+use js::{c, Code, Error as ValueError, RuntimeConfig, ToArgs};
 use tokio::sync::broadcast;
 
 mod resource;
@@ -138,10 +138,10 @@ impl Default for ServiceState {
 }
 
 impl Service {
-    pub(crate) fn new(weak_self: ServiceWeakRef) -> Self {
-        let runtime = js::Runtime::new();
+    pub(crate) fn new(weak_self: ServiceWeakRef, config: RuntimeConfig) -> Self {
+        let runtime = js::Runtime::new(config);
         let ctx = runtime.new_context();
-        let boxed_self = Box::into_raw(Box::new(weak_self));
+        let boxed_self = Box::into_raw(Box::new(weak_self.clone()));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
         setup_host_functions(&ctx).expect("failed to setup host functions");
 
@@ -166,6 +166,17 @@ impl Service {
             }
         }
         let state = RefCell::new(ServiceState::default());
+        {
+            let mut abort_rx = runtime.subscribe_abort();
+            let weak_self = weak_self.clone();
+            crate::runtime::spawn(async move {
+                _ = abort_rx.recv().await;
+                info!(target: "js::rt", "abort signal received");
+                if let Some(service) = weak_self.upgrade() {
+                    service.close_all();
+                }
+            });
+        }
         Self {
             runtime: Rc::new_cyclic(|weak_self| JsEngine {
                 runtime,
@@ -177,9 +188,9 @@ impl Service {
         }
     }
 
-    pub fn new_ref() -> ServiceRef {
-        ServiceRef(Rc::new_cyclic(|weak_self| {
-            Service::new(ServiceWeakRef(weak_self.clone()))
+    pub fn new_ref(config: RuntimeConfig) -> ServiceRef {
+        ServiceRef(Rc::new_cyclic(move |weak_self| {
+            Service::new(ServiceWeakRef(weak_self.clone()), config)
         }))
     }
 

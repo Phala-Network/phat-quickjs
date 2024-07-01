@@ -95,7 +95,7 @@ fn print_usage() {
 }
 
 pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
-    let service = Service::new_ref();
+    let service = Service::new_ref(Default::default());
     let rv = run_with_service(service.clone(), args).await;
     service.shutdown().await;
     rv
