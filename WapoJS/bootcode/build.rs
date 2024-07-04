@@ -1,16 +1,17 @@
 fn main() {
     yarn_build();
 
-    #[cfg(feature = "browser")]
-    let src_file = std::path::PathBuf::from("js/dist/browser.js");
-    #[cfg(feature = "nodejs")]
-    let src_file = std::path::PathBuf::from("js/dist/nodejs.js");
-    let src = std::fs::read_to_string(&src_file).expect("failed to read bootcode.js");
     let outdir = std::env::var("OUT_DIR").expect("Missing OUT_DIR");
     let outdir = std::path::PathBuf::from(outdir);
+
+    compile_js("js/dist/browser.js", &outdir.join("bootcode-browser.jsc"));
+    compile_js("js/dist/nodejs.js", &outdir.join("bootcode-nodejs.jsc"));
+}
+
+fn compile_js(src_file: &str, out_file: &std::path::Path) {
+    let src = std::fs::read_to_string(src_file).expect("failed to read bootcode.js");
     let bytecode = qjsbind::compile(&src, "<bootcode>").expect("failed to compile the bootcode");
-    std::fs::write(outdir.join("bootcode.jsc"), bytecode)
-        .expect("failed to write bytecode to file");
+    std::fs::write(out_file, bytecode).expect("failed to write bytecode to file");
 }
 
 fn yarn_build() {

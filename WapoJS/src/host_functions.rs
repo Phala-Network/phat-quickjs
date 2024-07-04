@@ -2,7 +2,7 @@ use alloc::rc::Weak;
 use anyhow::Result;
 use log::error;
 
-use crate::service::{Service, ServiceRef, ServiceWeakRef};
+use crate::service::{Service, ServiceConfig, ServiceRef, ServiceWeakRef};
 use crate::traits::ResultExt;
 
 #[cfg(feature = "js-http-listen")]
@@ -29,6 +29,9 @@ mod url;
 #[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
+#[cfg(feature = "isolate")]
+mod isolate_eval;
+
 mod env;
 mod stream;
 
@@ -41,7 +44,7 @@ mod websocket;
 #[cfg(feature = "js-hash")]
 mod hash;
 
-pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
+pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Result<()> {
     let ns = ctx.new_object("Wapo");
     ctx.get_global_object().set_property("Wapo", &ns)?;
 
@@ -58,27 +61,32 @@ pub(crate) fn setup_host_functions(ctx: &js::Context) -> Result<()> {
 
     #[cfg(feature = "js-url")]
     url::setup(&ns)?;
-    #[cfg(feature = "js-http-listen")]
-    http_listen::setup(&ns)?;
-    #[cfg(feature = "wapo")]
-    query_listen::setup(&ns)?;
     #[cfg(feature = "wapo")]
     wapo_ocalls::setup(&ns)?;
     #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
-    #[cfg(feature = "js-https-listen")]
-    https_listen::setup(&ns)?;
 
     stream::setup(&ns)?;
-    env::setup(&ns)?;
 
     #[cfg(feature = "js-wasm")]
     webassambly::setup(&ctx.get_global_object())?;
 
     #[cfg(feature = "js-websocket")]
     websocket::setup(&ns)?;
+
+    if !cfg.is_sandbox {
+        env::setup(&ns)?;
+        #[cfg(feature = "js-http-listen")]
+        http_listen::setup(&ns)?;
+        #[cfg(feature = "js-https-listen")]
+        https_listen::setup(&ns)?;
+        #[cfg(feature = "wapo")]
+        query_listen::setup(&ns)?;
+        #[cfg(feature = "isolate")]
+        isolate_eval::setup(&ns)?;
+    }
 
     Ok(())
 }

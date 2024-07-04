@@ -66,7 +66,18 @@ optional = true
 features = ['console']
 
 [features]
-default = ["native", "js-url", "js-hash", "js-crypto", "js-wasm", "js-websocket", "env-nodejs", "js-http-listen", "js-https-listen"]
+default = [
+  "native",
+  "isolate",
+  "js-url",
+  "js-hash",
+  "js-crypto",
+  "js-wasm",
+  "js-websocket",
+  "env-nodejs",
+  "js-http-listen",
+  "js-https-listen",
+]
 env-nodejs = ["bootcode/nodejs"]
 env-browser = ["bootcode/browser"]
 sanitize-address = ["js/sanitize-address"]
@@ -79,6 +90,7 @@ js-crypto = [
 ]
 wapo = []
 mem-stats = ["phala-allocator", "js/pink-allocator"]
+isolate = []
 
 native = [
   "tokio/full",

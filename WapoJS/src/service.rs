@@ -4,12 +4,12 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
-use log::{debug, error, info};
-use std::{borrow::Cow, future::Future, sync::Mutex};
+use log::{debug, error};
+use std::{future::Future, sync::Mutex};
 
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
-use js::{c, Code, Error as ValueError, RuntimeConfig, ToArgs};
+use js::{c, Code, EngineConfig, Error as ValueError, ToArgs};
 use tokio::sync::broadcast;
 
 mod resource;
@@ -101,9 +101,16 @@ impl JsEngine {
     }
 }
 
+#[derive(Clone)]
+pub struct ServiceConfig {
+    pub engine_config: EngineConfig,
+    pub is_sandbox: bool,
+}
+
 pub struct Service {
     runtime: Rc<JsEngine>,
     state: RefCell<ServiceState>,
+    config: ServiceConfig,
 }
 
 struct ServiceState {
@@ -138,28 +145,11 @@ impl Default for ServiceState {
 }
 
 impl Service {
-    pub(crate) fn new(weak_self: ServiceWeakRef, config: RuntimeConfig) -> Self {
-        let runtime = js::Runtime::new(config);
+    pub(crate) fn new(weak_self: ServiceWeakRef, config: ServiceConfig) -> Self {
+        let runtime = js::Runtime::new(&config.engine_config);
         let ctx = runtime.new_context();
         let boxed_self = Box::into_raw(Box::new(weak_self.clone()));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
-        setup_host_functions(&ctx).expect("failed to setup host functions");
-
-        #[cfg(feature = "external-bootcode")]
-        let bootcode: Cow<'_, [u8]> = if let Ok(bootcode_path) = std::env::var("WAPOJS_BOOTCODE") {
-            let source = std::fs::read_to_string(bootcode_path).expect("failed to read bootcode");
-            let code = js::compile(&source, "<bootcode>").expect("failed to compile bootcode");
-
-            Cow::Owned(code)
-        } else {
-            Cow::Borrowed(bootcode::BOOT_CODE)
-        };
-        #[cfg(not(feature = "external-bootcode"))]
-        let bootcode = Cow::Borrowed(bootcode::BOOT_CODE);
-
-        let bootcode = Code::Bytecode(&bootcode);
-        ctx.eval(&bootcode).expect("failed to eval bootcode");
-
         if let Ok(v) = std::env::var("WAPO_RT_FLAGS") {
             if let Ok(v) = v.parse::<u32>() {
                 runtime.set_debug_flags(v);
@@ -171,7 +161,7 @@ impl Service {
             let weak_self = weak_self.clone();
             crate::runtime::spawn(async move {
                 _ = abort_rx.recv().await;
-                info!(target: "js::rt", "abort signal received");
+                debug!(target: "js::rt", "abort signal received");
                 if let Some(service) = weak_self.upgrade() {
                     service.close_all();
                 }
@@ -185,10 +175,22 @@ impl Service {
                 last_error: Default::default(),
             }),
             state,
+            config,
         }
     }
 
-    pub fn new_ref(config: RuntimeConfig) -> ServiceRef {
+    pub fn boot(&self, bootcode: Option<&[u8]>) -> Result<()> {
+        setup_host_functions(self.context(), &self.config)
+            .context("failed to setup host functions")?;
+        if let Some(bootcode) = bootcode {
+            use js::NoStdContext;
+            self.exec_bytecode(bootcode)
+                .context("failed to execute boot code")?;
+        }
+        Ok(())
+    }
+
+    pub fn new_ref(config: ServiceConfig) -> ServiceRef {
         ServiceRef(Rc::new_cyclic(move |weak_self| {
             Service::new(ServiceWeakRef(weak_self.clone()), config)
         }))
@@ -349,7 +351,14 @@ impl Service {
     /// by the tasks are released before dropping the JS runtime.
     pub async fn shutdown(&self) {
         *self.state.borrow_mut() = Default::default();
-        runtime::time::sleep(Duration::from_millis(10)).await;
+        runtime::time::sleep(Duration::from_millis(2)).await;
+    }
+}
+
+// Configuration get
+impl Service {
+    pub fn allow_isolate_eval(&self) -> bool {
+        !self.config.is_sandbox
     }
 }
 

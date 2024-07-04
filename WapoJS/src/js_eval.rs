@@ -1,6 +1,11 @@
+use std::borrow::Cow;
+
 use js::ToJsValue;
 
-use crate::{service::ServiceRef, Service};
+use crate::{
+    service::{ServiceConfig, ServiceRef},
+    Service,
+};
 use anyhow::{anyhow, bail, Context, Result};
 
 use pink_types::js::{JsCode, JsValue};
@@ -95,7 +100,31 @@ fn print_usage() {
 }
 
 pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
-    let service = Service::new_ref(Default::default());
+    #[cfg(feature = "env-browser")]
+    const DEFAULT_BOOTCODE: &[u8] = bootcode::BOOT_CODE_BROWSER;
+    #[cfg(feature = "env-nodejs")]
+    const DEFAULT_BOOTCODE: &[u8] = bootcode::BOOT_CODE_NODEJS;
+
+    #[cfg(feature = "external-bootcode")]
+    let bootcode: Cow<'_, [u8]> = if let Ok(bootcode_path) = std::env::var("WAPOJS_BOOTCODE") {
+        let source = std::fs::read_to_string(bootcode_path).expect("failed to read bootcode");
+        let code = js::compile(&source, "<bootcode>").expect("failed to compile bootcode");
+
+        Cow::Owned(code)
+    } else {
+        Cow::Borrowed(DEFAULT_BOOTCODE)
+    };
+    #[cfg(not(feature = "external-bootcode"))]
+    let bootcode = Cow::Borrowed(DEFAULT_BOOTCODE);
+
+    let config = ServiceConfig {
+        is_sandbox: false,
+        engine_config: Default::default(),
+    };
+
+    let service = Service::new_ref(config);
+    service.boot(Some(&bootcode))?;
+
     let rv = run_with_service(service.clone(), args).await;
     service.shutdown().await;
     rv
