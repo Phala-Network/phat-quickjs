@@ -4,8 +4,9 @@ const fs = require('fs');
 const http = require('http');
 
 class WorkerClient {
-    constructor(baseUrl) {
+    constructor(baseUrl, apiToken) {
         this.baseUrl = baseUrl;
+        this.apiToken = apiToken;
     }
 
     async init() {
@@ -40,12 +41,16 @@ class WorkerClient {
 
     async rpcCall(method, params) {
         const url = `${this.baseUrl}/prpc/Operation.${method}?json`;
-        const response = await httpPost(url, params);
+        const headers = {};
+        if (this.apiToken) {
+            headers['Authorization'] = `Bearer ${this.apiToken}`;
+        }
+        const response = await httpPost(url, params, headers);
         return JSON.parse(response);
     }
 }
 
-function httpPost(url, jsonData) {
+function httpPost(url, jsonData, headers = {}) {
     return new Promise((resolve, reject) => {
         const data = JSON.stringify(jsonData);
         const { hostname, pathname, port } = new URL(url);
@@ -56,6 +61,7 @@ function httpPost(url, jsonData) {
             path: pathname,
             method: 'POST',
             headers: {
+                ...headers,
                 'Content-Type': 'application/json',
                 'Content-Length': data.length
             }
@@ -84,6 +90,7 @@ function httpPost(url, jsonData) {
 
 async function main() {
     const WAPOD_URL = process.env.WAPOD_URL || "http://127.0.0.1:8001";
+    const API_TOKEN = process.env.WAPOD_API_TOKEN;
     const engineFile = process.argv[2];
     const scriptFile = process.argv[3];
     if (!engineFile || !scriptFile) {
@@ -93,7 +100,7 @@ async function main() {
     }
 
     try {
-        const client = new WorkerClient(WAPOD_URL);
+        const client = new WorkerClient(WAPOD_URL, API_TOKEN);
         await client.init();
 
         const engineInfo = await client.uploadFile(engineFile);

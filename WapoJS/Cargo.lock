@@ -2024,7 +2024,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "sni-tls-listener"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
+source = "git+https://github.com/Phala-Network/wapo#168cb17fe3ad5c0e5b8ae5787b412b3293174ccc"
 dependencies = [
  "anyhow",
  "rustls 0.23.9",
@@ -2461,7 +2461,7 @@ dependencies = [
 [[package]]
 name = "wapo"
 version = "0.1.1"
-source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
+source = "git+https://github.com/Phala-Network/wapo#168cb17fe3ad5c0e5b8ae5787b412b3293174ccc"
 dependencies = [
  "derive_more",
  "env_filter",
@@ -2481,7 +2481,7 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
+source = "git+https://github.com/Phala-Network/wapo#168cb17fe3ad5c0e5b8ae5787b412b3293174ccc"
 dependencies = [
  "derive_more",
  "futures",
@@ -2495,7 +2495,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo#d45cb36cd536c139d2582bea0abaa5c680d18322"
+source = "git+https://github.com/Phala-Network/wapo#168cb17fe3ad5c0e5b8ae5787b412b3293174ccc"
 dependencies = [
  "heck",
  "proc-macro-crate",
