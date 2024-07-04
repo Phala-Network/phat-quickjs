@@ -6,7 +6,7 @@ runs:
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: 1.74
+        toolchain: 1.79
         override: true
         target: wasm32-unknown-unknown
         components: rustfmt
