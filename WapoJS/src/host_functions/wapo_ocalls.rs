@@ -16,7 +16,7 @@ fn worker_sign(message: js::BytesOrString) -> Result<AsBytes<Vec<u8>>> {
 }
 
 #[js::host_call]
-fn worker_pubkey() -> Result<AsBytes<Vec<u8>>> {
+fn worker_pubkey() -> Result<AsBytes<[u8; 32]>> {
     wapo::ocall::worker_pubkey()
         .map(AsBytes)
         .map_err(Into::into)

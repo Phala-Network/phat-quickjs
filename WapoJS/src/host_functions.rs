@@ -29,6 +29,8 @@ mod url;
 #[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
+mod derive_secret;
+
 #[cfg(feature = "isolate")]
 mod isolate_eval;
 
@@ -69,6 +71,7 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
     mem_stats::setup(&ns)?;
 
     stream::setup(&ns)?;
+    derive_secret::setup(&ns)?;
 
     #[cfg(feature = "js-wasm")]
     webassambly::setup(&ctx.get_global_object())?;
