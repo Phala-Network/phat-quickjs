@@ -7,22 +7,20 @@ let script = `
 `;
 
 async function main() {
-    const token = Wapo.isolateEval({
+    const id = Wapo.isolateEval({
         scripts: [script],
         args: ["input 0", "input 1"],
-        env: {},
+        env: {
+            HELLO: "world",
+        },
 
         gasLimit: 1000,
         timeLimit: 3000,
-        memoryLimit: 32 * 1024 + 11400,
-        polyfills: ['browser'],
+        memoryLimit: 256 * 1024,
+        polyfills: ['wapo'],
     }, function (result) {
         console.log("isolate, scriptOutput: " + result);
     });
-
-    setTimeout(() => {
-        Wapo.isolateKill(token);
-    }, 1000);
 }
 
 main().catch(console.error);

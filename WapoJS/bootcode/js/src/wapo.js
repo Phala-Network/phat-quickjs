@@ -92,8 +92,7 @@
             delete this._data[key];
         }
     };
-    Error.captureStackTrace = function (error, fn) {
-    };
+    Error.captureStackTrace = function (error, fn) {};
 }(globalThis))
 
 export default {};

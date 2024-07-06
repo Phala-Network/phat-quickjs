@@ -4,6 +4,7 @@ module.exports = {
   entry: {
     'browser': './src/browser',
     'nodejs': './src/nodejs',
+    'wapo': './src/wapo',
   },
   mode: 'production',
   output: {

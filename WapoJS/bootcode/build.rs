@@ -6,6 +6,7 @@ fn main() {
 
     compile_js("js/dist/browser.js", &outdir.join("bootcode-browser.jsc"));
     compile_js("js/dist/nodejs.js", &outdir.join("bootcode-nodejs.jsc"));
+    compile_js("js/dist/wapo.js", &outdir.join("bootcode-wapo.jsc"));
 }
 
 fn compile_js(src_file: &str, out_file: &std::path::Path) {

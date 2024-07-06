@@ -10,7 +10,7 @@ use std::{future::Future, sync::Mutex};
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
 use js::{c, Code, EngineConfig, Error as ValueError, ToArgs};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, oneshot};
 
 mod resource;
 
@@ -293,17 +293,37 @@ impl Service {
         Args: 'static,
         FutGen: FnOnce(ServiceWeakRef, u64, Args) -> Fut + 'static,
     {
-        let (cancel_tx, cancel_rx) = tokio::sync::oneshot::channel::<()>();
+        self.spawn_with_cancel_rx(
+            js_callback,
+            move |srv, id, cancel_rx, args| async move {
+                tokio::select! {
+                    _ = fut_gen(srv, id, args) => {
+                    }
+                    _ = cancel_rx => {
+                    }
+                }
+            },
+            args,
+        )
+    }
+
+    pub(crate) fn spawn_with_cancel_rx<Fut, FutGen, Args>(
+        &self,
+        js_callback: OwnedJsValue,
+        fut_gen: FutGen,
+        args: Args,
+    ) -> u64
+    where
+        Fut: Future<Output = ()> + 'static,
+        Args: 'static,
+        FutGen: FnOnce(ServiceWeakRef, u64, oneshot::Receiver<()>, Args) -> Fut + 'static,
+    {
+        let (cancel_tx, cancel_rx) = oneshot::channel();
         let res = Resource::new(js_callback, Some(Box::new(cancel_tx)));
         let id = self.push_resource(res);
         let weak_service = self.weak_self();
         let _handle = crate::runtime::spawn(async move {
-            tokio::select! {
-                _ = fut_gen(weak_service.clone(), id, args) => {
-                }
-                _ = cancel_rx => {
-                }
-            }
+            let _ = fut_gen(weak_service.clone(), id, cancel_rx, args).await;
             debug!(target: "js::rt", "task {id} finished");
             close(weak_service, id);
         });

@@ -25,7 +25,6 @@ pub struct EvalArgs {
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("isolateEval", isolate_eval)?;
-    ns.define_property_fn("isolateKill", isolate_kill)?;
     Ok(())
 }
 
@@ -35,14 +34,19 @@ fn isolate_eval(
     _this: js::Value,
     args: EvalArgs,
     callback: OwnedJsValue,
-) -> Result<js::Value> {
+) -> Result<u64> {
     if !service.allow_isolate_eval() {
         bail!("isolateEval is disabled");
+    }
+    if let Some(memory_limit) = args.memory_limit {
+        if memory_limit < 1024 * 128 {
+            bail!("memory limit is too low, at least 128KB is required");
+        }
     }
     let config = ServiceConfig {
         engine_config: EngineConfig {
             gas_limit: args.gas_limit,
-            memory_limit: args.memory_limit.map(|v| v.max(1024 * 32)),
+            memory_limit: args.memory_limit,
             time_limit: args.time_limit,
         },
         is_sandbox: true,
@@ -61,6 +65,11 @@ fn isolate_eval(
             "nodejs" => {
                 child_service
                     .exec_bytecode(bootcode::BOOT_CODE_NODEJS)
+                    .map_err(Error::msg)?;
+            }
+            "wapo" => {
+                child_service
+                    .exec_bytecode(bootcode::BOOT_CODE_WAPO)
                     .map_err(Error::msg)?;
             }
             _ => {
@@ -94,25 +103,24 @@ fn isolate_eval(
             .map_err(Error::msg)?;
     }
     let output = output.to_js_value().unwrap_or(js::Value::Undefined);
-    let (tx, rx) = oneshot::channel();
-    service.spawn(
+    let id = service.spawn_with_cancel_rx(
         callback,
         wait_child,
-        (child_service, output, args.time_limit, rx),
+        (child_service, output, args.time_limit),
     );
-    let token = js::Value::new_opaque_object(service.context(), Some("IsolateToken"), tx);
-    Ok(token)
+    Ok(id)
 }
 
 async fn wait_child(
     service: ServiceWeakRef,
     res: u64,
-    args: (ServiceRef, js::Value, Option<u64>, oneshot::Receiver<()>),
+    cancel_rx: oneshot::Receiver<()>,
+    args: (ServiceRef, js::Value, Option<u64>),
 ) {
-    let (child_service, output, timeout, stop_rx) = args;
+    let (child_service, output, timeout) = args;
     let timeout = timeout.unwrap_or(u64::MAX);
     tokio::select! {
-        _ = stop_rx => {
+        _ = cancel_rx => {
             child_service.close_all();
             info!(target: "js::isolate", "isolateEval stopped");
         }
@@ -159,13 +167,5 @@ fn invoke_callback(weak_service: &Weak<Service>, id: u64, data: &dyn ToJsValue) 
     };
     if let Err(_) = service.call_function(callback, (data,)) {
         error!(target: "js::isolate", "[{id}] failed to report isolateEval output");
-    }
-}
-
-#[js::host_call]
-fn isolate_kill(token: js::Value) {
-    let tx = token.opaque_object_take_data::<oneshot::Sender<()>>();
-    if let Some(tx) = tx {
-        let _ = tx.send(());
     }
 }

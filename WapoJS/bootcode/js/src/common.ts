@@ -1,9 +1,9 @@
+import "./wapo";
 import "./polyfill-dom-basic";
 import "./polyfill-textencoding";
 import "./polyfill-streams";
 import "./polyfill-fetch";
 import "./polyfill-url";
-import "./wapo";
 import "./polyfill-abortcontroller";
 import "./polyfill-abortsignal-more";
 import "./polyfill-blob";
