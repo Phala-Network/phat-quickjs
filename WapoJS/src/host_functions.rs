@@ -63,15 +63,12 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
 
     #[cfg(feature = "js-url")]
     url::setup(&ns)?;
-    #[cfg(feature = "wapo")]
-    wapo_ocalls::setup(&ns)?;
     #[cfg(feature = "js-hash")]
     hash::setup(&ns)?;
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
 
     stream::setup(&ns)?;
-    derive_secret::setup(&ns)?;
 
     #[cfg(feature = "js-wasm")]
     webassambly::setup(&ctx.get_global_object())?;
@@ -85,10 +82,13 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
         http_listen::setup(&ns)?;
         #[cfg(feature = "js-https-listen")]
         https_listen::setup(&ns)?;
-        #[cfg(feature = "wapo")]
-        query_listen::setup(&ns)?;
         #[cfg(feature = "isolate")]
         isolate_eval::setup(&ns)?;
+        #[cfg(feature = "wapo")]
+        query_listen::setup(&ns)?;
+        #[cfg(feature = "wapo")]
+        wapo_ocalls::setup(&ns)?;
+        derive_secret::setup(&ns)?;
     }
 
     Ok(())
