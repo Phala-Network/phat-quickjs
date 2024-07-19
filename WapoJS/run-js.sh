@@ -19,5 +19,4 @@ if [ ! -f $RUNNER ]; then
 fi
 
 REST_ARGS="${@:2}"
-$RUNNER --engine $ENGINE $1 -- $REST_ARGS
- 
+$RUNNER -m 1024M --engine $ENGINE $1 -- $REST_ARGS
