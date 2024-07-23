@@ -2525,6 +2525,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "phala-allocator",
+ "pin-project",
  "pink-types",
  "qjs-extensions",
  "qjsbind",

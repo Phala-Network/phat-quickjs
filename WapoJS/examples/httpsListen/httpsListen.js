@@ -42,12 +42,11 @@ Wapo.httpsListen(tlsConfig, async req => {
     const writer = Wapo.streamOpenWrite(req.opaqueOutputStream);
     await writeString(writer, `You have sent me the following info\n`);
     await writeString(writer, `method: ${req.method}\n`);
-    await sleep(1000);
     await writeString(writer, `url: ${req.url}\n`);
-    await sleep(1000);
     await writeString(writer, `headers: \n`);
     for (var p of req.headers) {
         await writeString(writer, `    ${p[0]}: ${p[1]}\n`);
+        console.log(`    ${p[0]}: ${p[1]}`);
         await sleep(500);
     }
     await writeString(writer, `actual body length: ${body.length}\n`);

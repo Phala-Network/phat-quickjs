@@ -2,7 +2,7 @@ use super::*;
 
 use crate::service::OwnedJsValue;
 use js::FromJsValue;
-use log::{info, warn};
+use log::{info, trace, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
     sync::mpsc::Sender,
@@ -114,7 +114,7 @@ fn stream_make_writer(
     let Some(mut write_half) = Writer::take(&output_stream) else {
         anyhow::bail!("failed to get output_stream from {output_stream:?}");
     };
-    let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(1);
+    let (tx, rx) = tokio::sync::mpsc::channel::<WriteChunk>(128);
     let _id = service.spawn(
         OwnedJsValue::Null,
         |weak_srv, _id, _| async move {
@@ -122,6 +122,7 @@ fn stream_make_writer(
             let write_half = write_half.dyn_writer();
             while let Some(chunk) = rx.recv().await {
                 let result = write_half.write_all(chunk.data.as_bytes()).await;
+                trace!(target: "js::stream", "{} bytes written, result: {result:?}", chunk.data.len());
                 let Some(service) = weak_srv.upgrade() else {
                     warn!(target: "js::stream", "service dropped while writing to stream");
                     break;
@@ -134,6 +135,7 @@ fn stream_make_writer(
                     warn!(target: "js::stream", "failed to report write result: {err:?}");
                 }
             }
+            trace!(target: "js::stream", "writer done");
             write_half.shutdown().await.ok();
         },
         (),
@@ -167,13 +169,14 @@ fn stream_write_chunk(
         if let Err(err) = service.call_function(callback, (false, "failed to send chunk")) {
             info!(target: "js::stream", "failed to report write result: {err:?}");
         }
-        anyhow::bail!("failed to send chunk");
+        anyhow::bail!("failed to send chunk: {result:?}");
     }
     Ok(())
 }
 
 #[js::host_call]
 fn stream_close(writer: js::Value) {
+    trace!(target: "js::stream", "closing writer");
     if writer
         .opaque_object_take_data::<Sender<WriteChunk>>()
         .is_none()

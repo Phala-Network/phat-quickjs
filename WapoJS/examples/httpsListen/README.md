@@ -8,7 +8,7 @@ $ git clone https://github.com/Phala-Network/phat-quickjs --recursive
 $ cd phat-quickjs/WapoJS/examples/httpsListen
 $ make -C ../../
 $ # The option `-u` let the command to remember the engine file, so you can directly run `../../wapojs-run httpsListen.js` next time.
-$ ../../wapojs-run -u --engine ../../wapojs.wasm --tls-port 1443 httpsListen.js 
+$ ../../wapojs-run -u --engine ../../wapojs.wasm --tls-port 1443 httpsListen.js
 ```
 
 This will start a HTTPS server on port 1443. You can access it by visiting `https://localhost:1443` in the browser.

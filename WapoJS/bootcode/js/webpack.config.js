@@ -54,7 +54,7 @@ module.exports = {
       string_decoder: jspm_module('string_decoder.js'),
       sys: jspm_module('sys.js'),
       'timers/promises': jspm_module('timers/promises.js'),
-      timers: jspm_module('timers.js'),
+      timers: path.resolve(__dirname, 'src', 'polyfill-timers.js'),
       tls: jspm_module('tls.js'),
       tty: jspm_module('tty.js'),
       url: jspm_module('url.js'),

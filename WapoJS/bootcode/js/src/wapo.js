@@ -1,7 +1,7 @@
 (function (g) {
     function timerFn(hostFn) {
         return function (f, t) {
-            t = t || 0;
+            t = Math.round(t || 0);
             if (typeof f == 'string') {
                 return hostFn(() => eval(f), t);
             }
@@ -74,6 +74,7 @@
             },
             fd: 2,
         },
+        cwd: () => "/",
     };
     g.performance = {
         now() {
@@ -92,7 +93,35 @@
             delete this._data[key];
         }
     };
-    Error.captureStackTrace = function (error, fn) {};
+    Error.captureStackTrace = function (error) {
+        class DummyCallSite {
+            constructor() {
+            }
+            getFileName() {
+                return "<eval>";
+            }
+            isEval() {
+                return true;
+            }
+            getFunctionName() {
+                return "<unknown>";
+            }
+            getFunction() {}
+            getColumnNumber() {
+                return 0;
+            }
+            getLineNumber() {
+                return 0;
+            }
+            getEvalOrigin() {
+                return "<unknown>";
+            }
+            isNative() {
+                return false;
+            }
+        }
+        error.stack = [new DummyCallSite(), new DummyCallSite(), new DummyCallSite()]
+    };
 }(globalThis))
 
 export default {};
