@@ -55,6 +55,10 @@ clean:
 	rm -rf *.wasm
 	rm -rf wapojs wapojs-run
 
+install: native runner
+	cp ./wapojs ~/.cargo/bin/
+	cp ./wapojs-run ~/.cargo/bin/
+
 deep-clean: clean
 	cargo clean
 	make clean -C qjs-sys/qjs-sys
