@@ -49,6 +49,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aes-gcm"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "831010a0f742e1209b3bcea8fab6a8e149051ba6099432c8cb2cc117dec3ead1"
+dependencies = [
+ "aead",
+ "aes",
+ "cipher",
+ "ctr",
+ "ghash",
+ "subtle",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -411,9 +425,9 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.7.2"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "474d7cec9d0a1126fad1b224b767fcbf351c23b0309bb21ec210bcfd379926a5"
+checksum = "4ae74d9bd0a7530e8afd1770739ad34b36838829d6ad61818f9230f683f5ad77"
 dependencies = [
  "aws-lc-sys",
  "mirai-annotations",
@@ -423,9 +437,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.17.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7505fc3cb7acbf42699a43a79dd9caa4ed9e99861dfbb837c5c0fb5a0a8d2980"
+checksum = "2e89b6941c2d1a7045538884d6e760ccfffdf8e1ffc2613d8efa74305e1f3752"
 dependencies = [
  "bindgen",
  "cc",
@@ -511,7 +525,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -2316,6 +2330,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ghash"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0d8a4362ccb29cb0b265253fb0a2728f592895ee6854fd9bc13f2ffda266ff1"
+dependencies = [
+ "opaque-debug",
+ "polyval",
+]
+
+[[package]]
 name = "gimli"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2997,7 +3021,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3828,6 +3852,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyval"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d1fe60d06143b2430aa532c94cfe9e29783047f06c0d7fd359a9a51b729fa25"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "opaque-debug",
+ "universal-hash",
+]
+
+[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4028,7 +4064,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "log",
  "multimap 0.10.0",
  "once_cell",
@@ -4061,7 +4097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -4089,7 +4125,7 @@ dependencies = [
 [[package]]
 name = "prpc"
 version = "0.2.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4106,7 +4142,7 @@ dependencies = [
 [[package]]
 name = "prpc-build"
 version = "0.2.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "either",
  "heck 0.5.0",
@@ -4126,7 +4162,7 @@ dependencies = [
 [[package]]
 name = "prpc-serde-bytes"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "proc-macro2",
  "syn 2.0.66",
@@ -4606,16 +4642,16 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.10"
+version = "0.23.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05cff451f60db80f490f3c182b77c35260baace73209e9cdbbe526bfe3a4d402"
+checksum = "c58f8c84392efc0a126acce10fa59ff7b3d2ac06ab451a33f2741989b806b044"
 dependencies = [
  "aws-lc-rs",
  "log",
  "once_cell",
  "ring 0.17.8",
  "rustls-pki-types",
- "rustls-webpki 0.102.4",
+ "rustls-webpki 0.102.6",
  "subtle",
  "zeroize",
 ]
@@ -4657,9 +4693,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.102.4"
+version = "0.102.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff448f7e92e913c4b7d4c6d8e4540a1724b319b4152b8aef6d4cf8339712b33e"
+checksum = "8e6b52d4fda176fd835fdc55a835d4a89b8499cad995885a21149d5ad62f852e"
 dependencies = [
  "aws-lc-rs",
  "ring 0.17.8",
@@ -5058,10 +5094,10 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "sni-tls-listener"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "anyhow",
- "rustls 0.23.10",
+ "rustls 0.23.12",
  "rustls-pemfile 2.1.2",
  "rustls-pki-types",
  "tokio",
@@ -5672,7 +5708,7 @@ version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
- "rustls 0.23.10",
+ "rustls 0.23.12",
  "rustls-pki-types",
  "tokio",
 ]
@@ -6036,6 +6072,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
 
 [[package]]
+name = "universal-hash"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc1de2c688dc15305988b563c3854064043356019f97a4b46276fe734c4f07ea"
+dependencies = [
+ "crypto-common",
+ "subtle",
+]
+
+[[package]]
 name = "untrusted"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6176,23 +6222,26 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "derive_more",
  "futures",
  "log",
  "num_enum",
  "parity-scale-codec",
+ "scopeguard",
  "tinyvec",
  "wapo-macro",
+ "wapod-types",
  "wiggle",
 ]
 
 [[package]]
 name = "wapo-host"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "dashmap",
  "derive_more",
@@ -6229,7 +6278,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "heck 0.5.0",
  "proc-macro-crate",
@@ -6240,7 +6289,7 @@ dependencies = [
 [[package]]
 name = "wapod"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "anyhow",
  "clap",
@@ -6256,7 +6305,7 @@ dependencies = [
  "rand",
  "rocket",
  "rocket_cors",
- "rustls 0.23.10",
+ "rustls 0.23.12",
  "scopeguard",
  "serde_json",
  "sha2 0.10.8",
@@ -6269,12 +6318,13 @@ dependencies = [
  "wapo-host",
  "wapod-crypto",
  "wapod-rpc",
+ "wapod-types",
 ]
 
 [[package]]
 name = "wapod-crypto"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "anyhow",
  "curve25519-dalek 4.1.2",
@@ -6292,22 +6342,13 @@ dependencies = [
  "serde_json",
  "sp-core",
  "thiserror",
- "wapod-crypto-types",
-]
-
-[[package]]
-name = "wapod-crypto-types"
-version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
+ "wapod-types",
 ]
 
 [[package]]
 name = "wapod-rpc"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git#49d20c2cae4f11894dd8905a224ba1a8435cc2c6"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
 dependencies = [
  "anyhow",
  "parity-scale-codec",
@@ -6316,7 +6357,17 @@ dependencies = [
  "prpc-build",
  "serde",
  "serde_json",
- "wapod-crypto-types",
+ "wapod-types",
+]
+
+[[package]]
+name = "wapod-types"
+version = "0.1.0-dev.1"
+source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
 ]
 
 [[package]]

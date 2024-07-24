@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use wapod::{
     config::{AddressGenerator, DefaultKerProvider, Paths, WorkerConfig},
-    rpc::prpc::Manifest,
+    types::ticket::AppManifest,
     Address,
 };
 
@@ -15,7 +15,7 @@ impl WorkerConfig for Config {
 }
 
 impl AddressGenerator for Config {
-    fn generate_address(_manifest: &Manifest) -> Address {
+    fn generate_address(_manifest: &AppManifest) -> Address {
         [0; 32]
     }
 }

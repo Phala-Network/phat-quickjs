@@ -52,6 +52,7 @@ futures = { version = "0.3.30", optional = true }
 tokio-util = { version = "0.7.11", optional = true, features = ["compat", "io-util"] }
 http-body-util = { version = "0.1.2", optional = true }
 pin-project = "1.1.5"
+cfg-if = "1.0.0"
 
 [dependencies.sni-tls-listener]
 git = "https://github.com/Phala-Network/wapo"

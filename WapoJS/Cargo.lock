@@ -2516,6 +2516,7 @@ dependencies = [
  "blake2",
  "bootcode",
  "bytes",
+ "cfg-if",
  "environmental",
  "futures",
  "hex",

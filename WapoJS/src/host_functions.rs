@@ -26,7 +26,6 @@ mod query_listen;
 mod timer;
 #[cfg(feature = "js-url")]
 mod url;
-#[cfg(feature = "wapo")]
 mod wapo_ocalls;
 
 mod derive_secret;
@@ -86,7 +85,6 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
         isolate_eval::setup(&ns)?;
         #[cfg(feature = "wapo")]
         query_listen::setup(&ns)?;
-        #[cfg(feature = "wapo")]
         wapo_ocalls::setup(&ns)?;
         derive_secret::setup(&ns)?;
     }

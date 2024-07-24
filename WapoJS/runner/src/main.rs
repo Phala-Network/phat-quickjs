@@ -7,7 +7,7 @@ use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use wapod::{
     config::{Paths, WorkerConfig},
-    rpc::prpc::{Manifest, StringPair},
+    types::ticket::AppManifest,
     WorkerArgs,
 };
 
@@ -68,6 +68,7 @@ fn init_logger() {
 #[tokio::main]
 async fn main() -> Result<()> {
     init_logger();
+    info!("starting wapojs, data dir: {:?}", Config::data_dir());
     let args = Args::parse();
     <Config as WorkerConfig>::Paths::create_dirs_if_needed()
         .context("failed to create directories")?;
@@ -87,6 +88,7 @@ async fn main() -> Result<()> {
         .tcp_listen_port_range(0..=65535)
         .tls_port(Some(args.tls_port))
         .verify_tls_server_cert(args.verify_cert)
+        .on_demand_connection_timeout(Duration::from_secs(10))
         .build();
     let Some(engine_file) = args.engine.clone().or_else(config::read_default_engine) else {
         return Err(anyhow!(
@@ -99,48 +101,38 @@ async fn main() -> Result<()> {
         let engine_file = std::fs::canonicalize(&engine_file).expect("canonicalize");
         config::save_default_engine(&engine_file)?;
     }
-    let script = std::fs::read_to_string(&args.script).context("failed to read engine code")?;
+    let script = std::fs::read_to_string(&args.script).context("failed to read the script")?;
     let worker = Worker::create_running(worker_args)
         .await
         .context("failed to create worker state")?;
-    let hash_algorithm = "sha256".to_string();
 
     let mut instance_args = vec!["-c".to_string(), script];
     instance_args.extend(args.args.into_iter());
 
     let code_hash = worker
         .blob_loader()
-        .put(&[], &mut &engine_code[..], &hash_algorithm)
+        .put("sha256:", &mut &engine_code[..])
         .await
         .context("failed to upload engine code")?;
-    let manifest = Manifest {
+    let manifest = AppManifest {
         version: 1,
         code_hash,
-        hash_algorithm,
         args: instance_args,
-        env_vars: std::env::vars()
-            .map(|(key, value)| StringPair { key, value })
-            .collect(),
+        env_vars: std::env::vars().collect(),
         on_demand: false,
         resizable: false,
         max_query_size: args.query_size.try_into().context("invalid query size")?,
         label: "test".to_string(),
+        required_blobs: vec![],
     };
     let app_info = worker
-        .deploy_app(manifest, false)
+        .deploy_app(manifest, false, true)
         .await
         .context("failed to deploy the app")?;
     info!(
         "app deployed at address: 0x{:?}",
         hex_fmt::HexFmt(app_info.address)
     );
-    use rocket::yansi::Paint;
-    let url = format!(
-        "http://localhost:{}/app/0x{}/",
-        args.port,
-        hex_fmt::HexFmt(app_info.address)
-    );
-    info!("app endpoint: {}", url.green());
     let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
     let server = web_api::serve_user(worker.clone(), args.port);
     tokio::spawn(async move {

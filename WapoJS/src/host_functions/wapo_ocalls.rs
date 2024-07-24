@@ -1,4 +1,5 @@
-use anyhow::Result;
+use crate::runtime::ocall;
+use anyhow::{Context, Result};
 use js::AsBytes;
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
@@ -14,32 +15,30 @@ pub(crate) fn setup(ns: &js::Value) -> Result<()> {
 
 #[js::host_call]
 fn worker_sign(message: js::BytesOrString) -> Result<AsBytes<Vec<u8>>> {
-    wapo::ocall::sign(message.as_bytes())
+    ocall::sign(message.as_bytes())
         .map(AsBytes)
         .map_err(Into::into)
 }
 
 #[js::host_call]
 fn worker_pubkey() -> Result<AsBytes<[u8; 32]>> {
-    wapo::ocall::worker_pubkey()
-        .map(AsBytes)
-        .map_err(Into::into)
+    ocall::worker_pubkey().map(AsBytes).map_err(Into::into)
 }
 
 #[js::host_call]
 fn sgx_quote(message: js::BytesOrString) -> Result<Option<AsBytes<Vec<u8>>>> {
-    let quote = wapo::ocall::sgx_quote(message.as_bytes())?;
+    let quote = ocall::sgx_quote(message.as_bytes())?;
     Ok(quote.map(AsBytes))
 }
 
 #[js::host_call]
 fn boot_data() -> Result<Option<js::Bytes>> {
-    Ok(wapo::ocall::read_boot_data()?.map(Into::into))
+    Ok(ocall::read_boot_data()?.map(Into::into))
 }
 
 #[js::host_call]
 fn set_boot_data(data: js::Bytes) -> Result<()> {
-    wapo::ocall::write_boot_data(data.as_bytes())?;
+    ocall::write_boot_data(data.as_bytes())?;
     Ok(())
 }
 
@@ -49,13 +48,13 @@ struct Guard {
 
 impl Drop for Guard {
     fn drop(&mut self) {
-        let _ = wapo::ocall::app_unlock(&self.path);
+        let _ = ocall::app_unlock(&self.path);
     }
 }
 
 #[js::host_call(with_context)]
 fn try_lock(context: js::Context, _this: js::Value, path: js::JsString) -> Result<js::Value> {
-    wapo::ocall::app_try_lock(path.as_str())?;
+    ocall::app_try_lock(path.as_str()).context("lock failed")?;
     let gaurd = Guard {
         path: path.as_str().into(),
     };

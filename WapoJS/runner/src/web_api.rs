@@ -6,33 +6,10 @@ use rocket::figment::Figment;
 use rocket::http::ContentType;
 use rocket::response::status::Custom;
 use rocket::routes;
-use rocket::{get, http::Status, post, Data, State};
-use std::path::PathBuf;
-use wapod::ext::{RequestInfo, StreamResponse};
-use wapod::prpc_service::{connect_vm, handle_prpc, HexBytes};
+use rocket::{get, post, Data, State};
+use wapod::prpc_service::handle_prpc;
 
 type UserService = wapod::prpc_service::UserService<Config>;
-
-#[post("/app/<id>/<path..>", data = "<body>")]
-async fn connect_vm_post<'r>(
-    state: &State<Worker>,
-    head: RequestInfo,
-    id: HexBytes,
-    path: PathBuf,
-    body: Data<'r>,
-) -> Result<StreamResponse, (Status, String)> {
-    connect_vm(state, head, id, path, Some(body)).await
-}
-
-#[get("/app/<id>/<path..>")]
-async fn connect_vm_get<'r>(
-    state: &State<Worker>,
-    head: RequestInfo,
-    id: HexBytes,
-    path: PathBuf,
-) -> Result<StreamResponse, (Status, String)> {
-    connect_vm(state, head, id, path, None).await
-}
 
 #[post("/<method>?<json>", data = "<data>")]
 async fn prpc_post(
@@ -64,7 +41,6 @@ pub async fn serve_user(state: Worker, port: u16) -> Result<()> {
         .merge(("port", port));
     let _rocket = rocket::custom(figment)
         .manage(state)
-        .mount("/", routes![connect_vm_get, connect_vm_post])
         .mount("/prpc", routes![prpc_post, prpc_get])
         .launch()
         .await?;
