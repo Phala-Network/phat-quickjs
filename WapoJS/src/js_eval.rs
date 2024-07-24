@@ -20,13 +20,7 @@ struct Args {
 #[cfg(feature = "wapo")]
 fn load_code(code_hash: &str) -> Result<String> {
     log::info!(target: "js", "loading code with hash: {code_hash}");
-    let code_hash = code_hash.trim_start_matches("0x");
-    if code_hash.len() != 64 {
-        bail!("invalid code hash length: {}", code_hash.len());
-    }
-    let code_hash = hex::decode(code_hash).context("invalid code hash")?;
-    let source_blob =
-        wapo::ocall::blob_get(&code_hash, "sha256").context("failed to get source code")?;
+    let source_blob = wapo::ocall::blob_get(&code_hash).context("failed to get source code")?;
     let source_code = String::from_utf8(source_blob).context("source code is not valid utf-8")?;
     Ok(source_code)
 }

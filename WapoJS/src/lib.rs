@@ -50,11 +50,12 @@ pub mod runtime {
     use std::net::SocketAddr;
     use std::sync::atomic::{AtomicU16, Ordering};
     use std::sync::{Arc, OnceLock};
+    use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
     use hyper::client::HttpConnector;
     use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-    use sni_tls_listener::{SniTlsListener, Subscription};
+    use sni_tls_listener::{Agent, Generate as _, SniTlsListener, Subscription};
     use tokio::io::DuplexStream;
     use tokio_rustls::rustls::ClientConfig;
     pub use wapo::env::messages::{HttpHead, HttpResponseHead};
@@ -67,15 +68,18 @@ pub mod runtime {
 
     pub struct TlsListener(Subscription);
 
-    fn global_sni_listener() -> Result<&'static SniTlsListener> {
-        static GLOBAL_SNI_LISTENER: OnceLock<Result<SniTlsListener>> = OnceLock::new();
+    fn global_sni_listener() -> Result<&'static Agent> {
+        static GLOBAL_SNI_LISTENER: OnceLock<Result<(SniTlsListener, Agent)>> = OnceLock::new();
         let sni_tls_port = WAPO_SNI_TLS_PORT.load(Ordering::Relaxed);
         let listener = GLOBAL_SNI_LISTENER.get_or_init(|| {
             SniTlsListener::install_ring_provider();
-            futures::executor::block_on(SniTlsListener::bind("0.0.0.0", sni_tls_port))
+            let listener =
+                futures::executor::block_on(SniTlsListener::bind("0.0.0.0", sni_tls_port, false))?;
+            let agent = listener.agent(|| {}, true, Duration::from_micros(0));
+            Ok((listener, agent))
         });
         match listener {
-            Ok(listener) => Ok(listener),
+            Ok((_listener, agent)) => Ok(agent),
             Err(err) => Err(anyhow!("failed to bind SNI listener: {err}")),
         }
     }
@@ -90,8 +94,8 @@ pub mod runtime {
 
     impl TlsListener {
         pub async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)> {
-            let (stream, addr) = self.0.next().await.ok_or(anyhow!("listener closed"))?;
-            Ok((TcpStream::ServerTlsSteam(stream), addr))
+            let conn = self.0.next().await.ok_or(anyhow!("listener closed"))?;
+            Ok((TcpStream::ServerTlsSteam(conn.stream), conn.remote_addr))
         }
     }
 
