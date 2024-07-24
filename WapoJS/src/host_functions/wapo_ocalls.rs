@@ -7,7 +7,7 @@ pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     ns.define_property_fn("workerPublicKey", worker_pubkey)?;
     ns.define_property_fn("sgxQuote", sgx_quote)?;
     ns.define_property_fn("bootData", boot_data)?;
-    ns.define_property_fn("setBootData", set_boot_data)?;
+    ns.define_property_fn("storeBootData", store_boot_data)?;
     ns.define_property_fn("tryLock", try_lock)?;
     ns.define_property_fn("unlock", unlock)?;
     Ok(())
@@ -33,11 +33,11 @@ fn sgx_quote(message: js::BytesOrString) -> Result<Option<AsBytes<Vec<u8>>>> {
 
 #[js::host_call]
 fn boot_data() -> Result<Option<js::Bytes>> {
-    Ok(ocall::read_boot_data()?.map(Into::into))
+    Ok(ocall::read_boot_data().unwrap_or_default().map(Into::into))
 }
 
 #[js::host_call]
-fn set_boot_data(data: js::Bytes) -> Result<()> {
+fn store_boot_data(data: js::Bytes) -> Result<()> {
     ocall::write_boot_data(data.as_bytes())?;
     Ok(())
 }
