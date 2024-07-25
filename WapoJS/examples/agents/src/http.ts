@@ -2,12 +2,16 @@ import { ReadableStreamHandle, TlsConfig, WriteableStreamHandle } from "@phala/w
 
 export function listen(config: TlsConfig, handler: (req: Request) => Response | Promise<Response>) {
     Wapo.httpsListen(config, async req => {
-        const request = {
-            ...new Request(req.url, req),
+        const headers = new Headers(req.headers);
+        const host = headers.get("host") || "localhost";
+        const url = `https://${host}${req.url}`;
+        const request = new Request(url, {
+            ...req,
             body: toReadableStream(req.opaqueInputStream),
-        }
+        });
         const response = await handler(request);
         const resposneStream = toWritableStream(req.opaqueOutputStream);
+        console.log(`${req.method} ${req.url}: ${response.status} ${response.statusText}`);
         Wapo.httpsSendResponseHead(req.opaqueResponseTx, {
             status: response.status,
             headers: Array.from(response.headers.entries()),
