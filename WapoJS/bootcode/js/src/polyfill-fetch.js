@@ -1,47 +1,15 @@
 ((g) => {
-    class Request {
-        constructor(input, init = {}) {
-            if (input instanceof Request) {
-                this.url = input.url;
-                this.method = input.method;
-                this.headers = new Headers(input.headers);
-                this.body = input.body;
-            } else {
-                this.url = input;
-                this.method = init.method || 'GET';
-                this.headers = new Headers(init.headers);
-                this.body = init.body || null;
-            }
-            this.cache = init.cache || 'default';
-            this.redirect = init.redirect || 'follow';
-            this.referrer = init.referrer || 'about:client';
+    function consumed(body) {
+        if (body._noBody) return
+        if (body.bodyUsed) {
+            throw new TypeError('Already read')
         }
+        body.bodyUsed = true
     }
 
-    class Response {
-        constructor(bodyInit = null, options = {}) {
-            if (
-                bodyInit !== null &&
-                typeof bodyInit !== 'string' &&
-                !(bodyInit instanceof Blob) &&
-                !(bodyInit instanceof ArrayBuffer) &&
-                !(bodyInit instanceof Uint8Array)
-            ) {
-                throw new TypeError('Unsupported bodyInit type');
-            }
-
-            this.id = options.id || null;
-            this.ok = (options.status / 100 | 0) == 2;
-            this.statusText = options.statusText || '';
-            this.status = options.status || 200;
-            this.url = options.url || '';
-            this.headers = new Headers(options.headers || {});
-            this._opaqueBodyStream = options.opaqueBodyStream || null;
-            this.bodyUsed = false;
-            this.type = "default";
-            if (bodyInit !== null) {
-                this.setBody(bodyInit);
-            }
+    class WithBody {
+        constructor() {
+            this.bodyUsed = false
         }
         async text() {
             return Wapo.utf8Decode(await this.bytes());
@@ -55,25 +23,24 @@
         async arrayBuffer() {
             return (await this.bytes()).buffer;
         }
-        bytes() {
-            return new Promise((resolve, reject) => {
-                const reader = this.body.getReader();
-                const chunks = [];
-                reader.read().then(function processText({ done, value }) {
-                    if (done) {
-                        resolve(Wapo.concatU8a(chunks));
-                    } else {
-                        chunks.push(value);
-                        reader.read().then(processText);
-                    }
-                }).catch(reject);
-            });
+        async bytes() {
+            const reader = this.body.getReader();
+            const chunks = [];
+            while (true) {
+                const { done, value } = await reader.read();
+                if (value) {
+                    chunks.push(value);
+                }
+                if (done) {
+                    return Wapo.concatU8a(chunks);
+                }
+            }
         }
         get body() {
+            consumed(this);
             return this._body ? this._body : this.createBodyStream();
         }
-
-        setBody(bodyInit) {
+        _initBody(bodyInit) {
             if (typeof bodyInit === 'string') {
                 this._body = new ReadableStream({
                     start(controller) {
@@ -104,10 +71,19 @@
                         controller.close();
                     }
                 });
+            } else if (bodyInit instanceof ReadableStream) {
+                this._body = bodyInit;
             }
         }
-
         createBodyStream() {
+            if (!this._opaqueBodyStream) {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        controller.close();
+                    }
+                });
+                return this._body;
+            }
             const anchor = {};
             const opaqueBodyStream = this._opaqueBodyStream;
             this._body = new ReadableStream({
@@ -139,35 +115,110 @@
         }
     }
 
-    g.fetch = (resource, options) => {
-        var url;
-        if (typeof resource == "string") {
-            url = resource;
-        } else if (resource instanceof Request) {
-            url = resource.url;
-            options = {
-                ...resource,
-                ...options || {},
+    const methods = ['CONNECT', 'DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE']
+    function normalizeMethod(method) {
+        const upcased = method.toUpperCase()
+        return methods.indexOf(upcased) > -1 ? upcased : method
+    }
+
+    class Request extends WithBody {
+        constructor(input, options = {}) {
+            super()
+            options = options || {}
+            let body = options.body
+
+            if (input instanceof Request) {
+                if (input.bodyUsed) {
+                    throw new TypeError('Already read')
+                }
+                this.url = input.url
+                this.credentials = input.credentials
+                if (!options.headers) {
+                    this.headers = new Headers(input.headers)
+                }
+                this.method = input.method
+                this.mode = input.mode
+                this.signal = input.signal
+                if (!body && input._bodyInit != null) {
+                    body = input._bodyInit
+                    input.bodyUsed = true
+                }
+                this.redirect = input.redirect;
+                this.referrer = input.referrer;
+            } else {
+                this.url = String(input)
             }
-        } else {
-            url = resource.toString();
+
+            this.redirect = options.redirect || this.redirect || 'follow';
+            this.referrer = options.referrer || this.referrer || 'about:client';
+            this.credentials = options.credentials || this.credentials || 'same-origin'
+            if (options.headers || !this.headers) {
+                this.headers = new Headers(options.headers)
+            }
+            this.method = normalizeMethod(options.method || this.method || 'GET')
+            this.mode = options.mode || this.mode || null
+            this.signal = options.signal || this.signal || (function () {
+                if ('AbortController' in g) {
+                    var ctrl = new AbortController();
+                    return ctrl.signal;
+                }
+            }());
+            this._initBody(body)
+            if (this.method === 'GET' || this.method === 'HEAD') {
+                if (options.cache === 'no-store' || options.cache === 'no-cache') {
+                    // Search for a '_' parameter in the query string
+                    var reParamSearch = /([?&])_=[^&]*/
+                    if (reParamSearch.test(this.url)) {
+                        // If it already exists then set the value with the current time
+                        this.url = this.url.replace(reParamSearch, '$1_=' + new Date().getTime())
+                    } else {
+                        // Otherwise add a new '_' parameter to the end with the current time
+                        var reQueryString = /\?/
+                        this.url += (reQueryString.test(this.url) ? '&' : '?') + '_=' + new Date().getTime()
+                    }
+                }
+            }
         }
-        options = options || {};
-        const redirect = options.redirect || "follow";
+    }
+
+    class Response extends WithBody {
+        constructor(bodyInit = null, options = {}) {
+            super()
+            if (
+                bodyInit !== null &&
+                typeof bodyInit !== 'string' &&
+                !(bodyInit instanceof Blob) &&
+                !(bodyInit instanceof ArrayBuffer) &&
+                !(bodyInit instanceof Uint8Array)
+            ) {
+                throw new TypeError('Unsupported bodyInit type');
+            }
+
+            this.id = options.id || null;
+            this.ok = (options.status / 100 | 0) == 2;
+            this.statusText = options.statusText || '';
+            this.status = options.status || 200;
+            this.url = options.url || '';
+            this.headers = new Headers(options.headers || {});
+            this._opaqueBodyStream = options.opaqueBodyStream || null;
+            this.bodyUsed = false;
+            this.type = "default";
+            if (bodyInit !== null) {
+                this._initBody(bodyInit);
+            }
+        }
+    }
+
+    g.fetch = async (resource, options) => {
         return new Promise(async (resolve, reject) => {
+            const r = new Request(resource, options);
             const request = {
-                url,
-                method: options.method || "GET",
-                headers: options.headers || {},
-                timeout: options.timeout,
-                body: options.body || "",
+                url: r.url,
+                method: r.method,
+                headers: Object.fromEntries(r.headers.entries()),
+                body: await r.bytes(),
             };
-            if (request.body instanceof Blob) {
-                request.body = await request.body.arrayBuffer();
-            }
-            if (request.headers instanceof Headers) {
-                request.headers = Object.fromEntries(options.headers.entries());
-            }
+            const redirect = r.redirect;
             Wapo.httpRequest(request,
                 (cmd, data) => {
                     if (cmd == "head") {
