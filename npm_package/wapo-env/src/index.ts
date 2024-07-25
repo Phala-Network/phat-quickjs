@@ -127,7 +127,7 @@ declare global {
     bootData(): Uint8Array | undefined;
     /**
      * Sets the boot data for the app in the worker.
-     * @param data - The boot data to be stored.
+     * @param data - The boot data to be stored. Max size is 64KB.
      */
     storeBootData(data: Uint8Array | string): void;
     /**
@@ -138,12 +138,12 @@ declare global {
      * @param key - The key for which to acquire the lock. Max length is 64 bytes.
      * @returns An opaque value representing the lock, or undefined if the lock could not be acquired.
      */
-    tryLock(key: string): Guard;
+    tryLock(key: string): LockGuard;
     /**
      * Unlocks the previously acquired lock.
      * @param lock - The opaque value representing the lock to be unlocked.
      */
-    unlock(lock: Guard): void;
+    unlock(lock: LockGuard): void;
 
 
     /**
@@ -361,10 +361,10 @@ export interface IncommingRequest {
 /**
  * Represents a lock acquired through `tryLock`.
  */
-interface Guard {
-  [_guardBrand]: "Guard";
+interface LockGuard {
+  [_lockGuardBrand]: "LockGuard";
 }
-declare const _guardBrand: unique symbol;
+declare const _lockGuardBrand: unique symbol;
 
 /**
  * Represents a readable stream handle.

@@ -525,7 +525,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -3021,7 +3021,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -4064,7 +4064,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "log",
  "multimap 0.10.0",
  "once_cell",
@@ -4097,7 +4097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -4125,7 +4125,7 @@ dependencies = [
 [[package]]
 name = "prpc"
 version = "0.2.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4142,7 +4142,7 @@ dependencies = [
 [[package]]
 name = "prpc-build"
 version = "0.2.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "either",
  "heck 0.5.0",
@@ -4162,7 +4162,7 @@ dependencies = [
 [[package]]
 name = "prpc-serde-bytes"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "proc-macro2",
  "syn 2.0.66",
@@ -5094,7 +5094,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "sni-tls-listener"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "rustls 0.23.12",
@@ -6222,7 +6222,7 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "derive_more",
  "futures",
@@ -6239,7 +6239,7 @@ dependencies = [
 [[package]]
 name = "wapo-host"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -6278,7 +6278,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "heck 0.5.0",
  "proc-macro-crate",
@@ -6289,7 +6289,7 @@ dependencies = [
 [[package]]
 name = "wapod"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "clap",
@@ -6324,7 +6324,7 @@ dependencies = [
 [[package]]
 name = "wapod-crypto"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "curve25519-dalek 4.1.2",
@@ -6348,7 +6348,7 @@ dependencies = [
 [[package]]
 name = "wapod-rpc"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "parity-scale-codec",
@@ -6363,7 +6363,7 @@ dependencies = [
 [[package]]
 name = "wapod-types"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/Phala-Network/wapo.git?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo.git#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

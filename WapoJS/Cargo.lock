@@ -2026,7 +2026,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "sni-tls-listener"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "anyhow",
  "rustls 0.23.12",
@@ -2463,7 +2463,7 @@ dependencies = [
 [[package]]
 name = "wapo"
 version = "0.1.1"
-source = "git+https://github.com/Phala-Network/wapo?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "derive_more",
  "env_filter",
@@ -2483,7 +2483,7 @@ dependencies = [
 [[package]]
 name = "wapo-env"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "derive_more",
  "futures",
@@ -2499,7 +2499,7 @@ dependencies = [
 [[package]]
 name = "wapo-macro"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/wapo?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -2555,7 +2555,7 @@ dependencies = [
 [[package]]
 name = "wapod-types"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/Phala-Network/wapo?branch=sni-route2#4fc5d8b4a2237913cff8c2fce11bee6e15b1e055"
+source = "git+https://github.com/Phala-Network/wapo#f8360a9853d72011075d9ff387d416f1e3464fc4"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
