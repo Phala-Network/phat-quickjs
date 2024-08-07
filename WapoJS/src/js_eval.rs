@@ -180,6 +180,10 @@ async fn run_with_service(
     }
     #[cfg(feature = "native")]
     {
+        let default_fn = js_ctx.get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
+        if default_fn.is_function() {
+            let _ = service.call_function(default_fn, ());
+        }
         service.wait_for_tasks().await;
     }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
