@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::env;
+use std::path::Path;
 
 use js::{
     ToJsValue,
@@ -11,6 +12,9 @@ use crate::{
     Service,
 };
 use anyhow::{anyhow, bail, Context, Result};
+
+#[cfg(feature = "native")]
+use dotenv;
 
 use pink_types::js::{JsCode, JsValue};
 
@@ -60,6 +64,17 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code = iter.next().ok_or(anyhow!("missing code after -c"))?;
                     codes.push(JsCode::Source(code));
                 }
+                #[cfg(feature = "native")]
+                "-e" => {
+                    let path_str = iter.next().ok_or(anyhow!("missing path after -e"))?;
+                    let path = Path::new(&path_str);
+                    if !path.exists() {
+                        return Err(anyhow!("path {path_str} not exists."));
+                    }
+                    if let Err(_) = dotenv::from_path(path) {
+                        return Err(anyhow!("not a valid env file: {path_str}"));
+                    }
+                }
                 _ => {
                     print_usage();
                     bail!("unknown option: {}", arg);
@@ -94,6 +109,8 @@ fn print_usage() {
     println!("  --code-hash <code_hash>  Execute code");
     #[cfg(feature = "native")]
     println!("  --tls-port <port>  TLS listen port (default: 443)");
+    #[cfg(feature = "native")]
+    println!("  -e <path>        dotenv file provides additional env variables");
     println!("  --               Stop processing options");
 }
 
