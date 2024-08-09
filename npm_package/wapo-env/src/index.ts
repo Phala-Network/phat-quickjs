@@ -81,7 +81,7 @@ declare global {
      *    Supported values are "blake2b128", "blake2b256", "blake2b512", "sha256", "keccak256".
      * @param message - The message to hash, either as a Uint8Array or a string.
      */
-    hash(algrithm: string, message: Uint8Array | string): Uint8Array;
+    hash(algrithm: 'blake2b128' | 'blake2b256' | 'blake2b512' | 'sha256' | 'keccak256', message: Uint8Array | string): Uint8Array;
 
     /**
      * Concatenates multiple Uint8Array objects into a single Uint8Array.

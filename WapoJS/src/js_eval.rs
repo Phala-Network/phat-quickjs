@@ -1,12 +1,20 @@
 use std::borrow::Cow;
+use std::env;
+use std::path::Path;
 
-use js::ToJsValue;
+use js::{
+    ToJsValue,
+    Value,
+};
 
 use crate::{
     service::{ServiceConfig, ServiceRef},
     Service,
 };
 use anyhow::{anyhow, bail, Context, Result};
+
+#[cfg(feature = "native")]
+use dotenv;
 
 use pink_types::js::{JsCode, JsValue};
 
@@ -56,6 +64,17 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code = iter.next().ok_or(anyhow!("missing code after -c"))?;
                     codes.push(JsCode::Source(code));
                 }
+                #[cfg(feature = "native")]
+                "-e" => {
+                    let path_str = iter.next().ok_or(anyhow!("missing path after -e"))?;
+                    let path = Path::new(&path_str);
+                    if !path.exists() {
+                        return Err(anyhow!("path {path_str} not exists."));
+                    }
+                    if let Err(_) = dotenv::from_path(path) {
+                        return Err(anyhow!("not a valid env file: {path_str}"));
+                    }
+                }
                 _ => {
                     print_usage();
                     bail!("unknown option: {}", arg);
@@ -90,6 +109,8 @@ fn print_usage() {
     println!("  --code-hash <code_hash>  Execute code");
     #[cfg(feature = "native")]
     println!("  --tls-port <port>  TLS listen port (default: 443)");
+    #[cfg(feature = "native")]
+    println!("  -e <path>        dotenv file provides additional env variables");
     println!("  --               Stop processing options");
 }
 
@@ -142,6 +163,21 @@ async fn run_with_service(
         .get_global_object()
         .set_property("scriptArgs", &js_args)
         .context("failed to set scriptArgs")?;
+
+    #[cfg(feature = "native")]
+    {
+        let js_env = Value::new_object(&js_ctx, "env");
+        for (key, value) in env::vars() {
+            if key.starts_with("WAPOJS_PUBLIC_") {
+                js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
+            }
+        }
+        let js_process = js_ctx.get_global_object().get_property("process")?;
+        if js_process.is_object() {
+            js_process.set_property("env", &js_env)?;
+        }
+    }
+
     let mut expr_val = None;
     for code in args.codes.into_iter() {
         let result = match code {
@@ -180,6 +216,18 @@ async fn run_with_service(
     }
     #[cfg(feature = "native")]
     {
+        let default_fn = js_ctx.get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
+        if default_fn.is_function() {
+            // TODO is it support async?
+            let res = service.call_function(default_fn, ());
+            match res {
+                Ok(_) => {
+                },
+                Err(err) => {
+                    bail!("{err}");
+                }
+            }
+        }
         service.wait_for_tasks().await;
     }
     // If scriptOutput is set, use it as output. Otherwise, use the last expression value.
