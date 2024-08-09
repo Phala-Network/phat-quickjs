@@ -163,6 +163,21 @@ async fn run_with_service(
         .get_global_object()
         .set_property("scriptArgs", &js_args)
         .context("failed to set scriptArgs")?;
+
+    #[cfg(feature = "native")]
+    {
+        let js_env = Value::new_object(&js_ctx, "env");
+        for (key, value) in env::vars() {
+            if key.starts_with("WAPOJS_PUBLIC_") {
+                js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
+            }
+        }
+        let js_process = js_ctx.get_global_object().get_property("process")?;
+        if js_process.is_object() {
+            js_process.set_property("env", &js_env)?;
+        }
+    }
+
     let mut expr_val = None;
     for code in args.codes.into_iter() {
         let result = match code {
@@ -201,20 +216,17 @@ async fn run_with_service(
     }
     #[cfg(feature = "native")]
     {
-        let js_env = Value::new_object(&js_ctx, "env");
-        for (key, value) in env::vars() {
-            if key.starts_with("WAPOJS_PUBLIC_") {
-                js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
-            }
-        }
-        let js_process = js_ctx.get_global_object().get_property("process")?;
-        if js_process.is_object() {
-            js_process.set_property("env", &js_env)?;
-        }
-
         let default_fn = js_ctx.get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
         if default_fn.is_function() {
-            let _ = service.call_function(default_fn, ());
+            // TODO is it support async?
+            let res = service.call_function(default_fn, ());
+            match res {
+                Ok(_) => {
+                },
+                Err(err) => {
+                    bail!("{err}");
+                }
+            }
         }
         service.wait_for_tasks().await;
     }
