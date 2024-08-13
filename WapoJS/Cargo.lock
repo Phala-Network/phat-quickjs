@@ -2557,6 +2557,7 @@ dependencies = [
  "wat",
  "web-sys",
  "webpki-roots 0.26.3",
+ "wyhash-final4",
 ]
 
 [[package]]
@@ -2911,6 +2912,12 @@ checksum = "f593a95398737aeed53e489c785df13f3618e41dbcd6718c6addbf1395aa6876"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "wyhash-final4"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25b6011178d3cef2da904f620470e31629fbbfe386e4989c8e06b2cd10f91bb7"
 
 [[package]]
 name = "wyz"
