@@ -40,6 +40,7 @@ pub fn sni_listen(sni: &str, cert: &str, key: &str) -> Result<TlsListener> {
     let listener = global_sni_listener()?;
     let key = sni_tls_listener::wrap_certified_key(cert.as_bytes(), key.as_bytes())
         .context("invalid cert or key")?;
+    log::info!(target: "wapo:tls", "SNI listener is listening on {sni}");
     let subscription = listener.subscribe(sni, key)?;
     Ok(TlsListener(subscription))
 }
