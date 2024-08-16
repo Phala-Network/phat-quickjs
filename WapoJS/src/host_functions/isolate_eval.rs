@@ -4,8 +4,7 @@ use anyhow::{bail, Result};
 use js::{EngineConfig, Error, ErrorContext, FromJsValue, ToJsValue};
 use log::{error, info};
 use tokio::sync::oneshot;
-use wyhash_final4::generics::WyHashVariant;
-use wyhash_final4::wyhash64::*;
+use blake2::{Blake2b512, Digest};
 use anyhow::anyhow;
 
 use crate::{
@@ -47,14 +46,15 @@ fn isolate_eval(
         }
     }
 
-    let scripts: Vec<u8> = args.scripts.iter().flat_map(|script| {
-        script.to_string().into_bytes()
-    }).collect();
-    let code_hash = WyHash64::with_seed(0).hash(scripts.as_slice()).to_string();
+    let mut hasher = Blake2b512::new();
+    args.scripts.iter().for_each(|script| {
+        hasher.update(script.to_string().into_bytes());
+    });
+    let code_hash = hasher.finalize();
     let mut inner_worker_secret: Option<String> = None;
     match service.worker_secret() {
         Some(secret) => {
-            let formatted = format!("{secret}::{code_hash}");
+            let formatted = format!("{secret}::{code_hash:02x}");
             inner_worker_secret = Some(formatted);
         }
         None => {
