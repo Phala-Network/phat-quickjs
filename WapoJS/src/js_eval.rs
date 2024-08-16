@@ -230,7 +230,6 @@ async fn run_with_service(
     {
         let default_fn = js_ctx.get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
         if default_fn.is_function() {
-            // TODO is it support async?
             let res = service.call_function(default_fn, ());
             match res {
                 Ok(_) => {
