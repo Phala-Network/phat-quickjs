@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crate::service::{OwnedJsValue, ServiceRef};
-use sha3::{Digest, Sha3_512};
+use blake2::{Blake2b512, Digest};
 use anyhow::anyhow;
 
 pub(crate) fn setup(ns: &js::Value) -> Result<()> {
@@ -30,7 +30,7 @@ fn derive_secret_native(service: ServiceRef, _this: js::Value, message: js::Byte
             match secret {
                 Some(secret) => {
                     let text = format!("{secret}::{message}");
-                    let mut hasher = Sha3_512::new();
+                    let mut hasher = Blake2b512::new();
                     hasher.update(text.as_bytes());
                     Ok(js::AsBytes(hasher.finalize().into()))
                 },
