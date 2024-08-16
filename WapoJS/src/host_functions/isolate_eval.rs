@@ -4,6 +4,9 @@ use anyhow::{bail, Result};
 use js::{EngineConfig, Error, ErrorContext, FromJsValue, ToJsValue};
 use log::{error, info};
 use tokio::sync::oneshot;
+use wyhash_final4::generics::WyHashVariant;
+use wyhash_final4::wyhash64::*;
+use anyhow::anyhow;
 
 use crate::{
     service::{OwnedJsValue, ServiceConfig, ServiceRef, ServiceWeakRef},
@@ -43,6 +46,22 @@ fn isolate_eval(
             bail!("memory limit is too low, at least 128KB is required");
         }
     }
+
+    let scripts: Vec<u8> = args.scripts.iter().flat_map(|script| {
+        script.to_string().into_bytes()
+    }).collect();
+    let code_hash = WyHash64::with_seed(0).hash(scripts.as_slice()).to_string();
+    let mut inner_worker_secret: Option<String> = None;
+    match service.worker_secret() {
+        Some(secret) => {
+            let formatted = format!("{secret}::{code_hash}");
+            inner_worker_secret = Some(formatted);
+        }
+        None => {
+            anyhow!("worker secret is not set");
+        }
+    }
+
     let config = ServiceConfig {
         engine_config: EngineConfig {
             gas_limit: args.gas_limit,
@@ -50,6 +69,7 @@ fn isolate_eval(
             time_limit: args.time_limit,
         },
         is_sandbox: true,
+        worker_secret: inner_worker_secret,
     };
     let child_service = Service::new_ref(config);
     child_service

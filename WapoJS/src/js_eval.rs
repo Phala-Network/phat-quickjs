@@ -23,6 +23,7 @@ struct Args {
     tls_port: u16,
     codes: Vec<JsCode>,
     js_args: Vec<String>,
+    worker_secret: Option<String>,
 }
 
 #[cfg(feature = "wapo")]
@@ -38,6 +39,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
     let mut iter = args.skip(1);
     #[cfg(feature = "native")]
     let mut tls_port = 443_u16;
+    let mut worker_secret = None;
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
             if arg == "--" {
@@ -75,6 +77,12 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                         return Err(anyhow!("not a valid env file: {path_str}"));
                     }
                 }
+                "--worker-secret" => {
+                    let secret = iter
+                        .next()
+                        .ok_or(anyhow!("missing value after --worker-secret"))?;
+                    worker_secret = Some(secret);
+                }
                 _ => {
                     print_usage();
                     bail!("unknown option: {}", arg);
@@ -96,6 +104,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         js_args,
         #[cfg(feature = "native")]
         tls_port,
+        worker_secret,
     })
 }
 
@@ -111,6 +120,7 @@ fn print_usage() {
     println!("  --tls-port <port>  TLS listen port (default: 443)");
     #[cfg(feature = "native")]
     println!("  -e <path>        dotenv file provides additional env variables");
+    println!("  --worker-secret <secret>    Worker secret");
     println!("  --               Stop processing options");
 }
 
@@ -132,24 +142,26 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     #[cfg(not(feature = "external-bootcode"))]
     let bootcode = Cow::Borrowed(DEFAULT_BOOTCODE);
 
+    let parsed_args = parse_args(args)?;
+
     let config = ServiceConfig {
         is_sandbox: false,
         engine_config: Default::default(),
+        worker_secret: parsed_args.worker_secret.clone(),
     };
 
     let service = Service::new_ref(config);
     service.boot(Some(&bootcode))?;
 
-    let rv = run_with_service(service.clone(), args).await;
+    let rv = run_with_service(service.clone(), parsed_args).await;
     service.shutdown().await;
     rv
 }
 
 async fn run_with_service(
     service: ServiceRef,
-    args: impl Iterator<Item = String>,
+    args: Args,
 ) -> Result<JsValue> {
-    let args = parse_args(args)?;
     #[cfg(feature = "native")]
     {
         crate::runtime::set_sni_tls_port(args.tls_port);

@@ -105,6 +105,7 @@ impl JsEngine {
 pub struct ServiceConfig {
     pub engine_config: EngineConfig,
     pub is_sandbox: bool,
+    pub worker_secret: Option<String>,
 }
 
 pub struct Service {
@@ -194,6 +195,10 @@ impl Service {
         ServiceRef(Rc::new_cyclic(move |weak_self| {
             Service::new(ServiceWeakRef(weak_self.clone()), config)
         }))
+    }
+
+    pub fn worker_secret(&self) -> Option<String> {
+        self.config.worker_secret.clone()
     }
 
     pub(crate) fn weak_self(&self) -> ServiceWeakRef {
