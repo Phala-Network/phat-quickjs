@@ -123,6 +123,19 @@ fn isolate_eval(
             .map_err(Error::msg)?;
     }
     let output = output.to_js_value().unwrap_or(js::Value::Undefined);
+
+    let default_fn = child_service.context().get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
+    if default_fn.is_function() {
+        let res = service.call_function(default_fn, ());
+        match res {
+            Ok(_) => {
+            },
+            Err(err) => {
+                bail!("{err}");
+            }
+        }
+    }
+
     let id = service.spawn_with_cancel_rx(
         callback,
         wait_child,
