@@ -86,8 +86,12 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
         #[cfg(feature = "wapo")]
         query_listen::setup(&ns)?;
         wapo_ocalls::setup(&ns)?;
+        #[cfg(not(feature = "native"))]
         derive_secret::setup(&ns)?;
     }
+
+    #[cfg(feature = "native")]
+    derive_secret::setup(&ns)?;
 
     Ok(())
 }
