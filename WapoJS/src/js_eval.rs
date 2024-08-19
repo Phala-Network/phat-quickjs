@@ -182,15 +182,17 @@ async fn run_with_service(
 
     #[cfg(feature = "native")]
     {
-        let js_env = Value::new_object(&js_ctx, "env");
-        for (key, value) in env::vars() {
-            if key.starts_with("WAPOJS_PUBLIC_") {
-                js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
-            }
-        }
         let js_process = js_ctx.get_global_object().get_property("process")?;
         if js_process.is_object() {
-            js_process.set_property("env", &js_env)?;
+            let js_env = js_process.get_property("env")?;
+            if js_env.is_null() || js_env.is_undefined() {
+                bail!("process.env is not an object");
+            }
+            for (key, value) in env::vars() {
+                if key.starts_with("WAPOJS_PUBLIC_") {
+                    js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
+                }
+            }
         }
     }
 
