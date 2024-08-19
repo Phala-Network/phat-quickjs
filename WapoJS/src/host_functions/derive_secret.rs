@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crate::service::{OwnedJsValue, ServiceRef};
+use crate::service::ServiceRef;
 use blake2::{Blake2b512, Digest};
 use anyhow::anyhow;
 
@@ -23,25 +23,10 @@ fn derive_secret(path: js::BytesOrString) -> Result<js::AsBytes<[u8; 64]>> {
 
 #[cfg(feature = "native")]
 #[js::host_call(with_context)]
-fn derive_secret_native(service: ServiceRef, _this: js::Value, message: js::BytesOrString, callback: OwnedJsValue) -> Result<js::AsBytes<[u8; 64]>> {
-    match message.as_str() {
-        Some(message) => {
-            let secret = service.worker_secret();
-            match secret {
-                Some(secret) => {
-                    let text = format!("{secret}::{message}");
-                    let mut hasher = Blake2b512::new();
-                    hasher.update(text.as_bytes());
-                    Ok(js::AsBytes(hasher.finalize().into()))
-                },
-                None => {
-                    Err(anyhow!("worker secret is not set"))
-                }
-            }
-        },
-        None => {
-            Err(anyhow!(""))
-        }
-
-    }
+fn derive_secret_native(service: ServiceRef, _this: js::Value, message: js::BytesOrString) -> Result<js::AsBytes<[u8; 64]>> {
+    let secret = service.worker_secret().ok_or(anyhow!("worker secret is not set"));
+    let mut hasher = Blake2b512::new();
+    hasher.update(secret?.as_bytes());
+    hasher.update(message.as_bytes());
+    Ok(js::AsBytes(hasher.finalize().into()))
 }

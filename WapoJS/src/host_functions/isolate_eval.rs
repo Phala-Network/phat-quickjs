@@ -48,7 +48,7 @@ fn isolate_eval(
 
     let mut hasher = Blake2b512::new();
     args.scripts.iter().for_each(|script| {
-        hasher.update(script.to_string().into_bytes());
+        hasher.update(script.as_bytes());
     });
     let code_hash = hasher.finalize();
     let mut inner_worker_secret: Option<String> = None;
@@ -58,7 +58,7 @@ fn isolate_eval(
             inner_worker_secret = Some(formatted);
         }
         None => {
-            anyhow!("worker secret is not set");
+            anyhow::bail!("worker secret is not set");
         }
     }
 
