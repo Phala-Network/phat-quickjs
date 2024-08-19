@@ -23,7 +23,7 @@ struct Args {
     tls_port: u16,
     codes: Vec<JsCode>,
     js_args: Vec<String>,
-    worker_secret: Option<String>,
+    worker_secret: String,
 }
 
 #[cfg(feature = "wapo")]
@@ -39,7 +39,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
     let mut iter = args.skip(1);
     #[cfg(feature = "native")]
     let mut tls_port = 443_u16;
-    let mut worker_secret = None;
+    let mut worker_secret: Option<String> = None;
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
             if arg == "--" {
@@ -98,19 +98,23 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         print_usage();
         bail!("no script file provided");
     }
+    if worker_secret.is_none() {
+        print_usage();
+        bail!("--worker-secret is required.");
+    }
     let js_args = iter.collect();
     Ok(Args {
         codes,
         js_args,
         #[cfg(feature = "native")]
         tls_port,
-        worker_secret,
+        worker_secret: worker_secret.unwrap(),
     })
 }
 
 fn print_usage() {
     println!("wapojs v{}", env!("CARGO_PKG_VERSION"));
-    println!("Usage: wapojs [options] [script..] [-- [args]]");
+    println!("Usage: wapojs [options] --worker-secret <secret> [script..] [-- [args]]");
     println!("");
     println!("Options:");
     println!("  -c <code>        Execute code");

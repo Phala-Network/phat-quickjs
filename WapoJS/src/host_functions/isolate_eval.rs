@@ -51,16 +51,8 @@ fn isolate_eval(
         hasher.update(script.as_bytes());
     });
     let code_hash = hasher.finalize();
-    let mut inner_worker_secret: Option<String> = None;
-    match service.worker_secret() {
-        Some(secret) => {
-            let formatted = format!("{secret}::{code_hash:02x}");
-            inner_worker_secret = Some(formatted);
-        }
-        None => {
-            anyhow::bail!("worker secret is not set");
-        }
-    }
+    let secret = service.worker_secret();
+    let inner_worker_secret = format!("{secret}::{code_hash:02x}");
 
     let config = ServiceConfig {
         engine_config: EngineConfig {
