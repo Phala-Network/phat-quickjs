@@ -217,6 +217,14 @@ impl Service {
         self.runtime.clone()
     }
 
+    pub fn run_default_module(&self) -> Result<js::Value> {
+        let default_fn = self.context().get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
+        if default_fn.is_function() {
+            return self.call_function(default_fn, ());
+        }
+        Ok(js::Value::Undefined)
+    }
+
     pub fn exec_script(&self, script: &str) -> Result<OwnedJsValue, String> {
         self.eval(Code::Source(script))
     }
