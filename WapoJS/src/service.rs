@@ -105,7 +105,7 @@ impl JsEngine {
 pub struct ServiceConfig {
     pub engine_config: EngineConfig,
     pub is_sandbox: bool,
-    pub worker_secret: Option<String>,
+    pub worker_secret: String,
 }
 
 pub struct Service {
@@ -197,7 +197,7 @@ impl Service {
         }))
     }
 
-    pub fn worker_secret(&self) -> Option<String> {
+    pub fn worker_secret(&self) -> String {
         self.config.worker_secret.clone()
     }
 
