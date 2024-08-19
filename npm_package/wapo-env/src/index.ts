@@ -196,7 +196,7 @@ declare global {
      * @param config - The configuration for the HTTP(S) server.
      * @param handler - A callback function that handles incoming requests.
      */
-    httpsListen(config: HttpsConfig | HttpConfig, handler: (req: IncommingRequest) => any): void;
+    httpsListen(config: HttpsConfig | HttpConfig, handler: (req: IncomingRequest) => any): void;
 
     /**
      * Sends an HTTP response head to the specified transmitter.
@@ -336,7 +336,7 @@ export type HeadersIn = Array<[string, string]>;
 /**
  * Represents an HTTP request.
  */
-export interface IncommingRequest {
+export interface IncomingRequest {
   /**
    * The HTTP method of the request (e.g., GET, POST, PUT, DELETE).
    */
