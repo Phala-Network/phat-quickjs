@@ -45,6 +45,9 @@ mod websocket;
 #[cfg(feature = "js-hash")]
 mod hash;
 
+#[cfg(feature = "js-hash")]
+mod non_cryptographic_hash;
+
 pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Result<()> {
     let ns = ctx.new_object("Wapo");
     ctx.get_global_object().set_property("Wapo", &ns)?;
@@ -63,7 +66,11 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
     #[cfg(feature = "js-url")]
     url::setup(&ns)?;
     #[cfg(feature = "js-hash")]
-    hash::setup(&ns)?;
+    {
+        hash::setup(&ns)?;
+        non_cryptographic_hash::setup(&ns)?;
+    }
+
     #[cfg(feature = "mem-stats")]
     mem_stats::setup(&ns)?;
 
