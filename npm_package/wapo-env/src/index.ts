@@ -90,7 +90,7 @@ declare global {
      *
      * @param message - The message to hash, either as a Uint8Array or a string.
      */
-    non_cryptographic_hash(message: Uint8Array | string): Uint8Array;
+    nonCryptographicHash(message: Uint8Array | string): Uint8Array;
 
     /**
      * Concatenates multiple Uint8Array objects into a single Uint8Array.
