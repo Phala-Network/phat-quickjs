@@ -2,10 +2,7 @@ use std::borrow::Cow;
 use std::env;
 use std::path::Path;
 
-use js::{
-    ToJsValue,
-    Value,
-};
+use js::ToJsValue;
 
 use crate::{
     service::{ServiceConfig, ServiceRef},
@@ -179,22 +176,6 @@ async fn run_with_service(
         .get_global_object()
         .set_property("scriptArgs", &js_args)
         .context("failed to set scriptArgs")?;
-
-    #[cfg(feature = "native")]
-    {
-        let js_process = js_ctx.get_global_object().get_property("process")?;
-        if js_process.is_object() {
-            let js_env = js_process.get_property("env")?;
-            if js_env.is_null() || js_env.is_undefined() {
-                bail!("process.env is not an object");
-            }
-            for (key, value) in env::vars() {
-                if key.starts_with("WAPOJS_PUBLIC_") {
-                    js_env.set_property(&key, &value.to_js_value(&js_ctx)?)?;
-                }
-            }
-        }
-    }
 
     let mut expr_val = None;
     for code in args.codes.into_iter() {
