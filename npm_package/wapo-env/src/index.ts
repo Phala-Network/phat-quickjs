@@ -88,9 +88,11 @@ declare global {
      * Non-cryptographic hashing, current only supported wyhash64 64-bit hash. Non-cryptographic algorithms
      * are optimized for speed of computation over collision-resistance or seurity.
      *
+     * @param algrithm - The name of the hash algorithm to use.
+     *    Supported values are "wyhash64"
      * @param message - The message to hash, either as a Uint8Array or a string.
      */
-    nonCryptographicHash(message: Uint8Array | string): Uint8Array;
+    nonCryptographicHash(algrithm: 'wyhash64', message: Uint8Array | string): Uint8Array;
 
     /**
      * Concatenates multiple Uint8Array objects into a single Uint8Array.
