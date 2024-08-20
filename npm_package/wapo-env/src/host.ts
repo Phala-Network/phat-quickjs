@@ -1,6 +1,6 @@
 import type { IncomingRequest, TlsConfig } from "./index"
 import type { Hono } from "hono"
-import type { BlankEnv, BlankSchema, Env, Schema } from 'hono/types';
+import type { BlankEnv, BlankSchema, Env, Schema } from 'hono/types'
 
 export class WapoRequest extends Request {
   opaqueRequest: IncomingRequest;

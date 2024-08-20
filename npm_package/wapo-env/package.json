@@ -1,6 +1,6 @@
 {
   "name": "@phala/wapo-env",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "The js environment accessing of wapo.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,10 +40,15 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./hono": {
-      "types": "./dist/hono-adapter.d.ts",
-      "import": "./dist/hono-adapter.js",
-      "require": "./dist/hono-adapter.js"
+    "./guest": {
+      "types": "./dist/guest.d.ts",
+      "import": "./dist/guest.js",
+      "require": "./dist/guest.js"
+    },
+    "./host": {
+      "types": "./dist/host.d.ts",
+      "import": "./dist/host.js",
+      "require": "./dist/host.js"
     }
   }
 }
