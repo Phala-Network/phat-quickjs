@@ -24,6 +24,23 @@
   },
   "homepage": "https://github.com/Phala-Network/phat-quickjs",
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.4.1",
     "typescript": "^4.9.4"
+  },
+  "optionalDependencies": {
+    "hono": "^4.5.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./hono-adapter": {
+      "types": "./dist/hono-adapter.d.ts",
+      "import": "./dist/hono-adapter.js",
+      "require": "./dist/hono-adapter.js"
+    }
   }
 }
