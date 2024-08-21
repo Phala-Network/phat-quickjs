@@ -5,7 +5,6 @@ use js::{EngineConfig, Error, ErrorContext, FromJsValue, ToJsValue};
 use log::{error, info};
 use tokio::sync::oneshot;
 use blake2::{Blake2b512, Digest};
-use anyhow::anyhow;
 
 use crate::{
     service::{OwnedJsValue, ServiceConfig, ServiceRef, ServiceWeakRef},
@@ -145,30 +144,38 @@ async fn wait_child(
         _ = child_service.wait_for_tasks() => {}
     }
     child_service.shutdown().await;
-    let output_obj = child_service
-        .context()
-        .get_global_object()
-        .get_property("scriptOutput")
-        .ok();
+
+    let global_object = child_service.context().get_global_object();
+
+    let output_obj = global_object.get_property("scriptOutput").ok();
 
     let output = match output_obj {
         Some(output) if !output.is_undefined() => output,
         _ => output,
     };
+
+    let logs_obj = global_object.get_property("scriptLogs").ok();
+
+    let logs = match logs_obj {
+        Some(logs) if !logs.is_undefined() => logs,
+        _ => js::Value::Undefined,
+    };
+
+    let unhandled_rejection = child_service.unhandled_rejection().ok().unwrap_or_default();
     if output.is_null_or_undefined() {
-        invoke_callback(&service, res, &output);
+        invoke_callback(&service, res, &(unhandled_rejection, output, logs));
     } else if output.is_string() {
-        invoke_callback(&service, res, &output.to_string());
+        invoke_callback(&service, res, &(unhandled_rejection, output.to_string(), logs));
     } else {
         match <Vec<u8>>::from_js_value(output) {
             Ok(bytes) => {
-                invoke_callback(&service, res, &bytes);
+                invoke_callback(&service, res, &(unhandled_rejection, bytes, logs));
             }
             Err(_) => {
-                invoke_callback(&service, res, &"[object]".to_string());
+                invoke_callback(&service, res, &(unhandled_rejection, js::Value::Undefined, logs));
             }
         }
-    }
+    };
 }
 
 fn invoke_callback(weak_service: &Weak<Service>, id: u64, data: &dyn ToJsValue) {

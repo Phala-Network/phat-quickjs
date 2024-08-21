@@ -4,12 +4,13 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
-use log::{debug, error};
+use log::{debug, info, error};
 use std::{future::Future, sync::Mutex};
+use std::ffi::{CStr, c_void, c_int};
 
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
-use js::{c, Code, EngineConfig, Error as ValueError, ToArgs};
+use js::{c::{self, JS_DupValue}, Code, EngineConfig, Error as ValueError, ToArgs};
 use tokio::sync::{broadcast, oneshot};
 
 mod resource;
@@ -112,6 +113,7 @@ pub struct Service {
     runtime: Rc<JsEngine>,
     state: RefCell<ServiceState>,
     config: ServiceConfig,
+    unhandled_rejection_str: RefCell<Option<String>>,
 }
 
 struct ServiceState {
@@ -151,6 +153,43 @@ impl Service {
         let ctx = runtime.new_context();
         let boxed_self = Box::into_raw(Box::new(weak_self.clone()));
         unsafe { c::JS_SetContextOpaque(ctx.as_ptr(), boxed_self as *mut _) };
+
+        extern "C" fn promise_rejection_tracker(
+            ctx: *mut c::JSContext,
+            _promise: c::JSValue,
+            reason: c::JSValue,
+            _is_handled: c_int,
+            opaque: *mut c_void,
+        ) {
+            unsafe {
+                let weak_self = &*(opaque as *const ServiceWeakRef);
+                if let Some(service) = weak_self.upgrade() {
+                    let c_reason = c::JS_ToCString(ctx, reason);
+                    let mut exc_str = CStr::from_ptr(c_reason).to_string_lossy().into_owned();
+                    let stack = c::JS_GetPropertyStr(ctx, reason, "stack\0".as_ptr() as _);
+                    if !c::is_undefined(stack) {
+                        exc_str.push_str("\n[stack]\n");
+                        let c_lines = c::JS_ToCString(ctx, stack);
+                        let lines = CStr::from_ptr(c_lines).to_string_lossy().into_owned();
+                        exc_str.push_str(&lines);
+                        c::JS_FreeCString(ctx, c_lines);
+                    }
+                    service.unhandled_rejection_str.borrow_mut().replace(exc_str);
+
+                    c::JS_FreeValue(ctx, stack);
+                    c::JS_FreeCString(ctx, c_reason);
+                }
+            }
+        }
+
+        unsafe {
+            c::JS_SetHostPromiseRejectionTracker(
+                runtime.as_ptr(),
+                Some(promise_rejection_tracker),
+                boxed_self as *mut _
+            )
+        };
+
         if let Ok(v) = std::env::var("WAPO_RT_FLAGS") {
             if let Ok(v) = v.parse::<u32>() {
                 runtime.set_debug_flags(v);
@@ -177,7 +216,12 @@ impl Service {
             }),
             state,
             config,
+            unhandled_rejection_str: Default::default(),
         }
+    }
+
+    pub fn unhandled_rejection(&self) -> Result<Option<String>> {
+        Ok(self.unhandled_rejection_str.borrow().clone())
     }
 
     pub fn boot(&self, bootcode: Option<&[u8]>) -> Result<()> {
