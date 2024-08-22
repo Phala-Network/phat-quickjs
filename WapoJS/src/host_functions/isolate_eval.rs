@@ -154,12 +154,7 @@ async fn wait_child(
         _ => output,
     };
 
-    let logs_obj = global_object.get_property("scriptLogs").ok();
-
-    let logs = match logs_obj {
-        Some(logs) if !logs.is_undefined() => logs,
-        _ => js::Value::Undefined,
-    };
+    let logs = global_object.get_property("scriptLogs").unwrap_or_default();
 
     let unhandled_rejection = child_service.unhandled_rejection().ok().unwrap_or_default();
     if output.is_null_or_undefined() {
