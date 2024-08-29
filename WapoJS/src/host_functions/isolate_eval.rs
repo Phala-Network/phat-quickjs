@@ -154,7 +154,7 @@ async fn wait_child(
         _ => output,
     };
 
-    let logs = global_object.get_property("scriptLogs").unwrap_or_default();
+    let logs = global_object.get_property("scriptLogs").unwrap_or_default().to_string();
 
     let unhandled_rejection = child_service.unhandled_rejection().ok().unwrap_or_default();
     if output.is_null_or_undefined() {
