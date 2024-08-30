@@ -1,4 +1,144 @@
 ((g) => {
+    class Headers {
+        constructor(init = {}) {
+            this._headers = new Map();
+            if (init instanceof Headers) {
+                init.forEach((value, name) => this.append(name, value));
+            } else if (Array.isArray(init)) {
+                init.forEach(([name, value]) => this.append(name, value));
+            } else if (typeof init === 'object') {
+                Object.entries(init).forEach(([name, value]) => this.append(name, value));
+            }
+        }
+
+        append(name, value) {
+            name = name.toLowerCase();
+            if (!this._headers.has(name)) {
+                this._headers.set(name, []);
+            }
+            this._headers.get(name).push(String(value));
+        }
+
+        delete(name) {
+            this._headers.delete(name.toLowerCase());
+        }
+
+        get(name) {
+            const values = this._headers.get(name.toLowerCase());
+            return values ? values[0] : null;
+        }
+
+        has(name) {
+            return this._headers.has(name.toLowerCase());
+        }
+
+        set(name, value) {
+            this._headers.set(name.toLowerCase(), [String(value)]);
+        }
+
+        forEach(callback, thisArg) {
+            for (const [name, values] of this._headers) {
+                callback.call(thisArg, values.join(', '), name, this);
+            }
+        }
+
+        *entries() {
+            for (const [name, values] of this._headers) {
+                yield [name, values.join(', ')];
+            }
+        }
+
+        getSetCookie() {
+            return this._headers.get('set-cookie') || [];
+        }
+
+        *keys() {
+            for (const name of this._headers.keys()) {
+                yield name;
+            }
+        }
+
+        *values() {
+            for (const [, values] of this._headers) {
+                yield values.join(', ');
+            }
+        }
+
+        toString() {
+            return '[object Headers]';
+        }
+    }
+
+    class FormData {
+        constructor() {
+            this._entries = [];
+        }
+
+        append(name, value, filename) {
+            this._entries.push([name, value, filename]);
+        }
+
+        delete(name) {
+            this._entries = this._entries.filter(entry => entry[0] !== name);
+        }
+
+        get(name) {
+            const entry = this._entries.find(entry => entry[0] === name);
+            return entry ? entry[1] : null;
+        }
+
+        getAll(name) {
+            return this._entries.filter(entry => entry[0] === name).map(entry => entry[1]);
+        }
+
+        has(name) {
+            return this._entries.some(entry => entry[0] === name);
+        }
+
+        set(name, value, filename) {
+            const index = this._entries.findIndex(entry => entry[0] === name);
+            if (index !== -1) {
+                this._entries[index] = [name, value, filename];
+            } else {
+                this._entries.push([name, value, filename]);
+            }
+        }
+
+        *[Symbol.iterator]() {
+            for (const entry of this._entries) {
+                yield [entry[0], entry[1]];
+            }
+        }
+
+        *entries() {
+            for (const entry of this._entries) {
+                yield [entry[0], entry[1]];
+            }
+        }
+
+        *keys() {
+            for (const entry of this._entries) {
+                yield entry[0];
+            }
+        }
+
+        *values() {
+            for (const entry of this._entries) {
+                yield entry[1];
+            }
+        }
+
+        forEach(callback, thisArg) {
+            for (const [name, value] of this) {
+                callback.call(thisArg, value, name, this);
+            }
+        }
+
+        toString() {
+            return '[object FormData]';
+        }
+    }
+
     function consumed(body) {
         if (body._noBody) return
         if (body.bodyUsed) {
@@ -35,6 +175,16 @@
                     return Wapo.concatU8a(chunks);
                 }
             }
+        }
+        async formData() {
+            const formData = new FormData();
+            const text = await this.text();
+            const pairs = text.split('&');
+            for (const pair of pairs) {
+                const [name, value] = pair.split('=');
+                formData.append(decodeURIComponent(name), decodeURIComponent(value));
+            }
+            return formData;
         }
         get body() {
             consumed(this);
@@ -247,6 +397,9 @@
             );
         });
     };
+
+    g.Headers = Headers;
+    g.FormData = FormData;
     g.Response = Response;
     g.Request = Request;
 })(globalThis)
