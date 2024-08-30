@@ -242,7 +242,16 @@ declare global {
      * @param callback - A callback function to be called with the result of the evaluation.
      * @returns The ID of the spawned task.
      */
-    isolateEval(args: IsolateEvalArgs, callback: (output: string | Uint8Array | undefined) => any): number;
+    isolateEval(args: IsolateEvalArgs, callback: (output: string | Uint8Array | undefined) => unknown): number;
+
+    /**
+     * Evaluates scripts in an isolated environment, asynchronously friendly version with pre-defined default options.
+     *
+     * @param code - The code to be evaluated.
+     * @param options - The options for the isolated evaluation.
+     * @returns A promise that resolves with the result of the evaluation.
+     */
+    run<Value = unknown>(code: string, options?: RunCodeOptions): Promise<RunCodeReturns<Value>>;
 
     /**
      * Retrieves memory statistics for the current runtime.
@@ -485,6 +494,18 @@ interface IsolateEvalArgs {
    * 'browser' for browser polyfills, 'nodejs' for nodejs API polyfills.
    */
   polyfills: string[];
+}
+
+
+
+export type RunCodeOptions = Partial<Omit<IsolateEvalArgs, 'scripts'>>;
+
+export interface RunCodeReturns<Value = unknown> {
+  isOk: Readonly<Boolean>;
+  isError: Readonly<Boolean>;
+  error: Readonly<string>;
+  value: Readonly<Value>;
+  logs: Readonly<string[]>;
 }
 
 
