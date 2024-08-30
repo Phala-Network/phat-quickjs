@@ -43,8 +43,10 @@
     };
     g.clearInterval = g.clearTimeout;
     g.setImmediate = (f, ...args) => setTimeout(f, 0, ...args);
+
     g.Wapo.inspect = inspect;
-    g.console = {
+
+    const directConsole = {
         log(...args) {
             return Wapo.print(2, args.map(inspect));
         },
@@ -58,7 +60,49 @@
             return Wapo.print(4, args.map(inspect));
         }
     }
-    g.print = g.console.log;
+
+    let bufferedLogs = [];
+    function appendLogRecord(level, args) {
+        const obj = {
+            message: args.map(inspect).join(" "),
+            time: new Date().getTime(),
+            level: level,
+        }
+        bufferedLogs.push(obj);
+    }
+    const bufferedConsole = {
+        log(...args) {
+            appendLogRecord(2, args);
+        },
+        info(...args) {
+            appendLogRecord(2, args);
+        },
+        warn(...args) {
+            appendLogRecord(3, args);
+        },
+        error(...args) {
+            appendLogRecord(4, args);
+        }
+    }
+
+    Object.defineProperty(g, "scriptLogs", {
+        get() {
+            return JSON.stringify(bufferedLogs);
+        },
+        writeable: false,
+    });
+
+    g.console = directConsole;
+    g.Wapo.useBufferedLogs = function (flag) {
+        if (flag) {
+            g.console = bufferedConsole;
+        } else {
+            g.console = directConsole;
+        }
+    }
+
+    g.print = directConsole.log;
+
     g.btoa = s => Wapo.base64Encode(s, true);
     g.atob = d => Wapo.base64Decode(d, true);
     g.global = g;
@@ -144,7 +188,7 @@
         };
         options = { ...defaultOptions, ...(options || {}) };
         const result = await new Promise((resolve) => Wapo.isolateEval({
-            scripts: [code],
+            scripts: ["Wapo.useBufferedLogs(true);", code],
             args: options.args,
             env: options.env,
             timeLimit: options.timeLimit,
