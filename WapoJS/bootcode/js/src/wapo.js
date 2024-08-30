@@ -1,4 +1,19 @@
 (function (g) {
+    const objectInspect = require("object-inspect");
+    const { formatError } = require("pretty-print-error/dist/index.js");
+
+    function inspect(obj) {
+        if(
+          obj instanceof Error ||
+          obj.constructor === Error ||
+          (obj !== null && typeof obj === 'object' && 'message' in obj && 'stack' in obj)
+        ) {
+            return formatError(obj);
+        } else {
+            return objectInspect(obj);
+        }
+    }
+
     function timerFn(hostFn) {
         return function (f, t) {
             t = Math.round(t || 0);
@@ -28,24 +43,19 @@
     };
     g.clearInterval = g.clearTimeout;
     g.setImmediate = (f, ...args) => setTimeout(f, 0, ...args);
-    g.Wapo.inspect = function (...obj) {
-        return Wapo.print(2, obj, {
-            indent: '  ',
-            depth: 5,
-        });
-    }
+    g.Wapo.inspect = inspect;
     g.console = {
         log(...args) {
-            return Wapo.print(2, args);
+            return Wapo.print(2, args.map(inspect));
         },
         info(...args) {
-            return Wapo.print(2, args);
+            return Wapo.print(2, args.map(inspect));
         },
         warn(...args) {
-            return Wapo.print(3, args);
+            return Wapo.print(3, args.map(inspect));
         },
         error(...args) {
-            return Wapo.print(4, args);
+            return Wapo.print(4, args.map(inspect));
         }
     }
     g.print = g.console.log;
