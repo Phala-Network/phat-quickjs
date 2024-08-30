@@ -5,7 +5,6 @@
     function inspect(obj) {
         if(
           obj instanceof Error ||
-          obj.constructor === Error ||
           (obj !== null && typeof obj === 'object' && 'message' in obj && 'stack' in obj)
         ) {
             return formatError(obj);
