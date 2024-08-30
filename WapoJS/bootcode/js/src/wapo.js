@@ -122,6 +122,43 @@
         }
         error.stack = [new DummyCallSite(), new DummyCallSite(), new DummyCallSite()]
     };
+
+    g.Wapo.run = async function (code, options) {
+        const defaultOptions = {
+            args: [],
+            env: {},
+            timeLimit: 120_000, // 2 minutes
+            gasLimit: 100_000,
+            memoryLimit: 1024 * 1024 * 128, // 128 MB
+            polyfills: ['nodejs'],
+        };
+        options = { ...defaultOptions, ...(options || {}) };
+        const result = await new Promise((resolve) => Wapo.isolateEval({
+            scripts: [code],
+            args: options.args,
+            env: options.env,
+            timeLimit: options.timeLimit,
+            gasLimit: options.gasLimit,
+            memoryLimit: options.memoryLimit,
+            polyfills: options.polyfills,
+        }, resolve)).then(([error, value, logs]) => {
+            try {
+                logs = JSON.parse(logs);
+            } catch (e) {
+                logs = [];
+            }
+            const result = {
+                error,
+                value,
+                logs,
+                isError: !!error,
+                isOk: !error,
+            };
+            Object.freeze(result);
+            return result;
+        });
+        return result;
+    }
 }(globalThis))
 
 export default {};
