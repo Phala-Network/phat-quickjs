@@ -17,7 +17,6 @@ export function handle<E extends Env = BlankEnv, S extends Schema = BlankSchema,
       for (const [k, v] of resp.headers.entries()) {
         headers[k] = v
       }
-      console.log('done', JSON.stringify(headers))
       // NOTE only suppport text for now.
       const body = await resp.text()
       globalThis.scriptOutput = JSON.stringify({ body, headers, status: resp.status })
