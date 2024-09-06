@@ -6,7 +6,7 @@ module.exports = async function main() {
     var module = module || { exports: {} };
     module.exports = function main() {
       console.log('call in guest script');
-      return 42;
+      return 'hello';
     }
   `)
   console.log('back to host');

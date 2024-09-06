@@ -7,7 +7,7 @@ module.exports = async function main() {
     module.exports = async function main() {
       console.log('call in guest script');
       await new Promise(resolve => setTimeout(resolve, 100));
-      return 'hello';
+      return Symbol('wapo');
     }
   `)
   console.log('back to host');
