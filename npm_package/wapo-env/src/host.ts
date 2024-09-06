@@ -83,6 +83,7 @@ export function handle<E extends Env = BlankEnv, S extends Schema = BlankSchema,
             sendResponse(response, req)
           }
         } catch (error) {
+          console.log(error)
           sendResponse(new Response("Internal Server Error", { status: 500 }), req)
         }
       }

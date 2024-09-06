@@ -195,6 +195,12 @@
             memoryLimit: options.memoryLimit,
             polyfills: options.polyfills,
         }, resolve)).then(([error, value, logs]) => {
+            if (value && typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                }
+            }
             try {
                 logs = JSON.parse(logs);
             } catch (e) {
@@ -211,6 +217,31 @@
             return result;
         });
         return result;
+    }
+
+    g.Wapo.callModuleEntry = async function callModuleEntry() {
+        const fn = globalThis.module?.exports;
+        if (typeof fn === 'function') {
+            try {
+                const thenable = fn();
+                if (thenable && typeof thenable.then === 'function') {
+                    const output = await thenable;
+                    if (output) {
+                        globalThis.scriptOutput = output;
+                    }
+                } else if (thenable) {
+                    globalThis.scriptOutput = thenable;
+                }
+            } catch (e) {
+                appendLogRecord(4, [e]);
+            }
+            if (globalThis.scriptOutput && !(typeof globalThis.scriptOutput === 'string') && !(typeof globalThis.scriptOutput === 'number')) {
+                try {
+                    globalThis.serializedScriptOutput = JSON.stringify(globalThis.scriptOutput);
+                } catch (e) {
+                }
+            }
+        }
     }
 }(globalThis))
 

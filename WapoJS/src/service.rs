@@ -264,36 +264,9 @@ impl Service {
 
     pub fn run_default_module(&self) -> Result<js::Value> {
         let ctx = self.context();
-        let default_fn = ctx.get_global_object().get_property("module")?.get_property("exports").unwrap_or_default();
+        let default_fn = ctx.get_global_object().get_property("Wapo")?.get_property("callModuleEntry").unwrap_or_default();
         if default_fn.is_function() {
-            let ret = self.call_function(default_fn, ());
-
-            //
-            // Auto set promise result to scriptOutput
-            //
-            if let Ok(val) = ret {
-                unsafe {
-                    if val.is_object() {
-                        let then_fn = c::JS_GetPropertyStr(ctx.as_ptr(), *val.raw_value(), "then\0".as_ptr() as *const i8);
-                        if c::JS_IsFunction(ctx.as_ptr(), then_fn) == 1 {
-                            unsafe extern "C" fn then_callback(ctx: *mut c::JSContext, _this: c::JSValue, _argc: c_int, argv: *mut c::JSValue) -> c::JSValue {
-                                let global_this = c::JS_GetGlobalObject(ctx);
-                                c::JS_SetPropertyStr(ctx, global_this, "scriptOutput\0".as_ptr() as *const i8, JS_DupValue(ctx, *argv));
-                                c::JS_FreeValue(ctx, global_this);
-                                c::JS_UNDEFINED
-                            }
-
-                            let handler = c::JS_NewCFunction(ctx.as_ptr(), Some(then_callback), "handle\0".as_ptr() as *const i8, 1);
-                            let then_result = c::JS_Call(ctx.as_ptr(), then_fn, *val.raw_value(), 1, (&handler as *const c::JSValue).cast_mut());
-
-                            c::JS_FreeValue(ctx.as_ptr(), then_result);
-                            c::JS_FreeValue(ctx.as_ptr(), handler);
-                        }
-                        c::JS_FreeValue(ctx.as_ptr(), then_fn);
-                    }
-                }
-                return Ok(val);
-            }
+            return self.call_function(default_fn, ());
         }
         Ok(js::Value::Undefined)
     }
