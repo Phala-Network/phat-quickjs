@@ -176,6 +176,7 @@
         error.stack = [new DummyCallSite(), new DummyCallSite(), new DummyCallSite()]
     };
 
+    // should be called in host mode only.
     g.Wapo.run = async function (code, options) {
         const defaultOptions = {
             args: [],
@@ -194,10 +195,10 @@
             gasLimit: options.gasLimit,
             memoryLimit: options.memoryLimit,
             polyfills: options.polyfills,
-        }, resolve)).then(([error, value, logs]) => {
-            if (value && typeof value === 'string') {
+        }, resolve)).then(([error, value, serialized, logs]) => {
+            if (serialized) {
                 try {
-                    value = JSON.parse(value);
+                    value = JSON.parse(serialized)?.output;
                 } catch (e) {
                 }
             }
@@ -219,6 +220,7 @@
         return result;
     }
 
+    // should be called in guest mode only.
     g.Wapo.callModuleEntry = async function callModuleEntry() {
         const fn = globalThis.module?.exports;
         if (typeof fn === 'function') {
@@ -226,18 +228,18 @@
                 const thenable = fn();
                 if (thenable && typeof thenable.then === 'function') {
                     const output = await thenable;
-                    if (output) {
+                    if (output !== undefined) {
                         globalThis.scriptOutput = output;
                     }
-                } else if (thenable) {
+                } else if (thenable !== undefined) {
                     globalThis.scriptOutput = thenable;
                 }
             } catch (e) {
                 appendLogRecord(4, [e]);
             }
-            if (globalThis.scriptOutput && !(typeof globalThis.scriptOutput === 'string') && !(typeof globalThis.scriptOutput === 'number')) {
+            if (globalThis.scriptOutput !== undefined) {
                 try {
-                    globalThis.serializedScriptOutput = JSON.stringify(globalThis.scriptOutput);
+                    globalThis.serializedScriptOutput = JSON.stringify({output: globalThis.scriptOutput});
                 } catch (e) {
                 }
             }

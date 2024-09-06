@@ -125,28 +125,13 @@ fn isolate_eval(
     Ok(id)
 }
 
-fn get_script_output(global_object: &js::Value, fallback: js::Value) -> js::Value {
-    let serialized_output_obj = global_object.get_property("serializedScriptOutput").ok();
-    if let Some(output) = serialized_output_obj {
-        if !output.is_null_or_undefined() {
-            return output;
-        }
-    }
-    let output_obj = global_object.get_property("scriptOutput").ok();
-    let output = match output_obj {
-        Some(output) if !output.is_undefined() => output,
-        _ => fallback,
-    };
-    output
-}
-
 async fn wait_child(
     service: ServiceWeakRef,
     res: u64,
     cancel_rx: oneshot::Receiver<()>,
     args: (ServiceRef, js::Value, Option<u64>),
 ) {
-    let (child_service, _output, timeout) = args;
+    let (child_service, fallback, timeout) = args;
     let timeout = timeout.unwrap_or(u64::MAX);
     tokio::select! {
         _ = cancel_rx => {
@@ -162,7 +147,18 @@ async fn wait_child(
 
     let global_object = child_service.context().get_global_object();
 
-    let output = get_script_output(&global_object, _output);
+    // let output = get_script_output(&global_object, _output);
+    let output_obj = global_object.get_property("scriptOutput").ok();
+    let output = match output_obj {
+        Some(output) if !output.is_undefined() => output,
+        _ => fallback,
+    };
+
+    let serialized_obj = global_object.get_property("serializedScriptOutput").ok();
+    let serialized = match serialized_obj {
+        Some(serialized) if !serialized.is_undefined() => serialized,
+        _ => js::Value::Undefined,
+    };
 
     let logs_obj = global_object.get_property("scriptLogs").ok();
     let logs = match logs_obj {
@@ -172,19 +168,19 @@ async fn wait_child(
 
     let unhandled_rejection = child_service.unhandled_rejection().ok().unwrap_or_default();
     if output.is_null_or_undefined() {
-        invoke_callback(&service, res, &(unhandled_rejection, output, logs));
+        invoke_callback(&service, res, &(unhandled_rejection, output, serialized, logs));
     } else if output.is_string() {
-        invoke_callback(&service, res, &(unhandled_rejection, output.to_string(), logs));
+        invoke_callback(&service, res, &(unhandled_rejection, output.to_string(), serialized, logs));
     } else if output.is_number() {
-        invoke_callback(&service, res, &(unhandled_rejection, output, logs));
+        invoke_callback(&service, res, &(unhandled_rejection, output, serialized, logs));
     } else {
         match <Vec<u8>>::from_js_value(output) {
             Ok(bytes) => {
                 log::info!(target: "js::isolate", "call callback in 3");
-                invoke_callback(&service, res, &(unhandled_rejection, bytes, logs));
+                invoke_callback(&service, res, &(unhandled_rejection, bytes, serialized, logs));
             }
             Err(_) => {
-                invoke_callback(&service, res, &(unhandled_rejection, js::Value::Undefined, logs));
+                invoke_callback(&service, res, &(unhandled_rejection, js::Value::Undefined, serialized, logs));
             }
         }
     };
