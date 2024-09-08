@@ -8,6 +8,7 @@ use hyper::client::HttpConnector;
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use sni_tls_listener::{Agent, Generate as _, SniTlsListener, Subscription};
 use tokio::io::DuplexStream;
+pub use tokio::net::TcpListener;
 use tokio_rustls::rustls::ClientConfig;
 pub use wapo::env::messages::{HttpHead, HttpResponseHead};
 
@@ -48,6 +49,14 @@ impl TlsListener {
         let conn = self.0.next().await.ok_or(anyhow!("listener closed"))?;
         Ok((TcpStream::ServerTlsSteam(conn.stream), conn.remote_addr))
     }
+}
+
+pub async fn tcp_accept(listener: &TcpListener) -> Result<(TcpStream, SocketAddr)> {
+    let (tcp, addr) = listener
+        .accept()
+        .await
+        .map_err(|e| anyhow::anyhow!("failed to accept tcp connection: {e}"))?;
+    Ok((TcpStream::TcpStream(tcp), addr))
 }
 
 fn default_client_config() -> Arc<ClientConfig> {
