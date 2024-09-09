@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::net::SocketAddr;
 use std::str::FromStr;
 
 use anyhow::{bail, Context, Result};
@@ -19,8 +20,26 @@ use wapo::hyper_rt::HyperTokioIo;
 
 use super::http_request::Headers;
 use super::*;
-use crate::runtime::{self, sni_listen, TcpStream, TlsListener};
+use crate::runtime::{self, sni_listen, tcp_accept, TcpListener, TcpStream, TlsListener};
 use crate::service::OwnedJsValue;
+
+trait Listener {
+    async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)>;
+}
+
+impl Listener for TlsListener {
+    async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)> {
+        self.accept()
+            .await
+            .map_err(|e| anyhow::anyhow!("failed to accept tls connection: {e}"))
+    }
+}
+
+impl Listener for TcpListener {
+    async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)> {
+        tcp_accept(&self).await
+    }
+}
 
 #[pin_project::pin_project(project = ResponseBodyProj)]
 enum ResponseBody<T> {
@@ -76,10 +95,32 @@ pub struct HttpRequest {
 
 #[derive(FromJsValue, Debug)]
 #[qjs(rename_all = "camelCase")]
-pub struct ServerTlsConfig {
+pub struct HttpsConfig {
     server_name: js::JsString,
     certificate_chain: js::JsString,
     private_key: js::JsString,
+}
+
+#[derive(FromJsValue, Debug)]
+pub struct HttpConfig {
+    address: js::JsString,
+}
+
+enum ServerConfig {
+    Https(HttpsConfig),
+    Http(HttpConfig),
+}
+
+impl FromJsValue for ServerConfig {
+    fn from_js_value(value: js::Value) -> Result<Self> {
+        if let Ok(config) = HttpsConfig::from_js_value(value.clone()) {
+            Ok(ServerConfig::Https(config))
+        } else if let Ok(config) = HttpConfig::from_js_value(value) {
+            Ok(ServerConfig::Http(config))
+        } else {
+            bail!("invalid server config");
+        }
+    }
 }
 
 #[derive(FromJsValue, Debug)]
@@ -126,19 +167,31 @@ pub fn setup(ns: &js::Value) -> Result<()> {
 fn https_listen(
     service: ServiceRef,
     _this: js::Value,
-    config: ServerTlsConfig,
+    config: ServerConfig,
     callback: OwnedJsValue,
 ) -> Result<u64> {
-    let listener = sni_listen(
-        &config.server_name,
-        &config.certificate_chain,
-        &config.private_key,
-    )?;
-    let res_id = service.spawn(callback, do_https_listen, listener);
-    Ok(res_id)
+    match config {
+        ServerConfig::Https(config) => {
+            let listener = sni_listen(
+                &config.server_name,
+                &config.certificate_chain,
+                &config.private_key,
+            )?;
+            let res_id = service.spawn(callback, do_https_listen, listener);
+            Ok(res_id)
+        }
+        ServerConfig::Http(config) => {
+            info!(target: "js::https", "listening HTTP on {}", config.address.as_str());
+            let listener = TcpListener::bind(config.address.as_str());
+            let listener =
+                futures::executor::block_on(listener).context("failed to bind tcp listener")?;
+            let res_id = service.spawn(callback, do_https_listen, listener);
+            Ok(res_id)
+        }
+    }
 }
 
-async fn do_https_listen(weak_service: ServiceWeakRef, id: u64, mut listener: TlsListener) {
+async fn do_https_listen(weak_service: ServiceWeakRef, id: u64, mut listener: impl Listener) {
     while let Ok((stream, addr)) = listener.accept().await {
         trace!(target: "js::https", "https connection accepted: {addr:?}");
         runtime::spawn(serve_connection(weak_service.clone(), id, stream));

@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use anyhow::Result;
 pub use wapo::channel::HttpRequest;
 pub use wapo::env::messages::{HttpHead, HttpResponseHead};
@@ -10,6 +12,7 @@ pub use wapo::{
 
 pub use wapo::main;
 pub use wapo::net::SniTlsListener as TlsListener;
+pub use wapo::net::TcpListener;
 
 pub fn http_connector() -> HttpConnector {
     HttpConnector::new()
@@ -31,4 +34,11 @@ pub fn sni_listen(sni: &str, cert: &str, key: &str) -> Result<TlsListener> {
         key: key.to_string(),
     };
     Ok(TlsListener::bind(sni, tls_config)?)
+}
+
+pub async fn tcp_accept(listener: &TcpListener) -> Result<(TcpStream, SocketAddr)> {
+    listener
+        .accept()
+        .await
+        .map_err(|e| anyhow::anyhow!("failed to accept tcp connection: {e}"))
 }

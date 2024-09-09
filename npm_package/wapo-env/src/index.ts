@@ -192,11 +192,11 @@ declare global {
     httpRequest(req: HttpRequest, callback: (resp: ClientHttpResponseHead) => any): HttpRequestReceipt;
 
     /**
-     * Starts an HTTPS server and listens for incoming connections.
-     * @param tlsConfig - The configuration for the TLS server.
+     * Starts an HTTP(S) server and listens for incoming connections.
+     * @param config - The configuration for the HTTP(S) server.
      * @param handler - A callback function that handles incoming requests.
      */
-    httpsListen(tlsConfig: TlsConfig, handler: (req: IncommingRequest) => any): void;
+    httpsListen(config: HttpsConfig | HttpConfig, handler: (req: IncommingRequest) => any): void;
 
     /**
      * Sends an HTTP response head to the specified transmitter.
@@ -284,9 +284,9 @@ interface ClientHttpResponseHead {
 type HeadersOut = HeadersIn | Record<string, string>;
 
 /**
- * Represents the configuration for TLS server.
+ * Represents the configuration for HTTPS server.
  */
-export interface TlsConfig {
+export interface HttpsConfig {
   /**
    * The server name indication (SNI) for the TLS connection.
    */
@@ -301,6 +301,16 @@ export interface TlsConfig {
    * The private key in PEM format.
    */
   privateKey: string;
+}
+
+/**
+ * Represents the configuration for bare HTTP server.
+ */
+export interface HttpConfig {
+  /**
+   * The address to listen on. (e.g. "localhost:8080")
+   */
+  address: string;
 }
 
 /**

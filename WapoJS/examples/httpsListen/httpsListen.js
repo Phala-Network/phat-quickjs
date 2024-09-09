@@ -24,7 +24,13 @@ const tlsConfig = {
     privateKey: KEY,
 }
 
-Wapo.httpsListen(tlsConfig, async req => {
+// SNI listener (HTTPS)
+Wapo.httpsListen(tlsConfig, handler);
+
+// TCP listener (HTTP)
+Wapo.httpsListen({ address: "localhost:8080" }, handler);
+
+async function handler(req) {
     console.log('Incomming HTTP request:', req);
     var body = '';
     if (req.method === "POST") {
@@ -52,8 +58,7 @@ Wapo.httpsListen(tlsConfig, async req => {
     await writeString(writer, `actual body length: ${body.length}\n`);
     console.log('Response sent, closing writer');
     Wapo.streamClose(writer);
-});
-
+}
 async function receiveBody(streamHandle) {
     return new Promise((resolve, reject) => {
         const chunks = [];
