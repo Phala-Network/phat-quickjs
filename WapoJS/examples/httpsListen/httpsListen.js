@@ -28,7 +28,7 @@ const tlsConfig = {
 Wapo.httpsListen(tlsConfig, handler);
 
 // TCP listener (HTTP)
-Wapo.httpsListen({ address: "0.0.0.0:8080" }, handler);
+Wapo.httpsListen({ address: "localhost:8080" }, handler);
 
 async function handler(req) {
     console.log('Incomming HTTP request:', req);
