@@ -1,4 +1,4 @@
-import type { IncomingRequest, TlsConfig } from "./index"
+import type { IncomingRequest, HttpConfig, HttpsConfig } from "./index"
 import type { Hono } from "hono"
 import type { BlankEnv, BlankSchema, Env, Schema } from 'hono/types'
 
@@ -63,20 +63,25 @@ export function sendResponse(response: Response, req: IncomingRequest) {
   response.body?.pipeTo(stream)
 }
 
-export type handleOptions = Omit<TlsConfig, "serverName"> & { serverName?: string }
+export type handleOptions = Omit<HttpsConfig, "serverName"> & { serverName?: string } | HttpConfig
 
 export function handle<E extends Env = BlankEnv, S extends Schema = BlankSchema, BasePath extends string = '/'>(
   app: Hono<E, S, BasePath>,
   opts: handleOptions
 ) {
-  const serverName = opts.serverName || "localhost";
+  const isHttps = !("address" in opts)
+  let serverName = isHttps ? 'localhost' : opts.address
+  // NOTE: make linter happy.
+  if (!("address" in opts) && !opts.serverName) {
+    opts.serverName = serverName
+  }
   return function handler() {
     Wapo.httpsListen(
-      { ...opts, serverName },
+      opts as (HttpsConfig | HttpConfig),
       async req => {
         try {
           const request = new WapoRequest(req)
-          if (request.headers.get('host') !== serverName) {
+          if (isHttps && request.headers.get('host') !== serverName) {
             sendResponse(new Response("Upgrade Required", { status: 426 }), req)
           } else {
             const response = await app.fetch(request)
