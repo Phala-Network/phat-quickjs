@@ -156,8 +156,8 @@ async fn wait_child(
 
     let serialized_obj = global_object.get_property("serializedScriptOutput").ok();
     let serialized = match serialized_obj {
-        Some(serialized) if !serialized.is_undefined() => serialized,
-        _ => js::Value::Undefined,
+        Some(serialized) if !serialized.is_undefined() => serialized.to_string(),
+        _ => js::Value::Undefined.to_string(),
     };
 
     let logs_obj = global_object.get_property("scriptLogs").ok();
