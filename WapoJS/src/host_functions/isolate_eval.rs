@@ -1,15 +1,59 @@
 use std::{collections::BTreeMap, rc::Weak, time::Duration};
 
 use anyhow::{bail, Result};
+use blake2::{Blake2b512, Digest};
 use js::{EngineConfig, Error, ErrorContext, FromJsValue, ToJsValue};
 use log::{error, info};
 use tokio::sync::oneshot;
-use blake2::{Blake2b512, Digest};
 
 use crate::{
     service::{OwnedJsValue, ServiceConfig, ServiceRef, ServiceWeakRef},
     Service,
 };
+
+trait CrossContext {
+    fn transfer(self) -> Transfering<Self>
+    where
+        Self: Sized;
+}
+
+impl CrossContext for js::Value {
+    fn transfer(self) -> Transfering<Self> {
+        Transfering(self)
+    }
+}
+
+/// A wrapper that allows transferring a value between JS contexts safely.
+struct Transfering<T>(T);
+
+impl ToJsValue for Transfering<js::Value> {
+    fn to_js_value(&self, context: &js::Context) -> Result<js::Value> {
+        if self.0.is_undefined() {
+            return Ok(js::Value::Undefined);
+        }
+        if self.0.is_null() {
+            return Ok(js::Value::Null);
+        }
+        if let Ok(s) = js::JsString::from_js_value(self.0.clone()) {
+            return s.as_str().to_js_value(context);
+        }
+        if let Ok(n) = i32::from_js_value(self.0.clone()) {
+            return n.to_js_value(context);
+        }
+        if let Ok(b) = bool::from_js_value(self.0.clone()) {
+            return b.to_js_value(context);
+        }
+        if let Ok(bytes) = js::JsUint8Array::from_js_value(self.0.clone()) {
+            return js::AsBytes(bytes.as_bytes()).to_js_value(context);
+        }
+        if let Ok(buffer) = js::JsArrayBuffer::from_js_value(self.0.clone()) {
+            let obj = js::JsArrayBuffer::new(context, buffer.len())?;
+            obj.fill_with_bytes(buffer.as_bytes());
+            return obj.to_js_value(context);
+        }
+        Ok(js::Value::Undefined)
+    }
+}
 
 #[derive(js::FromJsValue, Debug)]
 #[qjs(rename_all = "camelCase")]
@@ -149,44 +193,26 @@ async fn wait_child(
 
     // let output = get_script_output(&global_object, _output);
     let output_obj = global_object.get_property("scriptOutput").ok();
-    let output = match output_obj {
+    let output_obj = match output_obj {
         Some(output) if !output.is_undefined() => output,
         _ => fallback,
     };
+    let serialized_obj = global_object
+        .get_property("serializedScriptOutput")
+        .unwrap_or_default();
+    let logs_obj = global_object.get_property("scriptLogs").unwrap_or_default();
+    let unhandled_rejection = child_service.unhandled_rejection().unwrap_or_default();
 
-    let serialized_obj = global_object.get_property("serializedScriptOutput").ok();
-    let serialized = match serialized_obj {
-        Some(serialized) if !serialized.is_undefined() => serialized.to_string(),
-        _ => js::Value::Undefined.to_string(),
-    };
-
-    let logs_obj = global_object.get_property("scriptLogs").ok();
-    let logs = match logs_obj {
-        Some(logs) if !logs.is_undefined() => logs.to_string(),
-        _ => "[]".to_string()
-    };
-
-    let unhandled_rejection = child_service.unhandled_rejection().ok().unwrap_or_default();
-    if output.is_null_or_undefined() {
-        invoke_callback(&service, res, &(unhandled_rejection, output, serialized, logs));
-    } else if output.is_string() {
-        invoke_callback(&service, res, &(unhandled_rejection, output.to_string(), serialized, logs));
-    } else if output.is_number() {
-        invoke_callback(&service, res, &(unhandled_rejection, output, serialized, logs));
-    } else if output.is_uint8_array() {
-        let bytes = <Vec<u8>>::from_js_value(output).unwrap_or_default();
-        let hex = format!("0x{}", bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>());
-        invoke_callback(&service, res, &(unhandled_rejection, hex, serialized, logs));
-    } else {
-        match <Vec<u8>>::from_js_value(output) {
-            Ok(bytes) => {
-                invoke_callback(&service, res, &(unhandled_rejection, bytes, serialized, logs));
-            }
-            Err(_) => {
-                invoke_callback(&service, res, &(unhandled_rejection, js::Value::Undefined, serialized, logs));
-            }
-        }
-    };
+    invoke_callback(
+        &service,
+        res,
+        &(
+            unhandled_rejection,
+            output_obj.transfer(),
+            serialized_obj.transfer(),
+            logs_obj.transfer(),
+        ),
+    );
 }
 
 fn invoke_callback(weak_service: &Weak<Service>, id: u64, data: &dyn ToJsValue) {
