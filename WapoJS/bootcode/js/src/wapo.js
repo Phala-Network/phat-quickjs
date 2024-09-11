@@ -229,6 +229,10 @@
                 } catch (e) {
                 }
             }
+            if (typeof value === 'string' && value.startsWith('0x')) {
+                value = new Uint8Array(value.slice(2).match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+            }
+
             try {
                 logs = JSON.parse(logs);
             } catch (e) {
@@ -264,7 +268,13 @@
             } catch (e) {
                 appendLogRecord(4, [e]);
             }
-            if (globalThis.scriptOutput !== undefined) {
+            // Only do it if returns value type is not string, number, Uint8Array
+            if (
+                globalThis.scriptOutput !== undefined &&
+                typeof globalThis.scriptOutput !== 'string' &&
+                typeof globalThis.scriptOutput !== 'number' &&
+                !(globalThis.scriptOutput instanceof Uint8Array)
+            ) {
                 try {
                     globalThis.serializedScriptOutput = JSON.stringify({output: globalThis.scriptOutput});
                 } catch (e) {

@@ -173,6 +173,10 @@ async fn wait_child(
         invoke_callback(&service, res, &(unhandled_rejection, output.to_string(), serialized, logs));
     } else if output.is_number() {
         invoke_callback(&service, res, &(unhandled_rejection, output, serialized, logs));
+    } else if output.is_uint8_array() {
+        let bytes = <Vec<u8>>::from_js_value(output).unwrap_or_default();
+        let hex = format!("0x{}", bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+        invoke_callback(&service, res, &(unhandled_rejection, hex, serialized, logs));
     } else {
         match <Vec<u8>>::from_js_value(output) {
             Ok(bytes) => {
