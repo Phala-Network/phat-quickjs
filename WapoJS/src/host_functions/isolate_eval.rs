@@ -176,7 +176,6 @@ async fn wait_child(
     } else {
         match <Vec<u8>>::from_js_value(output) {
             Ok(bytes) => {
-                log::info!(target: "js::isolate", "call callback in 3");
                 invoke_callback(&service, res, &(unhandled_rejection, bytes, serialized, logs));
             }
             Err(_) => {

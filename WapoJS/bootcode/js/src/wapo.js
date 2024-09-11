@@ -215,7 +215,7 @@
         };
         options = { ...defaultOptions, ...(options || {}) };
         const result = await new Promise((resolve) => Wapo.isolateEval({
-            scripts: ["Wapo.useBufferedLogs(true);", code],
+            scripts: [Wapo.env?.WAPO_BUFFERED_LOGS !== 'disabled' ? "Wapo.useBufferedLogs(true)" : '', code],
             args: options.args,
             env: options.env,
             timeLimit: options.timeLimit,
