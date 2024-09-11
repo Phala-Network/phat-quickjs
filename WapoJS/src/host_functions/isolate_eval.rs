@@ -12,21 +12,21 @@ use crate::{
 };
 
 trait CrossContext {
-    fn transfer(self) -> Transfering<Self>
+    fn transfer(self) -> Transferring<Self>
     where
         Self: Sized;
 }
 
 impl CrossContext for js::Value {
-    fn transfer(self) -> Transfering<Self> {
-        Transfering(self)
+    fn transfer(self) -> Transferring<Self> {
+        Transferring(self)
     }
 }
 
 /// A wrapper that allows transferring a value between JS contexts safely.
-struct Transfering<T>(T);
+struct Transferring<T>(T);
 
-impl ToJsValue for Transfering<js::Value> {
+impl ToJsValue for Transferring<js::Value> {
     fn to_js_value(&self, context: &js::Context) -> Result<js::Value> {
         if self.0.is_undefined() {
             return Ok(js::Value::Undefined);
