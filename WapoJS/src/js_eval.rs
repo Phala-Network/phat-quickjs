@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::env;
-use std::path::Path;
 
 use js::ToJsValue;
 
@@ -66,7 +65,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                 #[cfg(feature = "native")]
                 "-e" => {
                     let path_str = iter.next().ok_or(anyhow!("missing path after -e"))?;
-                    let path = Path::new(&path_str);
+                    let path = std::path::Path::new(&path_str);
                     if !path.exists() {
                         return Err(anyhow!("path {path_str} not exists."));
                     }

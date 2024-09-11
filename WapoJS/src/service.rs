@@ -4,13 +4,13 @@ use alloc::{
     rc::{Rc, Weak},
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
-use log::{debug, info, error};
+use log::{debug, error};
+use std::ffi::{c_int, c_void, CStr};
 use std::{future::Future, sync::Mutex};
-use std::ffi::{CStr, c_void, c_int};
 
 use crate::{host_functions::setup_host_functions, runtime};
 use anyhow::{Context, Result};
-use js::{c::{self, JS_DupValue}, Code, EngineConfig, Error as ValueError, ToArgs};
+use js::{c, Code, EngineConfig, Error as ValueError, ToArgs};
 use tokio::sync::{broadcast, oneshot};
 
 mod resource;
@@ -174,7 +174,10 @@ impl Service {
                         exc_str.push_str(&lines);
                         c::JS_FreeCString(ctx, c_lines);
                     }
-                    service.unhandled_rejection_str.borrow_mut().replace(exc_str);
+                    service
+                        .unhandled_rejection_str
+                        .borrow_mut()
+                        .replace(exc_str);
 
                     c::JS_FreeValue(ctx, stack);
                     c::JS_FreeCString(ctx, c_reason);
@@ -186,7 +189,7 @@ impl Service {
             c::JS_SetHostPromiseRejectionTracker(
                 runtime.as_ptr(),
                 Some(promise_rejection_tracker),
-                boxed_self as *mut _
+                boxed_self as *mut _,
             )
         };
 
@@ -264,7 +267,11 @@ impl Service {
 
     pub fn run_default_module(&self) -> Result<js::Value> {
         let ctx = self.context();
-        let default_fn = ctx.get_global_object().get_property("Wapo")?.get_property("callModuleEntry").unwrap_or_default();
+        let default_fn = ctx
+            .get_global_object()
+            .get_property("Wapo")?
+            .get_property("callModuleEntry")
+            .unwrap_or_default();
         if default_fn.is_function() {
             return self.call_function(default_fn, ());
         }
