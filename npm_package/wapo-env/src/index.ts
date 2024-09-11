@@ -504,7 +504,7 @@ export interface RunCodeReturns<Value = unknown> {
   isOk: Readonly<Boolean>;
   isError: Readonly<Boolean>;
   error: Readonly<string>;
-  value: Readonly<Value>;
+  value: Value;
   logs: Readonly<{
     message: string;
     level: number;

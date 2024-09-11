@@ -1,5 +1,6 @@
 import type { Hono } from "hono"
 import type { BlankEnv, BlankSchema, Env, Schema } from 'hono/types'
+import { encode } from '@msgpack/msgpack'
 
 export function handle<E extends Env = BlankEnv, S extends Schema = BlankSchema, BasePath extends string = '/'>(
   app: Hono<E, S, BasePath>,
@@ -19,10 +20,10 @@ export function handle<E extends Env = BlankEnv, S extends Schema = BlankSchema,
       }
       // NOTE only suppport text for now.
       const body = await resp.text()
-      globalThis.scriptOutput = JSON.stringify({ body, headers, status: resp.status })
+      globalThis.scriptOutput = encode({ body, headers, status: resp.status })
     } catch (err) {
       // TODO error message formatting
-      globalThis.scriptOutput = JSON.stringify({ body: (err as Error).message, headers: {}, status: 500 })
+      globalThis.scriptOutput = encode({ body: (err as Error).message, headers: {}, status: 500 })
     }
   }
 }

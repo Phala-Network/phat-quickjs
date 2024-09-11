@@ -245,7 +245,6 @@
                 isError: !!error,
                 isOk: !error,
             };
-            Object.freeze(result);
             return result;
         });
         return result;
