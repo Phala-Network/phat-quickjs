@@ -176,6 +176,36 @@
         error.stack = [new DummyCallSite(), new DummyCallSite(), new DummyCallSite()]
     };
 
+    const _version = g.Wapo.version;
+    Object.defineProperty(g.Wapo, "version", {
+        get() {
+            return _version;
+        },
+        writeable: false,
+        configurable: false,
+    });
+
+    // For non-wasm builds.
+    if (!g.Wapo.deriveSecret) {
+        const _workerSecret = g.Wapo.workerSecret;
+        Object.defineProperty(g.Wapo, "workerSecret", {
+            get() {
+                return _workerSecret;
+            },
+            writeable: false,
+            configurable: false,
+        });
+
+        Object.defineProperty(g.Wapo, "deriveSecret", {
+            value: function (message) {
+                return Wapo.hash("blake2b512", `${_workerSecret}${message}`);
+            },
+            writeable: false,
+            configurable: false,
+        });
+    }
+
+
     // should be called in host mode only.
     g.Wapo.run = async function (code, options) {
         const defaultOptions = {

@@ -55,6 +55,8 @@ pub(crate) fn setup_host_functions(ctx: &js::Context, cfg: &ServiceConfig) -> Re
     let version = env!("CARGO_PKG_VERSION");
     let version = ctx.new_string(version);
     ns.set_property("version", &version)?;
+    let worker_secret = ctx.new_string(&cfg.worker_secret);
+    ns.set_property("workerSecret", &worker_secret)?;
     set_extensions(&ns, ctx)?;
     print::setup(&ns)?;
     timer::setup(&ns)?;
