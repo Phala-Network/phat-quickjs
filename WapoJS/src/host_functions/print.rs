@@ -15,12 +15,12 @@ fn print(level: u32, args: Vec<js::Value>, config: Option<repr::ReprConfig>) {
     if buf.is_empty() {
         js_log(level, "");
     } else {
-        let buf = &buf[..2048.min(buf.len())];
+        let buf = &buf[..20480.min(buf.len())];
         for line in buf.lines() {
             js_log(level, line);
         }
     }
-    if buf.len() > 2048 {
+    if buf.len() > 20480 {
         js_log(level, "<...>");
     }
 }
