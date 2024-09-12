@@ -268,7 +268,7 @@ export type BoolCallback = (value: boolean, err: string | undefined) => any;
 /**
  * Represents an HTTP request.
  */
-interface HttpRequest {
+export interface HttpRequest {
   url: string;
   method?: string;
   headers?: HeadersIn;
@@ -282,7 +282,7 @@ interface HttpRequest {
 /**
  * Represents the receipt of an HTTP request.
  */
-interface HttpRequestReceipt {
+export interface HttpRequestReceipt {
   cancelToken: number;
   opaqueBodyStream?: WriteableStreamHandle;
 }
@@ -290,7 +290,7 @@ interface HttpRequestReceipt {
 /**
  * Represents the response headers for an HTTP request.
  */
-interface ClientHttpResponseHead {
+export interface ClientHttpResponseHead {
   status: number;
   statusText: string;
   version: string;
@@ -391,7 +391,7 @@ export interface IncomingRequest {
 /**
  * Represents a lock acquired through `tryLock`.
  */
-interface LockGuard {
+export interface LockGuard {
   [_lockGuardBrand]: "LockGuard";
 }
 declare const _lockGuardBrand: unique symbol;
@@ -439,7 +439,7 @@ declare const _writeStreamBrand: unique symbol;
 /**
  * Represents a query received by the query listener.
  */
-interface Query {
+export interface Query {
   /**
    * The origin of the query, if available.
    */
@@ -464,7 +464,7 @@ interface Query {
 /**
  * Arguments for the `isolateEval` function.
  */
-interface IsolateEvalArgs {
+export interface IsolateEvalArgs {
   /**
    * The scripts to be evaluated.
    */
@@ -516,7 +516,7 @@ export interface RunCodeReturns<Value = unknown> {
 /**
  * Represents memory usage statistics.
  */
-interface MemoryStats {
+export interface MemoryStats {
   /**
    * The current memory usage.
    */
