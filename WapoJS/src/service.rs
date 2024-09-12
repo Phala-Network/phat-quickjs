@@ -439,6 +439,10 @@ impl Service {
         *self.state.borrow_mut() = Default::default();
         runtime::time::sleep(Duration::from_millis(2)).await;
     }
+
+    pub fn is_sandbox(&self) -> bool {
+        self.config.is_sandbox
+    }
 }
 
 // Configuration get
