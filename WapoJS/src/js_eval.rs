@@ -73,6 +73,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                         return Err(anyhow!("not a valid env file: {path_str}"));
                     }
                 }
+                #[cfg(feature = "native")]
                 "--worker-secret" => {
                     let secret = iter
                         .next()
@@ -94,9 +95,9 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         print_usage();
         bail!("no script file provided");
     }
+    #[cfg(feature = "native")]
     if worker_secret.is_none() {
-        print_usage();
-        bail!("--worker-secret is required.");
+        log::warn!("worker secret is not provided, using default worker secret: wapo-testnet");
     }
     let js_args = iter.collect();
     Ok(Args {
@@ -104,7 +105,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         js_args,
         #[cfg(feature = "native")]
         tls_port,
-        worker_secret: worker_secret.unwrap(),
+        worker_secret: worker_secret.unwrap_or_else(|| String::from("wapo-testnet")),
     })
 }
 
