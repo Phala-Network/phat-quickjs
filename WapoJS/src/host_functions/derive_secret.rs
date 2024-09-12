@@ -4,7 +4,7 @@ pub(crate) fn setup(ns: &js::Value) -> Result<()> {
     #[cfg(feature = "wapo")]
     ns.define_property_fn("deriveSecret", derive_secret)?;
     #[cfg(not(feature = "wapo"))]
-    ns.define_property_fn("deriveSecret", qjs_extensions::sha3::sha3_512)?;
+    let _ = ns;
     Ok(())
 }
 

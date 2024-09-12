@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::env;
 
 use js::ToJsValue;
 
@@ -8,6 +9,9 @@ use crate::{
 };
 use anyhow::{anyhow, bail, Context, Result};
 
+#[cfg(feature = "native")]
+use dotenv;
+
 use pink_types::js::{JsCode, JsValue};
 
 struct Args {
@@ -15,6 +19,7 @@ struct Args {
     tls_port: u16,
     codes: Vec<JsCode>,
     js_args: Vec<String>,
+    worker_secret: String,
 }
 
 #[cfg(feature = "wapo")]
@@ -30,6 +35,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
     let mut iter = args.skip(1);
     #[cfg(feature = "native")]
     let mut tls_port = 443_u16;
+    let mut worker_secret: Option<String> = None;
     while let Some(arg) = iter.next() {
         if arg.starts_with("-") {
             if arg == "--" {
@@ -56,6 +62,24 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
                     let code = iter.next().ok_or(anyhow!("missing code after -c"))?;
                     codes.push(JsCode::Source(code));
                 }
+                #[cfg(feature = "native")]
+                "-e" => {
+                    let path_str = iter.next().ok_or(anyhow!("missing path after -e"))?;
+                    let path = std::path::Path::new(&path_str);
+                    if !path.exists() {
+                        return Err(anyhow!("path {path_str} not exists."));
+                    }
+                    if let Err(_) = dotenv::from_path(path) {
+                        return Err(anyhow!("not a valid env file: {path_str}"));
+                    }
+                }
+                #[cfg(feature = "native")]
+                "--worker-secret" => {
+                    let secret = iter
+                        .next()
+                        .ok_or(anyhow!("missing value after --worker-secret"))?;
+                    worker_secret = Some(secret);
+                }
                 _ => {
                     print_usage();
                     bail!("unknown option: {}", arg);
@@ -71,18 +95,23 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args> {
         print_usage();
         bail!("no script file provided");
     }
+    #[cfg(feature = "native")]
+    if worker_secret.is_none() {
+        log::warn!("worker secret is not provided, using default worker secret: wapo-testnet");
+    }
     let js_args = iter.collect();
     Ok(Args {
         codes,
         js_args,
         #[cfg(feature = "native")]
         tls_port,
+        worker_secret: worker_secret.unwrap_or_else(|| String::from("wapo-testnet")),
     })
 }
 
 fn print_usage() {
     println!("wapojs v{}", env!("CARGO_PKG_VERSION"));
-    println!("Usage: wapojs [options] [script..] [-- [args]]");
+    println!("Usage: wapojs [options] --worker-secret <secret> [script..] [-- [args]]");
     println!("");
     println!("Options:");
     println!("  -c <code>        Execute code");
@@ -90,6 +119,9 @@ fn print_usage() {
     println!("  --code-hash <code_hash>  Execute code");
     #[cfg(feature = "native")]
     println!("  --tls-port <port>  TLS listen port (default: 443)");
+    #[cfg(feature = "native")]
+    println!("  -e <path>        dotenv file provides additional env variables");
+    println!("  --worker-secret <secret>    Worker secret");
     println!("  --               Stop processing options");
 }
 
@@ -111,24 +143,26 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     #[cfg(not(feature = "external-bootcode"))]
     let bootcode = Cow::Borrowed(DEFAULT_BOOTCODE);
 
+    let parsed_args = parse_args(args)?;
+
     let config = ServiceConfig {
         is_sandbox: false,
         engine_config: Default::default(),
+        worker_secret: parsed_args.worker_secret.clone(),
     };
 
     let service = Service::new_ref(config);
     service.boot(Some(&bootcode))?;
 
-    let rv = run_with_service(service.clone(), args).await;
+    let rv = run_with_service(service.clone(), parsed_args).await;
     service.shutdown().await;
     rv
 }
 
 async fn run_with_service(
     service: ServiceRef,
-    args: impl Iterator<Item = String>,
+    args: Args,
 ) -> Result<JsValue> {
-    let args = parse_args(args)?;
     #[cfg(feature = "native")]
     {
         crate::runtime::set_sni_tls_port(args.tls_port);
@@ -142,6 +176,7 @@ async fn run_with_service(
         .get_global_object()
         .set_property("scriptArgs", &js_args)
         .context("failed to set scriptArgs")?;
+
     let mut expr_val = None;
     for code in args.codes.into_iter() {
         let result = match code {
@@ -155,6 +190,9 @@ async fn run_with_service(
             }
         }
     }
+
+    service.run_default_module()?;
+
     #[cfg(feature = "wapo")]
     loop {
         tokio::select! {

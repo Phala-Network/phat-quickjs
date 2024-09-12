@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, rc::Weak, time::Duration};
 
 use anyhow::{bail, Result};
+use blake2::{Blake2b512, Digest};
 use js::{EngineConfig, Error, ErrorContext, FromJsValue, ToJsValue};
 use log::{error, info};
 use tokio::sync::oneshot;
@@ -9,6 +10,50 @@ use crate::{
     service::{OwnedJsValue, ServiceConfig, ServiceRef, ServiceWeakRef},
     Service,
 };
+
+trait CrossContext {
+    fn transfer(self) -> Transferring<Self>
+    where
+        Self: Sized;
+}
+
+impl CrossContext for js::Value {
+    fn transfer(self) -> Transferring<Self> {
+        Transferring(self)
+    }
+}
+
+/// A wrapper that allows transferring a value between JS contexts safely.
+struct Transferring<T>(T);
+
+impl ToJsValue for Transferring<js::Value> {
+    fn to_js_value(&self, context: &js::Context) -> Result<js::Value> {
+        if self.0.is_undefined() {
+            return Ok(js::Value::Undefined);
+        }
+        if self.0.is_null() {
+            return Ok(js::Value::Null);
+        }
+        if let Ok(s) = js::JsString::from_js_value(self.0.clone()) {
+            return s.as_str().to_js_value(context);
+        }
+        if let Ok(n) = i32::from_js_value(self.0.clone()) {
+            return n.to_js_value(context);
+        }
+        if let Ok(b) = bool::from_js_value(self.0.clone()) {
+            return b.to_js_value(context);
+        }
+        if let Ok(bytes) = js::JsUint8Array::from_js_value(self.0.clone()) {
+            return js::AsBytes(bytes.as_bytes()).to_js_value(context);
+        }
+        if let Ok(buffer) = js::JsArrayBuffer::from_js_value(self.0.clone()) {
+            let obj = js::JsArrayBuffer::new(context, buffer.len())?;
+            obj.fill_with_bytes(buffer.as_bytes());
+            return obj.to_js_value(context);
+        }
+        Ok(js::Value::Undefined)
+    }
+}
 
 #[derive(js::FromJsValue, Debug)]
 #[qjs(rename_all = "camelCase")]
@@ -43,6 +88,15 @@ fn isolate_eval(
             bail!("memory limit is too low, at least 128KB is required");
         }
     }
+
+    let mut hasher = Blake2b512::new();
+    args.scripts.iter().for_each(|script| {
+        hasher.update(script.as_bytes());
+    });
+    let code_hash = hasher.finalize();
+    let secret = service.worker_secret();
+    let inner_worker_secret = format!("{secret}::{code_hash:02x}");
+
     let config = ServiceConfig {
         engine_config: EngineConfig {
             gas_limit: args.gas_limit,
@@ -50,6 +104,7 @@ fn isolate_eval(
             time_limit: args.time_limit,
         },
         is_sandbox: true,
+        worker_secret: inner_worker_secret,
     };
     let child_service = Service::new_ref(config);
     child_service
@@ -103,6 +158,9 @@ fn isolate_eval(
             .map_err(Error::msg)?;
     }
     let output = output.to_js_value().unwrap_or(js::Value::Undefined);
+
+    child_service.run_default_module()?;
+
     let id = service.spawn_with_cancel_rx(
         callback,
         wait_child,
@@ -117,7 +175,7 @@ async fn wait_child(
     cancel_rx: oneshot::Receiver<()>,
     args: (ServiceRef, js::Value, Option<u64>),
 ) {
-    let (child_service, output, timeout) = args;
+    let (child_service, fallback, timeout) = args;
     let timeout = timeout.unwrap_or(u64::MAX);
     tokio::select! {
         _ = cancel_rx => {
@@ -130,30 +188,31 @@ async fn wait_child(
         _ = child_service.wait_for_tasks() => {}
     }
     child_service.shutdown().await;
-    let output_obj = child_service
-        .context()
-        .get_global_object()
-        .get_property("scriptOutput")
-        .ok();
 
-    let output = match output_obj {
+    let global_object = child_service.context().get_global_object();
+
+    // let output = get_script_output(&global_object, _output);
+    let output_obj = global_object.get_property("scriptOutput").ok();
+    let output_obj = match output_obj {
         Some(output) if !output.is_undefined() => output,
-        _ => output,
+        _ => fallback,
     };
-    if output.is_null_or_undefined() {
-        invoke_callback(&service, res, &output);
-    } else if output.is_string() {
-        invoke_callback(&service, res, &output.to_string());
-    } else {
-        match <Vec<u8>>::from_js_value(output) {
-            Ok(bytes) => {
-                invoke_callback(&service, res, &bytes);
-            }
-            Err(_) => {
-                invoke_callback(&service, res, &"[object]".to_string());
-            }
-        }
-    }
+    let serialized_obj = global_object
+        .get_property("serializedScriptOutput")
+        .unwrap_or_default();
+    let logs_obj = global_object.get_property("scriptLogs").unwrap_or_default();
+    let unhandled_rejection = child_service.unhandled_rejection().unwrap_or_default();
+
+    invoke_callback(
+        &service,
+        res,
+        &(
+            unhandled_rejection,
+            output_obj.transfer(),
+            serialized_obj.transfer(),
+            logs_obj.transfer(),
+        ),
+    );
 }
 
 fn invoke_callback(weak_service: &Weak<Service>, id: u64, data: &dyn ToJsValue) {

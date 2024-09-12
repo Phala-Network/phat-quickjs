@@ -75,13 +75,24 @@ declare global {
      * different secrets.
      */
     deriveSecret(salt: Uint8Array | string): Uint8Array;
+
     /**
      * Hashes a message using the specified algorithm.
      * @param algrithm - The name of the hash algorithm to use.
-     *    Supported values are "blake2b128", "blake2b256", "blake2b512", "sha256", "keccak256".
+     *    Supported values are "blake2b128", "blake2b256", "blake2b512", "sha256", "keccak256"
      * @param message - The message to hash, either as a Uint8Array or a string.
      */
-    hash(algrithm: string, message: Uint8Array | string): Uint8Array;
+    hash(algrithm: 'blake2b128' | 'blake2b256' | 'blake2b512' | 'sha256' | 'keccak256', message: Uint8Array | string): Uint8Array;
+
+    /**
+     * Non-cryptographic hashing, current only supported wyhash64 64-bit hash. Non-cryptographic algorithms
+     * are optimized for speed of computation over collision-resistance or seurity.
+     *
+     * @param algrithm - The name of the hash algorithm to use.
+     *    Supported values are "wyhash64"
+     * @param message - The message to hash, either as a Uint8Array or a string.
+     */
+    nonCryptographicHash(algrithm: 'wyhash64', message: Uint8Array | string): Uint8Array;
 
     /**
      * Concatenates multiple Uint8Array objects into a single Uint8Array.
@@ -196,7 +207,7 @@ declare global {
      * @param config - The configuration for the HTTP(S) server.
      * @param handler - A callback function that handles incoming requests.
      */
-    httpsListen(config: HttpsConfig | HttpConfig, handler: (req: IncommingRequest) => any): void;
+    httpsListen(config: HttpsConfig | HttpConfig, handler: (req: IncomingRequest) => any): void;
 
     /**
      * Sends an HTTP response head to the specified transmitter.
@@ -231,7 +242,16 @@ declare global {
      * @param callback - A callback function to be called with the result of the evaluation.
      * @returns The ID of the spawned task.
      */
-    isolateEval(args: IsolateEvalArgs, callback: (output: string | Uint8Array | undefined) => any): number;
+    isolateEval(args: IsolateEvalArgs, callback: (output: string | Uint8Array | undefined) => unknown): number;
+
+    /**
+     * Evaluates scripts in an isolated environment, asynchronously friendly version with pre-defined default options.
+     *
+     * @param code - The code to be evaluated.
+     * @param options - The options for the isolated evaluation.
+     * @returns A promise that resolves with the result of the evaluation.
+     */
+    run<Value = unknown>(code: string, options?: RunCodeOptions): Promise<RunCodeReturns<Value>>;
 
     /**
      * Retrieves memory statistics for the current runtime.
@@ -248,7 +268,7 @@ export type BoolCallback = (value: boolean, err: string | undefined) => any;
 /**
  * Represents an HTTP request.
  */
-interface HttpRequest {
+export interface HttpRequest {
   url: string;
   method?: string;
   headers?: HeadersIn;
@@ -262,7 +282,7 @@ interface HttpRequest {
 /**
  * Represents the receipt of an HTTP request.
  */
-interface HttpRequestReceipt {
+export interface HttpRequestReceipt {
   cancelToken: number;
   opaqueBodyStream?: WriteableStreamHandle;
 }
@@ -270,7 +290,7 @@ interface HttpRequestReceipt {
 /**
  * Represents the response headers for an HTTP request.
  */
-interface ClientHttpResponseHead {
+export interface ClientHttpResponseHead {
   status: number;
   statusText: string;
   version: string;
@@ -336,7 +356,7 @@ export type HeadersIn = Array<[string, string]>;
 /**
  * Represents an HTTP request.
  */
-export interface IncommingRequest {
+export interface IncomingRequest {
   /**
    * The HTTP method of the request (e.g., GET, POST, PUT, DELETE).
    */
@@ -371,7 +391,7 @@ export interface IncommingRequest {
 /**
  * Represents a lock acquired through `tryLock`.
  */
-interface LockGuard {
+export interface LockGuard {
   [_lockGuardBrand]: "LockGuard";
 }
 declare const _lockGuardBrand: unique symbol;
@@ -419,7 +439,7 @@ declare const _writeStreamBrand: unique symbol;
 /**
  * Represents a query received by the query listener.
  */
-interface Query {
+export interface Query {
   /**
    * The origin of the query, if available.
    */
@@ -444,7 +464,7 @@ interface Query {
 /**
  * Arguments for the `isolateEval` function.
  */
-interface IsolateEvalArgs {
+export interface IsolateEvalArgs {
   /**
    * The scripts to be evaluated.
    */
@@ -477,10 +497,26 @@ interface IsolateEvalArgs {
 }
 
 
+
+export type RunCodeOptions = Partial<Omit<IsolateEvalArgs, 'scripts'>>;
+
+export interface RunCodeReturns<Value = unknown> {
+  isOk: Readonly<Boolean>;
+  isError: Readonly<Boolean>;
+  error: Readonly<string>;
+  value: Value;
+  logs: Readonly<{
+    message: string;
+    level: number;
+    time: number;
+  }[]>;
+}
+
+
 /**
  * Represents memory usage statistics.
  */
-interface MemoryStats {
+export interface MemoryStats {
   /**
    * The current memory usage.
    */

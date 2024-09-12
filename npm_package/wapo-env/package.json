@@ -1,6 +1,6 @@
 {
   "name": "@phala/wapo-env",
-  "version": "1.0.3",
+  "version": "0.9.4",
   "description": "The js environment accessing of wapo.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,6 +17,9 @@
     "contract",
     "wapo"
   ],
+  "files": [
+    "dist/*/*"
+  ],
   "author": "Phala Network",
   "license": "Apache-2.0",
   "bugs": {
@@ -24,6 +27,31 @@
   },
   "homepage": "https://github.com/Phala-Network/phat-quickjs",
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.4.1",
     "typescript": "^4.9.4"
+  },
+  "optionalDependencies": {
+    "@msgpack/msgpack": "^3.0.0-beta2",
+    "hono": "^4.5.4",
+    "@noble/hashes": "^1.5.0",
+    "wyhash.js": "0.0.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./guest": {
+      "types": "./dist/guest.d.ts",
+      "import": "./dist/guest.js",
+      "require": "./dist/guest.js"
+    },
+    "./host": {
+      "types": "./dist/host.d.ts",
+      "import": "./dist/host.js",
+      "require": "./dist/host.js"
+    }
   }
 }
