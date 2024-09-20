@@ -155,7 +155,10 @@ fn isolate_eval(
     for script in args.scripts {
         output = child_service
             .exec_script(script.as_str())
-            .map_err(Error::msg)?;
+            .map_err(|e| {
+                child_service.close_all();
+                Error::msg(e.to_string())
+            })?;
     }
     let output = output.to_js_value().unwrap_or(js::Value::Undefined);
 
