@@ -328,7 +328,7 @@ impl Service {
     pub fn close_all(&self) {
         debug!(target: "js::rt", "destroying all resources");
         let mut state = self.state.borrow_mut();
-        if state.recources.is_empty() {
+        if state.is_empty() {
             return;
         }
         state.recources.clear();
@@ -476,8 +476,8 @@ pub fn js_context_get_runtime(ctx: &js::Context) -> Option<Rc<JsEngine>> {
 impl Drop for Service {
     fn drop(&mut self) {
         unsafe {
-            if !self.state.borrow().recources.is_empty() {
-                error!(target: "js::rt", "service dropped without explicit shutdown");
+            if !self.state.borrow().is_empty() {
+                error!(target: "js::rt", "service dropped without explicit shutdown, this may lead to memory corruption");
             }
             let pname = c::JS_GetContextOpaque(self.context().as_ptr()) as *mut ServiceWeakRef;
             drop(Box::from_raw(pname));
