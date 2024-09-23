@@ -152,24 +152,34 @@ fn isolate_eval(
     }
 
     let mut output = OwnedJsValue::Undefined;
+    let mut error = None;
     for script in args.scripts {
-        output = child_service
-            .exec_script(script.as_str())
-            .map_err(|e| {
-                child_service.close_all();
-                Error::msg(e.to_string())
-            })?;
+        let result = child_service
+            .exec_script(script.as_str());
+        if let Err(e) = result {
+            error = Some(Error::msg(e.to_string()));
+            break;
+        } else {
+            output = result.unwrap();
+        }
     }
-    let output = output.to_js_value().unwrap_or(js::Value::Undefined);
 
-    child_service.run_default_module()?;
+    if error.is_none() {
+        child_service.run_default_module()?;
+    }
+
+    let output = output.to_js_value().unwrap_or(js::Value::Undefined);
 
     let id = service.spawn_with_cancel_rx(
         callback,
         wait_child,
         (child_service, output, args.time_limit),
     );
-    Ok(id)
+
+    if error.is_none() {
+        return Ok(id);
+    }
+    return Err(error.unwrap());
 }
 
 async fn wait_child(
