@@ -118,7 +118,7 @@ pub struct Service {
 
 struct ServiceState {
     next_resource_id: u64,
-    recources: BTreeMap<u64, Resource>,
+    resources: BTreeMap<u64, Resource>,
     http_listener: Option<OwnedJsValue>,
     query_listener: Option<OwnedJsValue>,
     done_tx: broadcast::Sender<()>,
@@ -131,7 +131,7 @@ impl ServiceState {
         id
     }
     fn is_empty(&self) -> bool {
-        self.recources.is_empty() && self.http_listener.is_none() && self.query_listener.is_none()
+        self.resources.is_empty() && self.http_listener.is_none() && self.query_listener.is_none()
     }
 }
 
@@ -139,7 +139,7 @@ impl Default for ServiceState {
     fn default() -> Self {
         Self {
             next_resource_id: Default::default(),
-            recources: Default::default(),
+            resources: Default::default(),
             http_listener: Default::default(),
             query_listener: Default::default(),
             done_tx: broadcast::channel(1).0,
@@ -313,14 +313,14 @@ impl Service {
     pub fn push_resource(&self, resource: Resource) -> u64 {
         let mut state = self.state.borrow_mut();
         let id = state.take_next_resource_id();
-        state.recources.insert(id, resource);
+        state.resources.insert(id, resource);
         debug!(target: "js::rt", "created resource {id}");
         id
     }
 
     pub fn get_resource_value(&self, id: u64) -> Option<js::Value> {
         let state = self.state.borrow();
-        Some(self.to_js_value(&state.recources.get(&id)?.js_value))
+        Some(self.to_js_value(&state.resources.get(&id)?.js_value))
     }
 
     pub fn close_all(&self) {
@@ -329,7 +329,7 @@ impl Service {
         if state.is_empty() {
             return;
         }
-        state.recources.clear();
+        state.resources.clear();
         state.http_listener = None;
         state.query_listener = None;
         let _ = state.done_tx.send(());
@@ -339,7 +339,7 @@ impl Service {
         debug!(target: "js::rt", "destroying resource {id}");
         let mut state = self.state.borrow_mut();
         let was_empty = state.is_empty();
-        let res = state.recources.remove(&id);
+        let res = state.resources.remove(&id);
         if !was_empty && state.is_empty() {
             let _ = state.done_tx.send(());
         }
@@ -403,7 +403,7 @@ impl Service {
     }
 
     pub fn number_of_tasks(&self) -> usize {
-        self.state.borrow().recources.len()
+        self.state.borrow().resources.len()
     }
 
     pub fn set_http_listener(&self, listener: OwnedJsValue) {
