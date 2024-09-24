@@ -232,7 +232,6 @@ impl Service {
         setup_host_functions(self.context(), &self.config)
             .context("failed to setup host functions")?;
         if let Some(bootcode) = bootcode {
-            use js::NoStdContext;
             self.exec_bytecode(bootcode)
                 .context("failed to execute boot code")?;
         }
@@ -278,17 +277,16 @@ impl Service {
         Ok(js::Value::Undefined)
     }
 
-    pub fn exec_script(&self, script: &str) -> Result<OwnedJsValue, String> {
+    pub fn exec_script(&self, script: &str) -> Result<js::Value> {
         self.eval(Code::Source(script))
     }
 
-    pub fn exec_bytecode(&self, script: &[u8]) -> Result<OwnedJsValue, String> {
+    pub fn exec_bytecode(&self, script: &[u8]) -> Result<js::Value> {
         self.eval(Code::Bytecode(script))
     }
 
-    pub fn eval(&self, code: Code) -> Result<OwnedJsValue, String> {
-        let result = js::eval(self.context(), &code)
-            .map(|value| value.try_into().map_err(|err: ValueError| err.to_string()))?;
+    pub fn eval(&self, code: Code) -> Result<js::Value> {
+        let result = js::eval(self.context(), &code).map_err(|err| anyhow::anyhow!("{err}"));
         self.runtime.exec_pending_jobs();
         result
     }

@@ -159,10 +159,7 @@ pub async fn run(args: impl Iterator<Item = String>) -> Result<JsValue> {
     rv
 }
 
-async fn run_with_service(
-    service: ServiceRef,
-    args: Args,
-) -> Result<JsValue> {
+async fn run_with_service(service: ServiceRef, args: Args) -> Result<JsValue> {
     #[cfg(feature = "native")]
     {
         crate::runtime::set_sni_tls_port(args.tls_port);
@@ -184,7 +181,7 @@ async fn run_with_service(
             JsCode::Bytecode(bytes) => service.exec_bytecode(&bytes),
         };
         match result {
-            Ok(value) => expr_val = value.to_js_value(),
+            Ok(value) => expr_val = Some(value),
             Err(err) => {
                 bail!("failed to execute script: {err}");
             }
