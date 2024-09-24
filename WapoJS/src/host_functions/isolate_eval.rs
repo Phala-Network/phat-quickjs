@@ -161,7 +161,9 @@ fn isolate_eval(
     }
 
     if result.is_ok() {
-        result = child_service.run_default_module();
+        if let Err(err) = child_service.run_default_module() {
+            result = Err(err);
+        }
     }
 
     let id = service.spawn_with_cancel_rx(
