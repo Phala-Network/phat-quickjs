@@ -5,7 +5,7 @@ use alloc::{
 };
 use core::{any::Any, cell::RefCell, ops::Deref, time::Duration};
 use log::{debug, error};
-use std::ffi::{c_int, c_void, CStr};
+use std::ffi::{c_int, c_void};
 use std::{future::Future, sync::Mutex};
 
 use crate::{host_functions::setup_host_functions, runtime};
@@ -159,37 +159,32 @@ impl Service {
             _promise: c::JSValue,
             reason: c::JSValue,
             _is_handled: c_int,
-            opaque: *mut c_void,
+            _opaque: *mut c_void,
         ) {
-            unsafe {
-                let weak_self = &*(opaque as *const ServiceWeakRef);
-                if let Some(service) = weak_self.upgrade() {
-                    let c_reason = c::JS_ToCString(ctx, reason);
-                    let mut exc_str = CStr::from_ptr(c_reason).to_string_lossy().into_owned();
-                    let stack = c::JS_GetPropertyStr(ctx, reason, "stack\0".as_ptr() as _);
-                    if !c::is_undefined(stack) {
-                        exc_str.push_str("\n[stack]\n");
-                        let c_lines = c::JS_ToCString(ctx, stack);
-                        let lines = CStr::from_ptr(c_lines).to_string_lossy().into_owned();
-                        exc_str.push_str(&lines);
-                        c::JS_FreeCString(ctx, c_lines);
-                    }
-                    service
-                        .unhandled_rejection_str
-                        .borrow_mut()
-                        .replace(exc_str);
-
-                    c::JS_FreeValue(ctx, stack);
-                    c::JS_FreeCString(ctx, c_reason);
-                }
-            }
+            let Some(ctx) = js::Context::clone_from_ptr(ctx) else {
+                return;
+            };
+            let Ok(service) = ServiceRef::try_from(ctx) else {
+                return;
+            };
+            let error = js::Value::new_cloned(&service.context(), reason);
+            let stack = error.get_property("stack").unwrap_or_default();
+            let exc_str = if stack.is_undefined() {
+                error.to_string()
+            } else {
+                format!("{error}\n[stack]\n{stack}")
+            };
+            service
+                .unhandled_rejection_str
+                .borrow_mut()
+                .replace(exc_str);
         }
 
         unsafe {
             c::JS_SetHostPromiseRejectionTracker(
                 runtime.as_ptr(),
                 Some(promise_rejection_tracker),
-                boxed_self as *mut _,
+                core::ptr::null_mut(),
             )
         };
 
