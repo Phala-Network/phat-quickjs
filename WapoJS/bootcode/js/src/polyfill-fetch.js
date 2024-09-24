@@ -223,6 +223,14 @@
                 });
             } else if (bodyInit instanceof ReadableStream) {
                 this._body = bodyInit;
+            // The case of subclass of String
+            } else if (bodyInit instanceof String && typeof bodyInit === 'object' && typeof bodyInit.toString === 'function') {
+                this._body = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(new TextEncoder().encode(bodyInit.toString()));
+                        controller.close();
+                    }
+                });
             }
         }
         createBodyStream() {
@@ -339,7 +347,8 @@
                 typeof bodyInit !== 'string' &&
                 !(bodyInit instanceof Blob) &&
                 !(bodyInit instanceof ArrayBuffer) &&
-                !(bodyInit instanceof Uint8Array)
+                !(bodyInit instanceof Uint8Array) &&
+                !(bodyInit instanceof String)
             ) {
                 throw new TypeError('Unsupported bodyInit type');
             }

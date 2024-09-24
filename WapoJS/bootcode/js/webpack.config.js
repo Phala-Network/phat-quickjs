@@ -50,6 +50,7 @@ module.exports = {
       querystring: jspm_module('querystring.js'),
       readline: jspm_module('readline.js'),
       repl: jspm_module('repl.js'),
+      "stream/web": jspm_module('stream/web.js'),
       stream: require.resolve('readable-stream'),
       string_decoder: jspm_module('string_decoder.js'),
       sys: jspm_module('sys.js'),

@@ -217,40 +217,55 @@
             polyfills: ['nodejs'],
         };
         options = { ...defaultOptions, ...(options || {}) };
-        const result = await new Promise((resolve) => Wapo.isolateEval({
-            scripts: [Wapo.env?.WAPO_BUFFERED_LOGS !== 'disabled' ? "Wapo.useBufferedLogs(true)" : '', code],
-            args: options.args,
-            env: options.env,
-            timeLimit: options.timeLimit,
-            gasLimit: options.gasLimit,
-            memoryLimit: options.memoryLimit,
-            polyfills: options.polyfills,
-        }, resolve)).then(([error, value, serialized, logs]) => {
-            if (serialized) {
-                try {
-                    value = JSON.parse(serialized)?.output;
-                } catch (e) {
+        try {
+            const result = await new Promise((resolve) => Wapo.isolateEval({
+                scripts: [Wapo.env?.WAPO_BUFFERED_LOGS !== 'disabled' ? "Wapo.useBufferedLogs(true)" : '', code],
+                args: options.args,
+                env: options.env,
+                timeLimit: options.timeLimit,
+                gasLimit: options.gasLimit,
+                memoryLimit: options.memoryLimit,
+                polyfills: options.polyfills,
+            }, resolve)).then(([error, value, serialized, logs]) => {
+                if (serialized) {
+                    try {
+                        value = JSON.parse(serialized)?.output;
+                    } catch (e) {
+                    }
                 }
-            }
-            if (typeof value === 'string' && value.startsWith('0x')) {
-                value = new Uint8Array(value.slice(2).match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-            }
+                if (typeof value === 'string' && value.startsWith('0x')) {
+                    value = new Uint8Array(value.slice(2).match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                }
 
-            try {
-                logs = JSON.parse(logs);
-            } catch (e) {
-                logs = [];
-            }
-            const result = {
-                error,
-                value,
-                logs,
-                isError: !!error,
-                isOk: !error,
-            };
+                try {
+                    logs = JSON.parse(logs);
+                } catch (e) {
+                    logs = [];
+                }
+                const result = {
+                    error,
+                    value,
+                    logs,
+                    isError: !!error,
+                    isOk: !error,
+                };
+                return result;
+            });
             return result;
-        });
-        return result;
+        } catch (err) {
+            let error = err.message;
+            // NOTE: not sure why the error message returns in quoted string, so we did parsing here.
+            if (typeof error === 'string' && error.startsWith('"')) {
+                error = JSON.parse(error);
+            }
+            return {
+                error,
+                value: undefined,
+                logs: [],
+                isError: true,
+                isOk: false,
+            };
+        }
     }
 
     // should be called in guest mode only.

@@ -151,21 +151,27 @@ fn isolate_eval(
         }
     }
 
-    let mut output = OwnedJsValue::Undefined;
+    let mut result = Ok(js::Value::Undefined);
     for script in args.scripts {
-        output = child_service
-            .exec_script(script.as_str())
-            .map_err(Error::msg)?;
+        result = child_service.exec_script(script.as_str());
+        if result.is_err() {
+            child_service.close_all();
+            break;
+        }
     }
-    let output = output.to_js_value().unwrap_or(js::Value::Undefined);
 
-    child_service.run_default_module()?;
+    if result.is_ok() {
+        if let Err(err) = child_service.run_default_module() {
+            result = Err(err);
+        }
+    }
 
     let id = service.spawn_with_cancel_rx(
         callback,
         wait_child,
-        (child_service, output, args.time_limit),
+        (child_service, result, args.time_limit),
     );
+
     Ok(id)
 }
 
@@ -173,9 +179,9 @@ async fn wait_child(
     service: ServiceWeakRef,
     res: u64,
     cancel_rx: oneshot::Receiver<()>,
-    args: (ServiceRef, js::Value, Option<u64>),
+    args: (ServiceRef, Result<js::Value>, Option<u64>),
 ) {
-    let (child_service, fallback, timeout) = args;
+    let (child_service, result, timeout) = args;
     let timeout = timeout.unwrap_or(u64::MAX);
     tokio::select! {
         _ = cancel_rx => {
@@ -191,6 +197,11 @@ async fn wait_child(
 
     let global_object = child_service.context().get_global_object();
 
+    let (fallback, error) = match result {
+        Ok(output) => (output, None),
+        Err(err) => (js::Value::Undefined, Some(format!("{err:?}"))),
+    };
+
     // let output = get_script_output(&global_object, _output);
     let output_obj = global_object.get_property("scriptOutput").ok();
     let output_obj = match output_obj {
@@ -201,7 +212,8 @@ async fn wait_child(
         .get_property("serializedScriptOutput")
         .unwrap_or_default();
     let logs_obj = global_object.get_property("scriptLogs").unwrap_or_default();
-    let unhandled_rejection = child_service.unhandled_rejection().unwrap_or_default();
+    let unhandled_rejection =
+        error.or_else(|| child_service.unhandled_rejection().unwrap_or_default());
 
     invoke_callback(
         &service,

@@ -32,6 +32,7 @@
             case "readline": return require("readline");
             case "repl": return require("repl");
             case "stream": return require("stream");
+            case "stream/web": return require("stream/web");
             case "string_decoder": return require("string_decoder");
             case "sys": return require("sys");
             case "timers": return require("timers");
