@@ -223,13 +223,6 @@ async fn serve_connection(weak_service: ServiceWeakRef, id: u64, connection: Tcp
             service_fn(move |req| {
                 let weak_service = weak_service.clone();
                 async move {
-                    if req.method() == hyper::Method::OPTIONS {
-                        let res = hyper::Response::builder()
-                            .status(204)
-                            .header("Allow", "OPTIONS, GET, POST")
-                            .body(ResponseBody::Empty)?;
-                        return Ok(res);
-                    }
                     let (resposne_tx, response_rx) =
                         oneshot::channel::<HttpResponseHead>();
                     let (up_end, down_end) = duplex(STREAM_BUF_SIZE);
